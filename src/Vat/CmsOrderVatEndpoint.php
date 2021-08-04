@@ -114,14 +114,19 @@ final class CmsOrderVatEndpoint extends BaseEndpoint
 		$httpResponse->setHeader('Content-Description', 'File Transfer');
 
 		// header
-		echo implode(',', array_map(static fn(string $item): string => '"' . $item . '"', array_keys($return[0]))) . "\n";
+		echo implode(
+			',',
+			array_map(static fn(string $item): string => '"' . $item . '"', array_keys($return[0])),
+		);
+		echo "\n";
 
-		$renderer = static function (mixed $item): string {
+		$renderer = static function (mixed $item): string
+		{
 			if (is_bool($item)) {
 				return $item ? 'y' : 'n';
 			}
 			if (is_numeric($item)) {
-				return (string)$item;
+				return (string) $item;
 			}
 			if ($item === null) {
 				return '';
@@ -136,7 +141,8 @@ final class CmsOrderVatEndpoint extends BaseEndpoint
 		echo implode(
 			"\n",
 			array_map(
-				static function (array $haystack) use ($renderer): string {
+				static function (array $haystack) use ($renderer): string
+				{
 					$line = '';
 					foreach ($haystack as $item) {
 						$line .= ($line ? ',' : '') . $renderer($item);

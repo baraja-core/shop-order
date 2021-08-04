@@ -40,7 +40,8 @@ final class Emailer
 						->renderToString(
 							__DIR__ . '/templates/order.latte',
 							array_merge(
-								$this->getDefaultParameters(), [
+								$this->getDefaultParameters(),
+								[
 									'order' => $order,
 									'items' => $order->getItems(),
 									'delivery' => $order->getDelivery(),
@@ -51,7 +52,7 @@ final class Emailer
 										]
 									),
 									'linkGenerator' => $this->linkGenerator,
-								]
+								],
 							)
 						)
 				)
@@ -71,9 +72,10 @@ final class Emailer
 						->renderToString(
 							__DIR__ . '/templates/orderPaid.latte',
 							array_merge(
-								$this->getDefaultParameters(), [
+								$this->getDefaultParameters(),
+								[
 									'order' => $order,
-								]
+								],
 							)
 						)
 				)
@@ -93,9 +95,10 @@ final class Emailer
 						->renderToString(
 							__DIR__ . '/templates/orderPreparing.latte',
 							array_merge(
-								$this->getDefaultParameters(), [
+								$this->getDefaultParameters(),
+								[
 									'order' => $order,
-								]
+								],
 							)
 						)
 				)
@@ -115,9 +118,10 @@ final class Emailer
 						->renderToString(
 							__DIR__ . '/templates/orderPrepared.latte',
 							array_merge(
-								$this->getDefaultParameters(), [
+								$this->getDefaultParameters(),
+								[
 									'order' => $order,
-								]
+								],
 							)
 						)
 				)
@@ -137,9 +141,10 @@ final class Emailer
 						->renderToString(
 							__DIR__ . '/templates/orderSent.latte',
 							array_merge(
-								$this->getDefaultParameters(), [
+								$this->getDefaultParameters(),
+								[
 									'order' => $order,
-								]
+								],
 							)
 						)
 				)
@@ -159,9 +164,10 @@ final class Emailer
 						->renderToString(
 							__DIR__ . '/templates/orderDone.latte',
 							array_merge(
-								$this->getDefaultParameters(), [
+								$this->getDefaultParameters(),
+								[
 									'order' => $order,
-								]
+								],
 							)
 						)
 				)
@@ -183,9 +189,10 @@ final class Emailer
 						->renderToString(
 							__DIR__ . '/templates/orderStorno.latte',
 							array_merge(
-								$this->getDefaultParameters(), [
+								$this->getDefaultParameters(),
+								[
 									'order' => $order,
-								]
+								],
 							)
 						)
 				)
@@ -205,9 +212,10 @@ final class Emailer
 						->renderToString(
 							__DIR__ . '/templates/orderMissingItem.latte',
 							array_merge(
-								$this->getDefaultParameters(), [
+								$this->getDefaultParameters(),
+								[
 									'order' => $order,
-								]
+								],
 							)
 						)
 				)
@@ -230,10 +238,11 @@ final class Emailer
 						->renderToString(
 							__DIR__ . '/templates/orderPing.latte',
 							array_merge(
-								$this->getDefaultParameters(), [
+								$this->getDefaultParameters(),
+								[
 									'order' => $order,
 									'orderDetailLink' => $this->internalLink('/objednavka/' . $order->getHash()),
-								]
+								],
 							)
 						)
 				)
@@ -270,10 +279,7 @@ final class Emailer
 		if ($this->translator !== null) {
 			$engine->addFilter(
 				'translate',
-				function (FilterInfo $fi, ...$args): string
-				{
-					return $this->translator->translate(...$args);
-				}
+				fn(FilterInfo $fi, ...$args): string => $this->translator->translate(...$args),
 			);
 		}
 

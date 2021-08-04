@@ -154,8 +154,7 @@ final class OrderGenerator
 
 	public function createEmptyOrder(Customer $customer): Order
 	{
-		$address = static function (Customer $customer): Address
-		{
+		$address = static function (Customer $customer): Address {
 			$country = null; // TODO: Implement default country
 
 			return new Address(

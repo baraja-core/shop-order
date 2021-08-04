@@ -82,23 +82,24 @@ final class TransactionManager
 		}
 
 		static $cache = [];
-		return $cache[$number] ?? $cache[$number] = (function (int $number): bool {
-				try {
-					$this->entityManager->getRepository(OrderPayment::class)
-						->createQueryBuilder('o')
-						->where('o.number = :number')
-						->setParameter('number', $number)
-						->andWhere('o.status = :status')
-						->setParameter('status', OrderStatus::STATUS_PAID)
-						->getQuery()
-						->getSingleResult();
+		if (isset($cache[$number]) === false) {
+			try {
+				$this->entityManager->getRepository(OrderPayment::class)
+					->createQueryBuilder('o')
+					->where('o.number = :number')
+					->setParameter('number', $number)
+					->andWhere('o.status = :status')
+					->setParameter('status', OrderStatus::STATUS_PAID)
+					->getQuery()
+					->getSingleResult();
 
-					return true;
-				} catch (NonUniqueResultException | NoResultException) {
-					// Silence is golden.
-				}
+				$cache[$number] = true;
+			} catch (NonUniqueResultException | NoResultException) {
+				// Silence is golden.
+			}
+			$cache[$number] = false;
+		}
 
-				return false;
-			})($number);
+		return $cache[$number];
 	}
 }

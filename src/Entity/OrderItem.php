@@ -53,7 +53,7 @@ class OrderItem
 		$this->count = $count;
 		$this->price = $price;
 		if ($product !== null) {
-			$this->setLabel((string)$product->getName());
+			$this->setLabel((string) $product->getName());
 		}
 	}
 
@@ -83,7 +83,7 @@ class OrderItem
 			return '[!!!] Neznámý produkt';
 		}
 
-		return (string)$this->product->getName();
+		return (string) $this->product->getName();
 	}
 
 

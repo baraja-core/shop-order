@@ -142,7 +142,9 @@ class Order implements OrderEntity, OrderNumber
 		$this->payment = $payment;
 		$this->price = $price;
 		$this->priceWithoutVat = $priceWithoutVat;
-		$this->deliveryPrice = $price > self::FREE_DELIVERY_LIMIT ? 0 : $delivery->getPrice();
+		$this->deliveryPrice = $price > self::FREE_DELIVERY_LIMIT
+			? 0
+			: $delivery->getPrice();
 		$this->hash = Random::generate(32);
 		$this->insertedDate = DateTime::from('now');
 		$this->updatedDate = DateTime::from('now');

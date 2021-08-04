@@ -58,9 +58,11 @@ final class OrderDocumentManager
 			}
 			$cache = $return;
 			$this->cache->save(
-				'entity-list', $cache, [
+				'entity-list',
+				$cache,
+				[
 					Cache::EXPIRATION => '2 hours',
-				]
+				],
 			);
 		}
 

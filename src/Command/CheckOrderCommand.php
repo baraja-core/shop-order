@@ -130,8 +130,7 @@ final class CheckOrderCommand extends Command
 		try {
 			$authorizator->authOrders(
 				$unauthorizedVariables,
-				function (Transaction $transaction) use ($orderByVariable): void
-				{
+				function (Transaction $transaction) use ($orderByVariable): void {
 					$entity = null;
 					if ($this->transactionManager->transactionExist($transaction->getIdTransaction()) === false) {
 						$entity = $this->transactionManager->storeToDb($transaction);
