@@ -1,0 +1,16 @@
+{layout '@layout.latte'}
+
+{block content}
+	<p>Dobrý den,</p>
+	<p>
+		vaši objednávku <b>{$order->getNumber()}</b> jsme <span style="color:green">připravili k vyzvednutí</span>.
+	</p>
+	<p>
+		Pro zásilku si můžete přijít kdykoli v rámci naší otevírací doby.
+		Pokud potřebujete změnit způsob doručení, nebo objednávku nestihnete do 10 pracovních dnů vyzvednout,
+		dejte nám prosím vědět.
+	</p>
+	<p>
+		Mějte se hezky. Vážíme si Vaší důvěry.
+	</p>
+{/block}

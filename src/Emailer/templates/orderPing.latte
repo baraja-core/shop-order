@@ -1,0 +1,26 @@
+{layout '@layout.latte'}
+
+{block content}
+	<p>Dobrý den,</p>
+	<p>
+		moc se omlouváme za vyrušení, ale u vaší objednávky <b>{$order->getNumber()}</b>
+		v našem systému evidujeme, že <span style="color:red">nebyla zaplacena</span>.
+	</p>
+	<p>
+		Objednávku můžete zaplatit teď hned platební kartou,
+		stačí jen kliknout na tlačítko a sledovat další pokyny.
+	</p>
+	<div style="margin:32px 0;text-align:center">
+		<a href="{$orderDetailLink}">
+			<button style="color:#FFFFFF;background-color:#614F42;font-size:14pt;padding:4px 12px;border:none;border-radius:6px">
+				Zaplatit teď hned
+			</button>
+		</a>
+	</div>
+	<p>
+		Pokud potřebujete více informací, kontaktujte nás odpovědí na tento e-mail, nebo na telefonní číslo.
+	</p>
+	<p>
+		Mějte se hezky. Vážíme si Vaší důvěry.
+	</p>
+{/block}

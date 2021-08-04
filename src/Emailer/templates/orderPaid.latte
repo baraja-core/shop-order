@@ -1,0 +1,16 @@
+{layout '@layout.latte'}
+
+{block content}
+	<p>Dobrý den,</p>
+	<p>
+		děkujeme za platbu vaší objednávky <b>{$order->getNumber()}</b>,
+		která právě dorazila.
+	</p>
+	<p>
+		Vaši objednávku nyní začínáme expedovat a budeme vás dále informovat o způsobu doručení.
+		Pokud byla objednávka rezervována na prodejně, tak je nyní připravena k odběru.
+	</p>
+	<p>
+		Mějte se hezky. Vážíme si Vaší důvěry.
+	</p>
+{/block}

@@ -1,0 +1,19 @@
+{layout '@layout.latte'}
+
+{block content}
+	<p>Dobrý den,</p>
+	<p>
+		moc se omlouváme, ve vaši objednávce <b>{$order->getNumber()}</b> bohužel některá z položek není skladem.
+	</p>
+	<p n:if="$order->getNotice()">
+		Poznámka u objednávky:<br>
+		<b>{$order->getNotice()}</b>
+	</p>
+	<p>
+		Objednávka bude nyní vyčkávat, než veškeré zboží naskladníme a poté se bude doručovat běžným způsobem.
+		Pokud potřebujete více informací, kontaktujte nás odpovědí na tento e-mail, nebo na telefonní číslo.
+	</p>
+	<p>
+		Mějte se hezky. Vážíme si Vaší důvěry.
+	</p>
+{/block}

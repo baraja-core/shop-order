@@ -1,0 +1,828 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Baraja\Shop\Order;
+
+
+use App\BalikobotManager;
+use Baraja\Doctrine\EntityManager;
+use Baraja\Search\Search;
+use Baraja\Shop\Address\Entity\Address;
+use Baraja\Shop\Customer\Entity\Customer;
+use Baraja\Shop\Delivery\BranchManager;
+use Baraja\Shop\Delivery\Entity\BranchInterface;
+use Baraja\Shop\Delivery\Entity\Delivery;
+use Baraja\Shop\Invoice\Entity\Invoice;
+use Baraja\Shop\Invoice\InvoiceManager;
+use Baraja\Shop\Order\Entity\Order;
+use Baraja\Shop\Order\Entity\OrderItem;
+use Baraja\Shop\Order\Entity\OrderPayment;
+use Baraja\Shop\Order\Entity\OrderStatus;
+use Baraja\Shop\Payment\Entity\Payment;
+use Baraja\Shop\Product\Entity\Product;
+use Baraja\Shop\Product\Entity\ProductVariant;
+use Baraja\StructuredApi\BaseEndpoint;
+use Doctrine\ORM\NonUniqueResultException;
+use Doctrine\ORM\NoResultException;
+use Nette\Utils\Paginator;
+use Tracy\Debugger;
+use Tracy\ILogger;
+
+final class CmsOrderEndpoint extends BaseEndpoint
+{
+	public function __construct(
+		private EntityManager $entityManager,
+		private OrderManager $orderManager,
+		private InvoiceManager $invoiceManager,
+		private Emailer $emailer,
+		private OrderStatusManager $orderStatusManager,
+		private BranchManager $branchManager,
+		private Search $search
+	) {
+	}
+
+
+	public function actionDefault(
+		?string $query = null,
+		?string $status = null,
+		?int $delivery = null,
+		?int $payment = null,
+		?string $orderBy = null,
+		?string $dateFrom = null,
+		?string $dateTo = null,
+		int $limit = 128,
+		int $page = 1,
+	): void {
+		$orderCandidateSelection = $this->entityManager->getRepository(Order::class)
+			->createQueryBuilder('o')
+			->select('PARTIAL o.{id}');
+
+		if ($orderBy !== null) {
+			if ($orderBy === 'old') {
+				$orderCandidateSelection->orderBy('o.updatedDate', 'ASC');
+			} elseif ($orderBy === 'number') {
+				$orderCandidateSelection->orderBy('o.number', 'ASC');
+			} elseif ($orderBy === 'number-desc') {
+				$orderCandidateSelection->orderBy('o.number', 'DESC');
+			}
+		} else {
+			$orderCandidateSelection->orderBy('o.number', 'DESC');
+		}
+		if ($query !== null) {
+			$orderCandidateSelection->andWhere('o.id IN (:searchIds)')
+				->setParameter(
+					'searchIds',
+					$this->search->search(
+						$query,
+						[
+							Order::class => [
+								'number',
+								'notice',
+								'customer.email',
+								'customer.firstName',
+								'customer.lastName',
+							],
+						],
+						useAnalytics: false
+					)
+						->getIds()
+				);
+		}
+		if ($status === null) {
+			$orderCandidateSelection->andWhere('o.status != :statusDone')
+				->andWhere('o.status != :statusStorno')
+				->andWhere('o.status != :statusTest')
+				->setParameter('statusDone', OrderStatus::STATUS_DONE)
+				->setParameter('statusStorno', OrderStatus::STATUS_STORNO)
+				->setParameter('statusTest', OrderStatus::STATUS_TEST);
+		} elseif ($status === 'trzby') {
+			$orderCandidateSelection
+				->andWhere('o.status != :statusStorno')
+				->andWhere('o.status != :statusTest')
+				->setParameter('statusStorno', OrderStatus::STATUS_STORNO)
+				->setParameter('statusTest', OrderStatus::STATUS_TEST);
+		} elseif ($status !== 'all') {
+			$orderCandidateSelection->andWhere('o.status = :status')
+				->setParameter('status', $status);
+		}
+		if ($dateFrom !== null) {
+			$orderCandidateSelection->andWhere('o.insertedDate >= :dateFrom')
+				->setParameter('dateFrom', $dateFrom . ' 00:00:00');
+		}
+		if ($dateTo !== null) {
+			$orderCandidateSelection->andWhere('o.insertedDate <= :dateTo')
+				->setParameter('dateTo', $dateTo . ' 23:59:59');
+		}
+		if ($delivery !== null) {
+			$orderCandidateSelection->andWhere('o.delivery = :delivery')
+				->setParameter('delivery', $delivery);
+		}
+		if ($payment !== null) {
+			$orderCandidateSelection->andWhere('o.payment = :payment')
+				->setParameter('payment', $payment);
+		}
+
+		$count = (int) (clone $orderCandidateSelection)
+			->orderBy('o.id', 'DESC')
+			->select('COUNT(o.id)')
+			->getQuery()
+			->getSingleScalarResult();
+
+		$orderCandidates = $orderCandidateSelection
+			->setMaxResults($limit)
+			->setFirstResult($limit * ($page - 1))
+			->getQuery()
+			->getArrayResult();
+
+		$candidateIds = array_map(static fn(array $order): int => (int) $order['id'], $orderCandidates);
+
+		/** @var Delivery[] $deliveries */
+		$deliveries = $this->entityManager->getRepository(Delivery::class)->findAll();
+
+		/** @var Payment[] $payments */
+		$payments = $this->entityManager->getRepository(Payment::class)->findAll();
+
+		/** @var Order[] $orders */
+		$orders = $this->entityManager->getRepository(Order::class)
+			->createQueryBuilder('o')
+			->select('PARTIAL o.{id, hash, number, status, price, sale, insertedDate, updatedDate, notice}')
+			->addSelect('PARTIAL customer.{id, email, firstName, lastName, phone}')
+			->addSelect('PARTIAL item.{id, count, price, sale}')
+			->addSelect('PARTIAL product.{id, name}')
+			->addSelect('productVariant')
+			->addSelect('PARTIAL invoice.{id, number}')
+			->addSelect('PARTIAL paymentReal.{id}')
+			->addSelect('PARTIAL package.{id}')
+			->leftJoin('o.customer', 'customer')
+			->leftJoin('o.items', 'item')
+			->leftJoin('item.product', 'product')
+			->leftJoin('item.variant', 'productVariant')
+			->leftJoin('o.invoices', 'invoice')
+			->leftJoin('o.payments', 'paymentReal')
+			->leftJoin('o.packages', 'package')
+			->where('o.id IN (:ids)')
+			->setParameter('ids', $candidateIds)
+			->orderBy('o.number', 'DESC')
+			->getQuery()
+			->getResult();
+
+		$sum = 0;
+		$return = [];
+		foreach ($orders as $order) {
+			$return[] = [
+				'id' => $order->getId(),
+				'checked' => false,
+				'color' => $order->getColor(),
+				'number' => $order->getNumber(),
+				'status' => $order->getStatus(),
+				'statusHuman' => $order->getStatusHuman(),
+				'price' => $order->getBasePrice(),
+				'sale' => $order->getSale(),
+				'finalPrice' => $order->getPrice(),
+				'notice' => $order->getNotice(),
+				'insertedDate' => $order->getInsertedDate()->format('d.m.y H:i'),
+				'updatedDate' => $order->getUpdatedDate()->format('d.m.y H:i'),
+				'package' => count($order->getPackages()),
+				'customer' => [
+					'id' => $order->getCustomer()->getId(),
+					'email' => $order->getCustomer()->getEmail(),
+					'firstName' => $order->getCustomer()->getFirstName(),
+					'lastName' => $order->getCustomer()->getLastName(),
+					'phone' => $order->getCustomer()->getPhone(),
+				],
+				'delivery' => [
+					'id' => $order->getDelivery()->getId(),
+					'name' => (string) $order->getDelivery()->getName(),
+					'price' => $order->getDeliveryPrice(),
+					'color' => $order->getDelivery()->getColor(),
+				],
+				'payment' => [
+					'id' => $order->getPayment()->getId(),
+					'name' => $order->getPayment()->getName(),
+					'price' => $order->getPayment()->getPrice(),
+					'color' => $order->getPayment()->getColor(),
+				],
+				'items' => (static function ($items): array
+				{
+					$return = [];
+					/** @var OrderItem $item */
+					foreach ($items as $item) {
+						$return[] = [
+							'id' => $item->getId(),
+							'name' => $item->getLabel(),
+							'count' => $item->getCount(),
+							'price' => $item->getPrice(),
+							'sale' => $item->getSale(),
+							'finalPrice' => $item->getFinalPrice(),
+						];
+					}
+
+					return $return;
+				})(
+					$order->getItems()
+				),
+				'invoices' => (function ($items) use ($order): array
+				{
+					$return = [];
+					/** @var Invoice $item */
+					foreach ($items as $item) {
+						$return[] = [
+							'id' => $item->getId(),
+							'number' => $item->getNumber(),
+							'url' => $this->link(
+								'Front:Invoice:default', [
+									'number' => $item->getNumber(),
+									'hash' => $order->getHash(),
+								]
+							),
+						];
+					}
+
+					return $return;
+				})(
+					$order->getInvoices()
+				),
+				'payments' => (static function ($items): array
+				{
+					$return = [];
+					/** @var OrderPayment $item */
+					foreach ($items as $item) {
+						$return[] = [
+							'id' => $item->getId(),
+						];
+					}
+
+					return $return;
+				})($order->getPayments()),
+			];
+			$sum += $order->getPrice();
+		}
+
+		$this->sendJson(
+			[
+				'items' => $return,
+				'statuses' => $this->formatBootstrapSelectArray($this->orderStatusManager->getKeyValueList()),
+				'sum' => $sum,
+				'filterStatuses' => $this->formatBootstrapSelectArray(
+					[null => '- výchozí stavy -', 'all' => 'VŠECHNY HODNOTY', 'trzby' => 'TRŽBY'] + $this->orderStatusManager->getKeyValueList()
+				),
+				'filterPayments' => $this->formatBootstrapSelectArray(
+					[null => '- platby -'] + (static function (array $payments): array
+					{
+						$return = [];
+						/** @var Payment $payment */
+						foreach ($payments as $payment) {
+							$return[$payment->getId()] = $payment->getName();
+						}
+
+						return $return;
+					})(
+						$payments
+					)
+				),
+				'filterDeliveries' => $this->formatBootstrapSelectArray(
+					[null => '- dopravy -'] + (static function (array $deliveries): array
+					{
+						$return = [];
+						/** @var Delivery $delivery */
+						foreach ($deliveries as $delivery) {
+							$return[$delivery->getId()] = (string) $delivery->getName();
+						}
+
+						return $return;
+					})(
+						$deliveries
+					)
+				),
+				'paginator' => (new Paginator)
+					->setItemCount($count)
+					->setItemsPerPage($limit)
+					->setPage($page),
+			]
+		);
+	}
+
+
+	public function actionOverview(int $id): void
+	{
+		$order = $this->getOrderById($id);
+
+		$transactions = [];
+		foreach ($order->getTransactions() as $transaction) {
+			$transactions[] = [
+				'id' => $transaction->getId(),
+				'price' => $transaction->getPrice(),
+				'date' => $transaction->getDate(),
+			];
+		}
+		$payments = [];
+		foreach ($order->getPayments() as $payment) {
+			$payments[] = [
+				'gopayId' => $payment->getGopayId(),
+				'price' => $payment->getPrice(),
+				'status' => $payment->getStatus(),
+				'insertedDate' => $payment->getInsertedDate(),
+			];
+		}
+
+		$items = [];
+		foreach ($order->getItems() as $item) {
+			$items[] = [
+				'id' => $item->getId(),
+				'productId' => $item->getProduct()->getId(),
+				'variantId' => $item->getVariant() === null ? null : $item->getVariant()->getId(),
+				'name' => $item->getLabel(),
+				'count' => $item->getCount(),
+				'price' => $item->getPrice(),
+				'sale' => $item->getSale(),
+				'finalPrice' => $item->getFinalPrice(),
+				'type' => 'product',
+			];
+		}
+		$items[] = [
+			'id' => null,
+			'name' => 'Doprava ' . $order->getDelivery()->getName(),
+			'count' => 1,
+			'price' => $order->getDeliveryPrice(),
+			'type' => 'delivery',
+		];
+		$items[] = [
+			'id' => null,
+			'name' => 'Platba ' . $order->getPayment()->getName(),
+			'count' => 1,
+			'price' => $order->getPayment()->getPrice(),
+			'type' => 'payment',
+		];
+
+		/** @var Delivery[] $deliveryList */
+		$deliveryList = $this->entityManager->getRepository(Delivery::class)->findAll();
+		$deliverySelectbox = [];
+		foreach ($deliveryList as $delivery) {
+			$deliverySelectbox[$delivery->getId()] = $delivery->getName() . ' (' . $delivery->getPrice() . ' Kč)';
+		}
+
+		/** @var Payment[] $paymentList */
+		$paymentList = $this->entityManager->getRepository(Payment::class)->findAll();
+		$paymentSelectbox = [];
+		foreach ($paymentList as $payment) {
+			$paymentSelectbox[$payment->getId()] = $payment->getName() . ' (' . $payment->getPrice() . ' Kč)';
+		}
+
+		$invoices = [];
+		foreach ($order->getInvoices() as $invoice) {
+			$invoices[] = [
+				'id' => $invoice->getId(),
+				'number' => $invoice->getNumber(),
+				'price' => $invoice->getPrice(),
+				'paid' => $invoice->isPaid(),
+				'date' => $invoice->getInsertedDate(),
+				'url' => $this->link(
+					'Front:Invoice:default', [
+						'number' => $invoice->getNumber(),
+						'hash' => $order->getHash(),
+					]
+				),
+			];
+		}
+
+		$packages = [];
+		foreach ($order->getPackages() as $package) {
+			$packages[] = [
+				'orderId' => $package->getOrderId(),
+				'packageId' => $package->getPackageId(),
+				'shipper' => $package->getShipper(),
+				'carrierId' => $package->getCarrierId(),
+				'trackUrl' => $package->getTrackUrl(),
+				'labelUrl' => $package->getLabelUrl(),
+				'carrierIdSwap' => $package->getCarrierIdSwap(),
+			];
+		}
+
+		$branch = null;
+		$branchId = $order->getDeliveryBranchId();
+		if ($branchId !== null) {
+			$branch = $this->branchManager->getBranchById($order->getDelivery(), $branchId);
+		}
+
+		$formatAddress = static function (Address $address): array
+		{
+			return [
+				'firstName' => $address->getFirstName(),
+				'lastName' => $address->getLastName(),
+				'street' => $address->getStreet(),
+				'city' => $address->getCity(),
+				'zip' => $address->getZip(),
+				'country' => $address->getCountry(),
+				'companyName' => $address->getCompanyName(),
+				'ic' => $address->getCin(),
+				'dic' => $address->getTin(),
+			];
+		};
+
+		$this->sendJson(
+			[
+				'id' => $id,
+				'number' => $order->getNumber(),
+				'status' => $order->getStatus(),
+				'price' => $order->getPrice(),
+				'sale' => $order->getSale(),
+				'statuses' => $this->formatBootstrapSelectArray($this->orderStatusManager->getKeyValueList()),
+				'notice' => $order->getNotice(),
+				'customer' => [
+					'id' => $order->getCustomer()->getId(),
+					'name' => $order->getCustomer()->getName(),
+					'email' => $order->getCustomer()->getEmail(),
+					'phone' => $order->getCustomer()->getPhone(),
+				],
+				'deliveryAddress' => $formatAddress($order->getDeliveryAddress()),
+				'invoiceAddress' => $formatAddress($order->getDeliveryAddress()),
+				'deliveryList' => $this->formatBootstrapSelectArray($deliverySelectbox),
+				'paymentList' => $this->formatBootstrapSelectArray($paymentSelectbox),
+				'deliveryId' => $order->getDelivery()
+					->getId(),
+				'deliverPrice' => $order->getDeliveryPrice(),
+				'deliveryBranch' => $branchId !== null
+					? (static function (int $id, ?BranchInterface $branch)
+					{
+						if ($branch === null) {
+							return [
+								'id' => $id,
+							];
+						}
+
+						return $branch;
+					})($branchId, $branch) : null,
+				'deliveryBranchError' => $branchId !== null && $branch === null,
+				'paymentId' => $order->getPayment()->getId(),
+				'items' => $items,
+				'transactions' => $transactions,
+				'payments' => $payments,
+				'invoices' => $invoices,
+				'package' => $packages ?: null,
+				'packageHandoverUrl' => $order->getHandoverUrl(),
+			]
+		);
+	}
+
+
+	public function postCreateEmptyOrder(int $customerId): void
+	{
+		try {
+			/** @var Customer $customer */
+			$customer = $this->entityManager->getRepository(Customer::class)
+				->createQueryBuilder('c')
+				->where('c.id = :id')
+				->setParameter('id', $customerId)
+				->setMaxResults(1)
+				->getQuery()
+				->getSingleResult();
+		} catch (NoResultException | NonUniqueResultException) {
+			$this->sendError('Customer "' . $customerId . '" does not exist.');
+		}
+
+		$order = $this->orderManager->createEmptyOrder($customer);
+		$this->flashMessage('Order "' . $order->getNumber() . '" has been created.', 'success');
+		$this->sendJson(
+			[
+				'id' => $order->getId(),
+				'number' => $order->getNumber(),
+			]
+		);
+	}
+
+
+	public function actionCustomerList(?string $query = null): void
+	{
+		$selector = $this->entityManager->getRepository(Customer::class)
+			->createQueryBuilder('c')
+			->setMaxResults(10)
+			->orderBy('c.insertedDate', 'DESC');
+
+		if ($query !== null) {
+			$selector->orWhere('c.firstName LIKE :query')
+				->orWhere('c.lastName LIKE :query')
+				->orWhere('c.email LIKE :query')
+				->setParameter('query', $query . '%');
+		}
+
+		/** @var Customer[] $customers */
+		$customers = $selector->getQuery()
+			->getResult();
+
+		$return = [];
+		foreach ($customers as $customer) {
+			$return[] = [
+				'id' => $customer->getId(),
+				'name' => $customer->getName(),
+			];
+		}
+
+		$this->sendJson(
+			[
+				'items' => $return,
+			]
+		);
+	}
+
+
+	public function postProcessPacketMultiple(array $items): void
+	{
+		/** @var Order[] $orders */
+		$orders = $this->entityManager->getRepository(Order::class)
+			->createQueryBuilder('o')
+			->where('o.id IN (:ids)')
+			->setParameter('ids', array_map(static fn(array $item): int => $item['id'], $items))
+			->getQuery()
+			->getResult();
+
+		/** @var BalikobotManager $bot */
+		$bot = $this->container->getByType(BalikobotManager::class);
+
+		$orderCandidates = [];
+		foreach ($orders as $order) {
+			if ($order->getDelivery()
+					->getBotShipper() === null || \count($order->getPackages()) > 0) {
+				continue;
+			}
+			$orderCandidates[] = $order;
+		}
+
+		try {
+			$bot->createPackages($orderCandidates);
+		} catch (\Throwable $e) {
+			Debugger::log($e, ILogger::CRITICAL);
+		}
+		$this->entityManager->flush();
+
+		$this->flashMessage('Bylo založeno ' . \count($orderCandidates) . ' zásilek.', 'success');
+		$this->sendOk();
+	}
+
+
+	public function postSaveAddress(int $id, array $deliveryAddress, array $invoiceAddress): void
+	{
+		$order = $this->getOrderById($id);
+
+		$hydrate = static function (Address $address, array $data): void
+		{
+			$address->setFirstName((string) $data['firstName']);
+			$address->setLastName((string) $data['lastName']);
+			$address->setStreet((string) $data['street']);
+			$address->setCity((string) $data['city']);
+			$address->setZip((string) $data['zip']);
+			$address->setCountry((string) $data['country']);
+			$address->setCompanyName((string) $data['companyName']);
+			$address->setCin((string) $data['ic']);
+			$address->setTin((string) $data['dic']);
+		};
+
+		$hydrate($order->getDeliveryAddress(), $deliveryAddress);
+		$hydrate($order->getInvoiceAddress(), $invoiceAddress);
+		$this->flashMessage('Adresy byly úspěšně uloženy.', 'success');
+		$this->entityManager->flush();
+
+		if ($order->isInvoice()) {
+			$this->invoiceManager->createInvoice($order);
+			$this->flashMessage('Upravená faktura byla odeslána uživateli.', 'success');
+		}
+
+		$this->entityManager->flush();
+		$this->sendOk();
+	}
+
+
+	public function postCreatePackage(int $id): void
+	{
+		$order = $this->getOrderById($id);
+		if ($order->getDelivery()->getBotShipper() === null) {
+			$this->sendError('Objednávka je na prodejnu, nelze odeslat k přepravci.');
+		}
+
+		/** @var BalikobotManager $bot */
+		$bot = $this->container->getByType(BalikobotManager::class);
+		try {
+			$bot->createPackages([$order]);
+		} catch (\Throwable $e) {
+			Debugger::log($e, ILogger::CRITICAL);
+		}
+		$this->entityManager->flush();
+		$this->sendOk();
+	}
+
+
+	public function postChangeDeliveryAndPayment(int $id, int $deliveryId, int $paymentId): void
+	{
+		$order = $this->getOrderById($id);
+
+		/** @var Delivery $delivery */
+		$delivery = $this->entityManager->getRepository(Delivery::class)->find($deliveryId);
+
+		/** @var Payment $payment */
+		$payment = $this->entityManager->getRepository(Payment::class)->find($paymentId);
+
+		$order->setDelivery($delivery);
+		$order->setPayment($payment);
+
+		$order->recountPrice();
+		$this->entityManager->flush();
+		$this->flashMessage('Doprava a platba byla změněna.', 'success');
+		$this->sendOk();
+	}
+
+
+	public function postChangeStatus(int $id, string $status): void
+	{
+		$order = $this->getOrderById($id);
+		$this->orderManager->setStatus($order, $status);
+		$this->flashMessage('Stav objednávky ' . $order->getNumber() . ' byl změněn.', 'success');
+		$this->sendOk();
+	}
+
+
+	public function postRemoveItem(int $orderId, int $itemId): void
+	{
+		$order = $this->getOrderById($orderId);
+		foreach ($order->getItems() as $item) {
+			if ($item->getId() === $itemId) {
+				$order->removeItem($itemId);
+				$this->entityManager->remove($item);
+				break;
+			}
+		}
+		$order->recountPrice();
+		$this->entityManager->flush();
+		$this->flashMessage('Položka byla odstraněna.', 'success');
+		$this->sendOk();
+	}
+
+
+	public function postSave(int $id, float $price, int $deliverPrice, ?string $notice = null): void
+	{
+		$order = $this->getOrderById($id);
+		$oldPrice = $order->getPrice();
+		$order->setNotice($notice);
+		$order->setDeliveryPrice($deliverPrice);
+		$order->setPrice($price);
+		$order->recountPrice();
+		$this->entityManager->flush();
+		$this->flashMessage(
+			'Objednávka ' . $order->getNumber() . ' byla uložena.'
+			. (abs($oldPrice - $order->getPrice()) > 0.001 ? ' Cena byla přepočítána.' : ''),
+			'success'
+		);
+		$this->sendOk();
+	}
+
+
+	public function postChangeQuantity(int $id, array $items): void
+	{
+		$order = $this->getOrderById($id);
+		foreach ($items as $item) {
+			if ($item['type'] === 'product') {
+				/** @var OrderItem $orderItem */
+				$orderItem = $this->entityManager->getRepository(OrderItem::class)->find((int) $item['id']);
+				$orderItem->setCount((int) $item['count']);
+			}
+		}
+
+		$order->recountPrice();
+		$this->entityManager->flush();
+		$this->sendOk();
+	}
+
+
+	public function actionItems(int $id): void
+	{
+		$order = $this->getOrderById($id);
+		$itemIds = [];
+		foreach ($order->getItems() as $item) {
+			$itemIds[] = $item->getId();
+		}
+
+		$selection = $this->entityManager->getRepository(Product::class)
+			->createQueryBuilder('product')
+			->select('PARTIAL product.{id, name, price, slug}')
+			->addSelect('PARTIAL variant.{id, relationHash, price}')
+			->leftJoin('product.variants', 'variant')
+			->orderBy('product.position', 'DESC')
+			->addOrderBy('product.name', 'ASC');
+
+		if ($itemIds !== []) {
+			$selection->where('product.id NOT IN (:ids)')
+				->setParameter('ids', $itemIds);
+		}
+
+		$this->sendJson(
+			$selection->getQuery()
+				->getArrayResult()
+		);
+	}
+
+
+	public function postSetBranchId(int $orderId, ?int $branchId = null): void
+	{
+		$order = $this->getOrderById($orderId);
+		$this->orderManager->setBranchId($order, $branchId);
+		$this->sendOk();
+	}
+
+
+	public function postAddItem(int $orderId, int $itemId, ?int $variantId = null): void
+	{
+		$order = $this->getOrderById($orderId);
+		/** @var Product $product */
+		$product = $this->entityManager->getRepository(Product::class)->find($itemId);
+		$price = $product->getSalePrice();
+		$variant = null;
+		if ($variantId !== null) {
+			/** @var ProductVariant $variant */
+			$variant = $this->entityManager->getRepository(ProductVariant::class)->find($variantId);
+			$price = $variant->getPrice();
+		}
+
+		$item = new OrderItem($order, $product, $variant, 1, $price);
+		$order->addItem($item);
+		$order->recountPrice();
+		$this->entityManager->persist($item);
+		$this->entityManager->flush();
+
+		$this->sendOk();
+	}
+
+
+	public function postCreateInvoice(int $id): void
+	{
+		$order = $this->getOrderById($id);
+		try {
+			$invoice = $this->invoiceManager->createInvoice($order);
+			$this->flashMessage('Faktura ' . $invoice->getNumber() . ' byla úspěšně vystavena.', 'success');
+		} catch (\Throwable $e) {
+			Debugger::log($e, ILogger::CRITICAL);
+			$this->flashMessage('Faktura se nepodařilo vystavit:' . $e->getMessage(), 'error');
+		}
+		$this->entityManager->flush();
+		$this->sendOk();
+	}
+
+
+	public function postSendEmail(int $id, string $mail): void
+	{
+		$order = $this->getOrderById($id);
+		if ($mail === 'new-order') {
+			$this->emailer->sendNewOrder($order);
+		}
+		if ($mail === 'paid') {
+			$this->emailer->sendOrderPaid($order);
+		}
+		if ($mail === 'invoice') {
+			foreach ($order->getInvoices() as $invoice) {
+				$this->emailer->sendOrderInvoice($invoice, $this->invoiceManager->getInvoicePath($invoice));
+			}
+		}
+
+		$this->flashMessage('Mail "' . $mail . '" byl odeslán.', 'success');
+		$this->sendOk();
+	}
+
+
+	public function postSetOrderSale(int $id, float $sale): void
+	{
+		$order = $this->getOrderById($id);
+		$order->setSale($sale);
+		$this->entityManager->flush();
+		$this->flashMessage('Sleva byla nastavena.', 'success');
+		$this->sendOk();
+	}
+
+
+	public function postSetItemSale(int $id, int $itemId, float $sale): void
+	{
+		$order = $this->getOrderById($id);
+		foreach ($order->getItems() as $item) {
+			if ($item->getId() === $itemId) {
+				$item->setSale($sale);
+				$this->flashMessage('Sleva byla nastavena.', 'success');
+				break;
+			}
+		}
+		$order->recountPrice();
+		$this->entityManager->flush();
+		$this->sendOk();
+	}
+
+
+	/**
+	 * @throws NoResultException|NonUniqueResultException
+	 */
+	private function getOrderById(int $id): Order
+	{
+		return $this->entityManager->getRepository(Order::class)
+			->createQueryBuilder('o')
+			->where('o.id = :id')
+			->setParameter('id', $id)
+			->setMaxResults(1)
+			->getQuery()
+			->getSingleResult();
+	}
+}

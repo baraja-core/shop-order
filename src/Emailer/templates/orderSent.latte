@@ -1,0 +1,14 @@
+{layout '@layout.latte'}
+
+{block content}
+	<p>Dobrý den,</p>
+	<p>
+		vaši objednávku <b>{$order->getNumber()}</b> jsme <span style="color:green">právě předali dopravci</span>.
+	</p>
+	<p>
+		Balíček je právě na cestě. Až bude balíček připraven k vyzvednutí, bude vás zvolený dopravce kontaktovat.
+	</p>
+	<p>
+		Mějte se hezky. Vážíme si Vaší důvěry.
+	</p>
+{/block}

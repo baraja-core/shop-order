@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta charset="utf-8">
+	<style>
+			.content * {
+				font-family: Arial
+			}
+	</style>
+</head>
+
+<body>
+<div class="content" style="background-color:white;max-width:800px;margin:32px auto 0;padding:0 8px">
+	<div style="margin-bottom:24px;padding-bottom:8px;border-bottom:1px solid #ddd">
+		LOGO
+	</div>
+
+	{include content}
+
+	<div n:ifset="$customFooter" style="margin-top:24px;padding-bottom:8px;border-top:1px solid #ddd">
+		{$customFooter|noescape}
+	</div>
+
+	<div style="margin-top:24px;text-align:center">
+		<div style="max-width:500px;margin:12px auto">
+			<i>
+				Tuto zprávu zasíláme na základě Vašeho získaného souhlasu.
+				V případě jakéhokoli dotazu se na nás neváhejte kdykoli obrátit odpovědí na tento e-mail.
+			</i>
+		</div>
+	</div>
+</div>
+</body>
+</html>

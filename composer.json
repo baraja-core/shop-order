@@ -1,7 +1,7 @@
 {
-	"name": "baraja-core/template",
+	"name": "baraja-core/shop-order",
 	"description": "This is a template package.",
-	"homepage": "https://github.com/baraja-core/template",
+	"homepage": "https://github.com/baraja-core/shop-order",
 	"authors": [
 		{
 			"name": "Jan Barášek",
@@ -9,9 +9,15 @@
 		}
 	],
 	"require": {
-		"php": "^8.0"
+		"php": "^8.0",
+		"baraja-core/shop-cart": "^1.0",
+		"baraja-core/shop-customer": "^1.0",
+		"baraja-core/newsletter": "^1.0",
+		"baraja-core/emailer": "^1.0",
+		"baraja-core/bank-transaction-authorizator": "^2.0"
 	},
 	"require-dev": {
+		"heureka/overeno-zakazniky": "^3.0",
 		"phpstan/phpstan": "^0.12.74",
 		"tracy/tracy": "^2.8",
 		"phpstan/phpstan-nette": "^0.12.14",

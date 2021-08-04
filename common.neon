@@ -1,0 +1,2 @@
+extensions:
+	shopOrder: Baraja\Shop\Order\ShopOrderExtension

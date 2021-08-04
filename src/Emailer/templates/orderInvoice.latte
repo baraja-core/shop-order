@@ -1,0 +1,18 @@
+{layout '@layout.latte'}
+
+{block content}
+	<p>Dobrý den,</p>
+	{if $regenerated}
+		<p>u vaší objednávky <b>{$number}</b> jsme vystavili novou upravenou fakturu, kterou naleznete v příloze.</p>
+		<p>
+			Upravená faktura má stejné číslo, jako ta předchozí, ale může obsahovat upravené údaje.
+			Pokud je na faktuře stále něco v nepořádku, dejte nám prosím vědět odpovědí na tento e-mail
+			a my se na to podíváme.
+		</p>
+	{else}
+		<p>k vaší objednávce <b>{$number}</b> jsme vystavili fakturu, kterou posíláme v příloze.</p>
+	{/if}
+	<p>
+		Mějte se hezky. Vážíme si Vaší důvěry.
+	</p>
+{/block}
