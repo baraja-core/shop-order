@@ -69,8 +69,11 @@ class OrderItem
 		if ($this->variant !== null) {
 			return $this->variant->getEan();
 		}
+		if ($this->product !== null) {
+			return $this->product->getEan();
+		}
 
-		return $this->product->getEan();
+		return null;
 	}
 
 

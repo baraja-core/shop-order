@@ -6,7 +6,6 @@ namespace Baraja\Shop\Order\Entity;
 
 
 use Baraja\Doctrine\Identifier\IdentifierUnsigned;
-use Baraja\TransactionManager\TransactionEntity;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -124,6 +123,9 @@ class Transaction implements TransactionEntity
 	}
 
 
+	/**
+	 * @return array<string, string|int|float>
+	 */
 	public function getData(): array
 	{
 		return [];

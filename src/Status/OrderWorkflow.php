@@ -9,6 +9,7 @@ use Baraja\Shop\Invoice\InvoiceManager;
 use Baraja\Shop\Order\Emailer;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderStatus;
+use Baraja\Shop\Order\InvoiceManagerInterface;
 use Tracy\Debugger;
 use Tracy\ILogger;
 
@@ -16,7 +17,7 @@ final class OrderWorkflow
 {
 	public function __construct(
 		private Emailer $emailer,
-		private InvoiceManager $invoiceManager,
+		private InvoiceManagerInterface $invoiceManager,
 	) {
 	}
 

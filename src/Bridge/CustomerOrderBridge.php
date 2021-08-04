@@ -33,7 +33,7 @@ final class CustomerOrderBridge implements OrderLoader
 		$return = [];
 		foreach ($orders as $order) {
 			$return[] = [
-				'id' => $order->getId(),
+				'id' => (int) $order->getId(),
 				'number' => $order->getNumber(),
 				'price' => $order->getPrice(),
 				'date' => $order->getInsertedDate(),

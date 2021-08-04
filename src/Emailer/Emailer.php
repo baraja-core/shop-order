@@ -256,6 +256,9 @@ final class Emailer
 	}
 
 
+	/**
+	 * @param array<string, mixed> $params
+	 */
 	private function link(string $dest, array $params = []): string
 	{
 		return $this->linkGenerator->link((($dest[0] ?? '') === ':' ? $dest : 'Front:' . $dest), $params);

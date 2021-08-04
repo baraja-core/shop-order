@@ -11,7 +11,6 @@ use Baraja\Shop\Cart\Entity\OrderNumber;
 use Baraja\Shop\Cart\OrderInfo;
 use Baraja\Shop\Customer\Entity\Customer;
 use Baraja\Shop\Delivery\BranchManager;
-use Baraja\Shop\Invoice\InvoiceManager;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Payment\OrderPaymentClient;
 use Contributte\GopayInline\Client;
@@ -25,7 +24,6 @@ final class OrderManager implements \Baraja\Shop\Cart\OrderManager
 		private OrderStatusManager $statusManager,
 		private OrderGenerator $orderGenerator,
 		private EntityManager $entityManager,
-		private InvoiceManager $invoiceManager,
 		private BranchManager $branchManager,
 		private Emailer $emailer,
 	) {

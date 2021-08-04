@@ -30,6 +30,9 @@ final class CmsOrderVatEndpoint extends BaseEndpoint
 	}
 
 
+	/**
+	 * @param array<int, string> $statuses
+	 */
 	public function actionExport(
 		string $dateFrom,
 		string $dateTo,
