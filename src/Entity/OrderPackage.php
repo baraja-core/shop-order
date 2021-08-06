@@ -60,7 +60,7 @@ class OrderPackage
 	/** @ORM\Column(type="string", nullable=true) */
 	private ?string $finalCarrierId = null;
 
-	/** @ORM\Column(type="string", nullable=true) */
+	/** @ORM\Column(type="text", nullable=true) */
 	private ?string $finalTrackUrl = null;
 
 

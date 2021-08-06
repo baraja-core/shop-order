@@ -7,38 +7,35 @@ namespace Baraja\Shop\Order\Entity;
 
 use Baraja\Doctrine\Identifier\IdentifierUnsigned;
 use Doctrine\ORM\Mapping as ORM;
-use Nette\Utils\DateTime;
 
-/**
- * @ORM\Entity()
- * @ORM\Table(name="shop__order_payment")
- */
+#[ORM\Entity]
+#[ORM\Table(name: 'shop__order_payment')]
 class OrderPayment
 {
 	use IdentifierUnsigned;
 
-	/** @ORM\ManyToOne(targetEntity="Order", inversedBy="payments") */
+	#[ORM\ManyToOne(targetEntity: Order::class, inversedBy: 'payments')]
 	private Order $order;
 
-	/** @ORM\Column(type="string") */
-	private string $gopayId;
+	#[ORM\Column(type: 'string', length: 64)]
+	private string $gatewayId;
 
-	/** @ORM\Column(type="float") */
+	#[ORM\Column(type: 'float')]
 	private float $price;
 
-	/** @ORM\Column(type="string", nullable=true) */
+	#[ORM\Column(type: 'string', length: 64, nullable: true)]
 	private ?string $status = null;
 
-	/** @ORM\Column(type="datetime") */
-	private \DateTime $insertedDate;
+	#[ORM\Column(type: 'datetime')]
+	private \DateTimeInterface $insertedDate;
 
 
-	public function __construct(Order $order, string $gopayId, ?float $price = null)
+	public function __construct(Order $order, string $gatewayId, ?float $price = null)
 	{
 		$this->order = $order;
-		$this->gopayId = $gopayId;
+		$this->gatewayId = $gatewayId;
 		$this->price = $price ?? $order->getPrice();
-		$this->insertedDate = DateTime::from('now');
+		$this->insertedDate = new \DateTimeImmutable;
 	}
 
 
@@ -48,9 +45,9 @@ class OrderPayment
 	}
 
 
-	public function getGopayId(): string
+	public function getGatewayId(): string
 	{
-		return $this->gopayId;
+		return $this->gatewayId;
 	}
 
 
@@ -72,7 +69,7 @@ class OrderPayment
 	}
 
 
-	public function getInsertedDate(): \DateTime
+	public function getInsertedDate(): \DateTimeInterface
 	{
 		return $this->insertedDate;
 	}

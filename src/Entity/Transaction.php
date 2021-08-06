@@ -55,10 +55,10 @@ class Transaction implements TransactionEntity
 	/** @ORM\Column(type="bigint", nullable=true) */
 	private ?int $specificSymbol;
 
-	/** @ORM\Column(type="string", nullable=true) */
+	/** @ORM\Column(type="text", nullable=true) */
 	private ?string $userNotice;
 
-	/** @ORM\Column(type="string", nullable=true) */
+	/** @ORM\Column(type="text", nullable=true) */
 	private ?string $toMessage;
 
 	/** @ORM\Column(type="string", nullable=true) */
@@ -67,10 +67,10 @@ class Transaction implements TransactionEntity
 	/** @ORM\Column(type="string", nullable=true) */
 	private ?string $sender;
 
-	/** @ORM\Column(type="string", nullable=true) */
+	/** @ORM\Column(type="text", nullable=true) */
 	private ?string $message;
 
-	/** @ORM\Column(type="string", nullable=true) */
+	/** @ORM\Column(type="text", nullable=true) */
 	private ?string $comment;
 
 	/** @ORM\Column(type="string", nullable=true) */

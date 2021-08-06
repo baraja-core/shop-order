@@ -10,33 +10,31 @@ use Baraja\Shop\Product\Entity\Product;
 use Baraja\Shop\Product\Entity\ProductVariant;
 use Doctrine\ORM\Mapping as ORM;
 
-/**
- * @ORM\Entity()
- * @ORM\Table(name="shop__order_item")
- */
+#[ORM\Entity]
+#[ORM\Table(name: 'shop__order_item')]
 class OrderItem
 {
 	use IdentifierUnsigned;
 
-	/** @ORM\ManyToOne(targetEntity="Order", inversedBy="items") */
+	#[ORM\ManyToOne(targetEntity: Order::class, inversedBy: 'items')]
 	private Order $order;
 
-	/** @ORM\ManyToOne(targetEntity="\Baraja\Shop\Product\Entity\Product") */
+	#[ORM\ManyToOne(targetEntity: Product::class)]
 	private ?Product $product;
 
-	/** @ORM\ManyToOne(targetEntity="\Baraja\Shop\Product\Entity\ProductVariant") */
+	#[ORM\ManyToOne(targetEntity: ProductVariant::class)]
 	private ?ProductVariant $variant;
 
-	/** @ORM\Column(type="text", nullable=true) */
+	#[ORM\Column(type: 'text', nullable: true)]
 	private ?string $label = null;
 
-	/** @ORM\Column(type="integer") */
+	#[ORM\Column(type: 'integer')]
 	private int $count;
 
-	/** @ORM\Column(type="float") */
+	#[ORM\Column(type: 'float')]
 	private float $price;
 
-	/** @ORM\Column(type="float") */
+	#[ORM\Column(type: 'float')]
 	private float $sale = 0;
 
 
@@ -83,7 +81,7 @@ class OrderItem
 			return $this->variant->getName();
 		}
 		if ($this->product === null) {
-			return '[!!!] Neznámý produkt';
+			return '[!!!] Unknown product';
 		}
 
 		return (string) $this->product->getName();
@@ -93,7 +91,7 @@ class OrderItem
 	public function getProduct(): Product
 	{
 		if ($this->product === null) {
-			throw new \LogicException('Produkt již neexistuje.');
+			throw new \LogicException('The product no longer exists.');
 		}
 
 		return $this->product;

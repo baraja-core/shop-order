@@ -23,6 +23,12 @@ final class OrderDocumentManager
 	}
 
 
+	public function isDocument(int $orderId): bool
+	{
+		return $this->getDocuments($orderId) !== [];
+	}
+
+
 	/**
 	 * @return OrderDocument[]
 	 */

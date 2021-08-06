@@ -6,6 +6,7 @@ namespace Baraja\Shop\Order;
 
 
 use App\BalikobotManager;
+use Baraja\Country\CountryManager;
 use Baraja\Doctrine\EntityManager;
 use Baraja\Search\Search;
 use Baraja\Shop\Address\Entity\Address;
@@ -15,6 +16,7 @@ use Baraja\Shop\Delivery\Entity\BranchInterface;
 use Baraja\Shop\Delivery\Entity\Delivery;
 use Baraja\Shop\Invoice\Entity\Invoice;
 use Baraja\Shop\Invoice\InvoiceManager;
+use Baraja\Shop\Order\Document\OrderDocumentManager;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderItem;
 use Baraja\Shop\Order\Entity\OrderPayment;
@@ -38,6 +40,8 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		private Emailer $emailer,
 		private OrderStatusManager $orderStatusManager,
 		private BranchManager $branchManager,
+		private CountryManager $countryManager,
+		private OrderDocumentManager $documentManager,
 		private Search $search
 	) {
 	}
@@ -319,7 +323,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$payments = [];
 		foreach ($order->getPayments() as $payment) {
 			$payments[] = [
-				'gopayId' => $payment->getGopayId(),
+				'gopayId' => $payment->getGatewayId(),
 				'price' => $payment->getPrice(),
 				'status' => $payment->getStatus(),
 				'insertedDate' => $payment->getInsertedDate(),
@@ -560,18 +564,22 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	}
 
 
+	/**
+	 * @param array<string, mixed> $deliveryAddress
+	 * @param array<string, mixed> $invoiceAddress
+	 */
 	public function postSaveAddress(int $id, array $deliveryAddress, array $invoiceAddress): void
 	{
 		$order = $this->getOrderById($id);
 
-		$hydrate = static function (Address $address, array $data): void
+		$hydrate = function (Address $address, array $data): void
 		{
 			$address->setFirstName((string) $data['firstName']);
 			$address->setLastName((string) $data['lastName']);
 			$address->setStreet((string) $data['street']);
 			$address->setCity((string) $data['city']);
 			$address->setZip((string) $data['zip']);
-			$address->setCountry((string) $data['country']);
+			$address->setCountry($this->countryManager->getByCode((string) $data['country']));
 			$address->setCompanyName((string) $data['companyName']);
 			$address->setCin((string) $data['ic']);
 			$address->setTin((string) $data['dic']);
@@ -582,7 +590,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$this->flashMessage('Adresy byly úspěšně uloženy.', 'success');
 		$this->entityManager->flush();
 
-		if ($order->isInvoice()) {
+		if ($this->documentManager->isDocument((int) $order->getId())) {
 			$this->invoiceManager->createInvoice($order);
 			$this->flashMessage('Upravená faktura byla odeslána uživateli.', 'success');
 		}
@@ -776,8 +784,8 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			$this->emailer->sendOrderPaid($order);
 		}
 		if ($mail === 'invoice') {
-			foreach ($order->getInvoices() as $invoice) {
-				$this->emailer->sendOrderInvoice($invoice, $this->invoiceManager->getInvoicePath($invoice));
+			foreach ($this->documentManager->getDocuments((int) $order->getId()) as $document) {
+				$this->emailer->sendOrderInvoice($document, $this->invoiceManager->getInvoicePath($document));
 			}
 		}
 

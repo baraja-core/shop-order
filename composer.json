@@ -21,6 +21,7 @@
 	},
 	"require-dev": {
 		"heureka/overeno-zakazniky": "^3.0",
+		"baraja-core/gopay-inline": "^1.0",
 		"phpstan/phpstan": "^0.12.74",
 		"tracy/tracy": "^2.8",
 		"phpstan/phpstan-nette": "^0.12.14",

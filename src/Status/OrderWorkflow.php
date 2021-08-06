@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Status;
 
 
-use Baraja\Shop\Invoice\InvoiceManager;
 use Baraja\Shop\Order\Emailer;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderStatus;
@@ -39,7 +38,7 @@ final class OrderWorkflow
 		} elseif ($status === OrderStatus::STATUS_SENT) {
 			$this->emailer->sendOrderSent($order);
 		} elseif ($status === OrderStatus::STATUS_DONE) {
-			if (PHP_SAPI !== 'cli' && $order->isInvoice() === false) {
+			if (PHP_SAPI !== 'cli' && $this->invoiceManager->isInvoice($order) === false) {
 				try {
 					$this->invoiceManager->createInvoice($order);
 				} catch (\Throwable $e) {

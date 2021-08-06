@@ -16,7 +16,6 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\ORM\Mapping\Index;
-use Nette\Utils\DateTime;
 use Nette\Utils\Random;
 
 #[ORM\Entity]
@@ -43,7 +42,10 @@ class Order implements OrderEntity, OrderNumber
 	private string $number;
 
 	#[ORM\ManyToOne(targetEntity: OrderStatus::class)]
-	private OrderStatus $status;
+	private ?OrderStatus $status;
+
+	#[ORM\Column(type: 'boolean')]
+	private bool $paid = false;
 
 	#[ORM\Column(type: 'string', length: 32, unique: true)]
 	private string $hash;
@@ -67,16 +69,16 @@ class Order implements OrderEntity, OrderNumber
 	private float $sale = 0;
 
 	#[ORM\Column(type: 'integer', nullable: true)]
-	private ?int $deliveryPrice = null;
+	private ?int $deliveryPrice;
 
 	#[ORM\Column(type: 'integer', nullable: true)]
 	private ?int $deliveryBranchId = null;
 
 	#[ORM\Column(type: 'datetime')]
-	private \DateTime $insertedDate;
+	private \DateTimeInterface $insertedDate;
 
 	#[ORM\Column(type: 'datetime')]
-	private \DateTime $updatedDate;
+	private \DateTimeInterface $updatedDate;
 
 	#[ORM\Column(type: 'boolean')]
 	private bool $sendPingMail = false;
@@ -97,7 +99,7 @@ class Order implements OrderEntity, OrderNumber
 	private ?int $deprecatedId = null;
 
 	#[ORM\Column(type: 'datetime', nullable: true)]
-	private ?\DateTime $lastPaymentAttempt = null;
+	private ?\DateTimeInterface $lastPaymentAttempt = null;
 
 	/** @var OrderItem[]|Collection */
 	#[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderItem::class)]
@@ -146,8 +148,8 @@ class Order implements OrderEntity, OrderNumber
 			? 0
 			: $delivery->getPrice();
 		$this->hash = Random::generate(32);
-		$this->insertedDate = DateTime::from('now');
-		$this->updatedDate = DateTime::from('now');
+		$this->insertedDate = new \DateTimeImmutable;
+		$this->updatedDate = new \DateTime;
 		$this->items = new ArrayCollection;
 		$this->packages = new ArrayCollection;
 		$this->transactions = new ArrayCollection;
@@ -158,17 +160,13 @@ class Order implements OrderEntity, OrderNumber
 
 	public function isPaid(): bool
 	{
-		$sum = 0;
-		foreach ($this->payments as $payment) {
-			if ($payment->getStatus() === 'PAID') {
-				$sum += $payment->getPrice();
-			}
-		}
-		foreach ($this->transactions as $transaction) {
-			$sum += $transaction->getPrice();
-		}
+		return $this->paid;
+	}
 
-		return $this->price <= $sum;
+
+	public function setPaid(bool $paid): void
+	{
+		$this->paid = $paid;
 	}
 
 
@@ -223,6 +221,10 @@ class Order implements OrderEntity, OrderNumber
 
 	public function getStatus(): OrderStatus
 	{
+		if ($this->status === null) {
+			throw new \RuntimeException('Order status does not exist.');
+		}
+
 		return $this->status;
 	}
 
@@ -336,13 +338,13 @@ class Order implements OrderEntity, OrderNumber
 	}
 
 
-	public function getInsertedDate(): \DateTime
+	public function getInsertedDate(): \DateTimeInterface
 	{
 		return $this->insertedDate;
 	}
 
 
-	public function getUpdatedDate(): \DateTime
+	public function getUpdatedDate(): \DateTimeInterface
 	{
 		return $this->updatedDate;
 	}
@@ -424,21 +426,6 @@ class Order implements OrderEntity, OrderNumber
 	public function getPackages()
 	{
 		return $this->packages;
-	}
-
-
-	/**
-	 * @return Invoice[]|Collection
-	 */
-	public function getInvoices()
-	{
-		return $this->invoices;
-	}
-
-
-	public function isInvoice(): bool
-	{
-		return \count($this->invoices->toArray()) > 0;
 	}
 
 
@@ -550,7 +537,7 @@ class Order implements OrderEntity, OrderNumber
 	}
 
 
-	public function legacySetDate(\DateTime $date): void
+	public function legacySetDate(\DateTimeInterface $date): void
 	{
 		$this->insertedDate = $date;
 		$this->updatedDate = $date;
@@ -567,13 +554,13 @@ class Order implements OrderEntity, OrderNumber
 	}
 
 
-	public function getLastPaymentAttempt(): ?\DateTime
+	public function getLastPaymentAttempt(): ?\DateTimeInterface
 	{
 		return $this->lastPaymentAttempt;
 	}
 
 
-	public function setLastPaymentAttempt(?\DateTime $lastPaymentAttempt = null): void
+	public function setLastPaymentAttempt(?\DateTimeInterface $lastPaymentAttempt = null): void
 	{
 		$this->lastPaymentAttempt = $lastPaymentAttempt;
 	}
@@ -581,6 +568,6 @@ class Order implements OrderEntity, OrderNumber
 
 	private function setUpdated(): void
 	{
-		$this->updatedDate = DateTime::from('now');
+		$this->updatedDate = new \DateTime;
 	}
 }

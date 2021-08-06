@@ -27,6 +27,7 @@ final class OrderManager implements \Baraja\Shop\Cart\OrderManager
 		private BranchManager $branchManager,
 		private Emailer $emailer,
 	) {
+		$paymentClient->injectOrderManager($this);
 	}
 
 
@@ -47,6 +48,22 @@ final class OrderManager implements \Baraja\Shop\Cart\OrderManager
 			->setParameter('hash', $hash)
 			->getQuery()
 			->getSingleResult();
+	}
+
+
+	public function isPaid(Order $order): bool
+	{
+		$sum = 0;
+		foreach ($order->getPayments() as $payment) {
+			if ($payment->getStatus() === 'PAID') {
+				$sum += $payment->getPrice();
+			}
+		}
+		foreach ($order->getTransactions() as $transaction) {
+			$sum += $transaction->getPrice();
+		}
+
+		return $order->getBasePrice() <= $sum;
 	}
 
 
@@ -77,7 +94,6 @@ final class OrderManager implements \Baraja\Shop\Cart\OrderManager
 	 */
 	public function getGoPayClient(): Client
 	{
-		return $this->paymentClient->getGoPayClient();
 	}
 
 

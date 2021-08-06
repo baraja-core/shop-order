@@ -9,23 +9,20 @@ use Baraja\BankTransferAuthorizator\MultiAuthorizator;
 use Baraja\Doctrine\EntityManager;
 use Baraja\FioPaymentAuthorizator\FioPaymentAuthorizator;
 use Baraja\Shop\Delivery\Entity\Delivery;
+use Baraja\Shop\Order\Application\WebController;
 use Baraja\Shop\Order\Entity\Order;
-use Contributte\GopayInline\Client;
-use Contributte\GopayInline\Config;
+use Baraja\Shop\Order\OrderManager;
+use Baraja\Shop\Order\Payment\Gateway\Gateway;
 use Nette\Caching\Storage;
 
 final class OrderPaymentClient
 {
-	private int $goId;
-
-	private string $clientId;
-
-	private string $clientSecret;
-
 	/** @var OrderPaymentProvider[] */
 	private array $providers = [];
 
 	private ?OrderPaymentProvider $fallbackProvider = null;
+
+	private OrderManager $orderManager;
 
 
 	public function __construct(
@@ -35,9 +32,35 @@ final class OrderPaymentClient
 	}
 
 
+	/** @internal */
+	public function injectOrderManager(OrderManager $orderManager): void
+	{
+		$this->orderManager = $orderManager;
+	}
+
+
 	public function pay(Order $order): OrderPaymentResponse
 	{
-		return new OrderPaymentResponse('');
+		$url = $this->orderManager->isPaid($order)
+			? WebController::getLinkGenerator()->confirmOrder($order)
+			: WebController::getLinkGenerator()->paymentGateway($order);
+
+		return new OrderPaymentResponse($url);
+	}
+
+
+	public function processPayment(Order $order): void
+	{
+		if ($this->orderManager->isPaid($order)) {
+			return;
+		}
+
+		$provider = $this->getBestCompatibleProvider($order);
+		if ($provider instanceof Gateway) {
+			$response = $provider->pay($order);
+			$redirect = $response->getRedirect();
+			// TODO: Implement common order processing method.
+		}
 	}
 
 
@@ -60,12 +83,6 @@ final class OrderPaymentClient
 	}
 
 
-	public function getGoPayClient(): Client
-	{
-		return new Client(new Config($this->goId, $this->clientId, $this->clientSecret, Config::PROD));
-	}
-
-
 	public function getAuthorizator(): MultiAuthorizator
 	{
 		/** @var Delivery[] $deliveries */
@@ -73,8 +90,9 @@ final class OrderPaymentClient
 
 		$services = [];
 		foreach ($deliveries as $delivery) {
-			if ($delivery->getCode() === 'fio') {
-				$services[] = new FioPaymentAuthorizator($delivery->getAuthorizatorKey(), $this->storage);
+			$authorizatorKey = $delivery->getAuthorizatorKey();
+			if ($authorizatorKey !== null && $delivery->getCode() === 'fio') {
+				$services[] = new FioPaymentAuthorizator($authorizatorKey, $this->storage);
 			}
 		}
 

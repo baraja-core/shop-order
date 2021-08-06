@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order;
 
 
+use Baraja\Country\Entity\Country;
 use Baraja\Doctrine\EntityManager;
 use Baraja\Localization\Localization;
 use Baraja\Shop\Address\Entity\Address;
@@ -99,8 +100,8 @@ final class OrderGenerator
 			invoiceAddress: $invoiceAddress,
 			number: $this->getNextVariable(),
 			locale: $this->localization->getLocale(),
-			delivery: $cart->getDelivery(),
-			payment: $cart->getPayment(),
+			delivery: $selectedDelivery,
+			payment: $selectedPayment,
 			price: $cart->getPrice(),
 			priceWithoutVat: $cart->getPriceWithoutVat(),
 		);
@@ -152,18 +153,16 @@ final class OrderGenerator
 	}
 
 
-	public function createEmptyOrder(Customer $customer): Order
+	public function createEmptyOrder(Customer $customer, Country $country): Order
 	{
-		$address = static function (Customer $customer): Address {
-			$country = null; // TODO: Implement default country
-
+		$address = static function (Customer $customer) use ($country) : Address {
 			return new Address(
 				$country,
 				$customer->getFirstName(),
 				$customer->getLastName(),
-				$customer->getStreet(),
-				$customer->getCity(),
-				$customer->getZip(),
+				(string) $customer->getStreet(),
+				(string) $customer->getCity(),
+				(int) $customer->getZip(),
 			);
 		};
 

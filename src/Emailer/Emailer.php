@@ -7,6 +7,7 @@ namespace Baraja\Shop\Order;
 
 use Baraja\DynamicConfiguration\Configuration;
 use Baraja\Shop\Order\Entity\Order;
+use Baraja\Shop\Order\Entity\OrderPayment;
 use Baraja\Shop\ShopInfo;
 use Baraja\Url\Url;
 use Latte\Engine;
@@ -32,7 +33,7 @@ final class Emailer
 	{
 		$this->mailer->send(
 			(new Message)
-				->setFrom($this->shopInfo->getOrderEmail())
+				->setFrom($this->getFrom())
 				->setSubject('Vaše objednávka ' . $order->getNumber() . ' z ' . $this->shopInfo->getShopName())
 				->addTo($order->getCustomer()->getEmail())
 				->setHtmlBody(
@@ -64,7 +65,7 @@ final class Emailer
 	{
 		$this->mailer->send(
 			(new Message)
-				->setFrom($this->shopInfo->getOrderEmail())
+				->setFrom($this->getFrom())
 				->setSubject('Objednávka ' . $order->getNumber() . ' byla zaplacena')
 				->addTo($order->getCustomer()->getEmail())
 				->setHtmlBody(
@@ -87,7 +88,7 @@ final class Emailer
 	{
 		$this->mailer->send(
 			(new Message)
-				->setFrom($this->shopInfo->getOrderEmail())
+				->setFrom($this->getFrom())
 				->setSubject('Vaši objednávku ' . $order->getNumber() . ' právě připravujeme')
 				->addTo($order->getCustomer()->getEmail())
 				->setHtmlBody(
@@ -110,7 +111,7 @@ final class Emailer
 	{
 		$this->mailer->send(
 			(new Message)
-				->setFrom($this->shopInfo->getOrderEmail())
+				->setFrom($this->getFrom())
 				->setSubject('Vaše objednávka ' . $order->getNumber() . ' je připravena k vyzvednutí')
 				->addTo($order->getCustomer()->getEmail())
 				->setHtmlBody(
@@ -133,7 +134,7 @@ final class Emailer
 	{
 		$this->mailer->send(
 			(new Message)
-				->setFrom($this->shopInfo->getOrderEmail())
+				->setFrom($this->getFrom())
 				->setSubject('Vaši objednávku ' . $order->getNumber() . ' jsme předali dopravci')
 				->addTo($order->getCustomer()->getEmail())
 				->setHtmlBody(
@@ -156,7 +157,7 @@ final class Emailer
 	{
 		$this->mailer->send(
 			(new Message)
-				->setFrom($this->shopInfo->getOrderEmail())
+				->setFrom($this->getFrom())
 				->setSubject('Vaši objednávku ' . $order->getNumber() . ' jsme úspěšně dodali')
 				->addTo($order->getCustomer()->getEmail())
 				->setHtmlBody(
@@ -179,7 +180,7 @@ final class Emailer
 	{
 		$this->mailer->send(
 			(new Message)
-				->setFrom($this->shopInfo->getOrderEmail())
+				->setFrom($this->getFrom())
 				->setSubject(
 					'Storno objednávky ' . $order->getNumber() . ' z obchodu ' . $this->shopInfo->getShopName()
 				)
@@ -204,7 +205,7 @@ final class Emailer
 	{
 		$this->mailer->send(
 			(new Message)
-				->setFrom($this->shopInfo->getOrderEmail())
+				->setFrom($this->getFrom())
 				->setSubject('Část objednávky ' . $order->getNumber() . ' není skladem')
 				->addTo($order->getCustomer()->getEmail())
 				->setHtmlBody(
@@ -227,7 +228,7 @@ final class Emailer
 	{
 		$this->mailer->send(
 			(new Message)
-				->setFrom($this->shopInfo->getOrderEmail())
+				->setFrom($this->getFrom())
 				->setSubject(
 					'Upomínka nezaplacené objednávky ' . $order->getNumber()
 					. ' z obchodu ' . $this->shopInfo->getShopName()
@@ -247,6 +248,41 @@ final class Emailer
 						)
 				)
 		);
+	}
+
+
+	public function sendOrderFailMail(OrderPayment $payment): void
+	{
+		$this->mailer->send(
+			(new Message)
+				->setFrom($this->getFrom())
+				->setSubject('Platba objednávky ' . $payment->getOrder()->getNumber() . ' selhala')
+				->addTo($payment->getOrder()->getCustomer()->getEmail())
+				->setHtmlBody(
+					$this->getEngine()
+						->renderToString(
+							__DIR__ . '/templates/orderFailGopay.latte', array_merge(
+								$this->getDefaultParameters(), [
+									'order' => $payment->getOrder(),
+									'orderDetailLink' => $this->internalLink(
+										'/objednavka/' . $payment->getOrder()->getHash()
+									),
+								]
+							)
+						)
+				)
+		);
+	}
+
+
+	private function getFrom(): string
+	{
+		$from = $this->shopInfo->getOrderEmail();
+		if ($from === null) {
+			throw new \RuntimeException('Order from e-mail is not defined in your configuration.');
+		}
+
+		return $from;
 	}
 
 

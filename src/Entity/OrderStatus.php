@@ -13,7 +13,7 @@ use Nette\Utils\Strings;
 
 #[Entity]
 #[Table(name: 'shop__order_status')]
-final class OrderStatus implements \Stringable
+class OrderStatus implements \Stringable
 {
 	use IdentifierUnsigned;
 
@@ -109,15 +109,17 @@ final class OrderStatus implements \Stringable
 	}
 
 
-	public function getPublicLabel(): ?string
+	public function getPublicLabel(): string
 	{
-		return $this->publicLabel;
+		return $this->publicLabel ?? $this->getName();
 	}
 
 
 	public function setPublicLabel(?string $publicLabel): void
 	{
-		$this->publicLabel = $publicLabel;
+		if ($publicLabel !== $this->getPublicLabel()) {
+			$this->publicLabel = $publicLabel;
+		}
 	}
 
 
