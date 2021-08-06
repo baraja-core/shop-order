@@ -6,6 +6,9 @@ namespace Baraja\Shop\Order;
 
 
 use Baraja\Doctrine\EntityManager;
+use Baraja\Shop\Cart\Entity\Cart;
+use Baraja\Shop\Cart\Entity\OrderNumber;
+use Baraja\Shop\Cart\OrderInfo;
 use Baraja\Shop\Delivery\BranchManager;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Payment\OrderPaymentClient;
@@ -72,5 +75,11 @@ final class OrderManager implements \Baraja\Shop\Cart\OrderManager
 			$order->setDeliveryBranchId($branchId);
 		}
 		$this->entityManager->flush();
+	}
+
+
+	public function createOrder(OrderInfo $orderInfo, Cart $cart): OrderNumber
+	{
+		return $this->orderGenerator->createOrder($orderInfo, $cart);
 	}
 }
