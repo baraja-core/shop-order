@@ -91,7 +91,6 @@ final class OrderGenerator
 				->setMaxResults(1)
 				->getQuery()
 				->getOneOrNullResult();
-
 			$cart->setPayment($selectedPayment);
 		}
 
@@ -108,12 +107,6 @@ final class OrderGenerator
 			priceWithoutVat: $cart->getPriceWithoutVat(),
 		);
 		$order->setNotice($info->getNotice());
-		if ($selectedDelivery === null) {
-			$order->addNotice('Delivery has not been selected.');
-		}
-		if ($selectedPayment === null) {
-			$order->addNotice('Payment method has not been selected.');
-		}
 		if ($order->getCustomer()->getDefaultOrderSale() > 0) {
 			$order->recountPrice();
 			$orderBasePrice = $order->getBasePrice() - $order->getDeliveryPrice();

@@ -7,3 +7,6 @@ includes:
 
 parameters:
 	checkGenericClassInNonGenericObjectType: false
+	excludePaths:
+		- Command/CheckOrderCommand.php
+		- CmsOrderEndpoint.php

@@ -99,14 +99,10 @@ final class CheckOrderCommand extends Command
 			$unmatchedTransactions = [];
 			$processed = [];
 			/** @var Transaction $unmatchedTransaction */
-			foreach ($authorizator->getUnmatchedTransactions(
-				array_keys($unauthorizedVariables)
-			) as $unmatchedTransaction) {
+			foreach ($authorizator->getUnmatchedTransactions(array_keys($unauthorizedVariables)) as $unmatchedTransaction) {
 				if (isset($processed[$unmatchedTransaction->getIdTransaction()]) === false
-					&& $this->transactionManager->transactionExist($unmatchedTransaction->getIdTransaction()) === false
-					&& $this->transactionManager->orderWasPaidByVariableSymbol(
-						$unmatchedTransaction->getVariableSymbol()
-					) === false) {
+					&& $this->transactionManager->transactionExist((int) $unmatchedTransaction->getIdTransaction()) === false
+					&& $this->transactionManager->orderWasPaidByVariableSymbol($unmatchedTransaction->getVariableSymbol()) === false) {
 					if ($unmatchedTransaction->getPrice() > 0) {
 						$unmatchedTransactions[] = $unmatchedTransaction;
 					}
@@ -133,11 +129,11 @@ final class CheckOrderCommand extends Command
 				function (Transaction $transaction) use ($orderByVariable): void
 				{
 					$entity = null;
-					if ($this->transactionManager->transactionExist($transaction->getIdTransaction()) === false) {
+					if ($this->transactionManager->transactionExist((int) $transaction->getIdTransaction()) === false) {
 						$entity = $this->transactionManager->storeToDb($transaction);
 					}
-					$variable = $transaction->getVariableSymbol();
-					if ($variable !== null) {
+					$variable = (string) $transaction->getVariableSymbol();
+					if ($variable !== '') {
 						$this->orderStatusManager->setStatus($orderByVariable[$variable], OrderStatus::STATUS_PAID);
 						if ($entity !== null) {
 							$entity->setOrder($orderByVariable[$variable]);
