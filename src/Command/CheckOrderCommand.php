@@ -11,7 +11,7 @@ use Baraja\FioPaymentAuthorizator\Transaction;
 use Baraja\Shop\Order\Emailer;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderStatus;
-use Baraja\Shop\Order\OrderManager;
+use Baraja\Shop\Order\OrderStatusManager;
 use Baraja\Shop\Order\Payment\OrderPaymentClient;
 use Baraja\Shop\Order\TransactionManager;
 use Nette\Application\UI\InvalidLinkException;
@@ -26,7 +26,7 @@ final class CheckOrderCommand extends Command
 {
 	public function __construct(
 		private EntityManager $entityManager,
-		private OrderManager $orderManager,
+		private OrderStatusManager $orderStatusManager,
 		private Emailer $emailer,
 		private TransactionManager $transactionManager,
 		private OrderPaymentClient $orderPaymentClient,
@@ -75,7 +75,7 @@ final class CheckOrderCommand extends Command
 					->getTimestamp() > 1_814_400) {
 				$cancel = true;
 				echo ' (cancel mail)';
-				$this->orderManager->setStatus($order, OrderStatus::STATUS_STORNO);
+				$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_STORNO);
 			}
 
 			// 7 days - send ping mail
@@ -130,14 +130,15 @@ final class CheckOrderCommand extends Command
 		try {
 			$authorizator->authOrders(
 				$unauthorizedVariables,
-				function (Transaction $transaction) use ($orderByVariable): void {
+				function (Transaction $transaction) use ($orderByVariable): void
+				{
 					$entity = null;
 					if ($this->transactionManager->transactionExist($transaction->getIdTransaction()) === false) {
 						$entity = $this->transactionManager->storeToDb($transaction);
 					}
 					$variable = $transaction->getVariableSymbol();
 					if ($variable !== null) {
-						$this->orderManager->setStatus($orderByVariable[$variable], OrderStatus::STATUS_PAID);
+						$this->orderStatusManager->setStatus($orderByVariable[$variable], OrderStatus::STATUS_PAID);
 						if ($entity !== null) {
 							$entity->setOrder($orderByVariable[$variable]);
 						}
@@ -175,7 +176,7 @@ final class CheckOrderCommand extends Command
 			->getResult();
 
 		foreach ($orders as $order) {
-			$this->orderManager->setStatus($order, OrderStatus::STATUS_DONE);
+			$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_DONE);
 		}
 	}
 }

@@ -185,7 +185,7 @@ class Order implements OrderEntity, OrderNumber
 
 	public function getColor(): string
 	{
-		return $this->status->getColor();
+		return $this->getStatus()->getColor();
 	}
 
 
@@ -231,7 +231,7 @@ class Order implements OrderEntity, OrderNumber
 
 	public function setStatus(OrderStatus $status): void
 	{
-		if ($status->getCode() !== $this->status->getCode()) {
+		if ($status->getCode() !== $this->getStatus()->getCode()) {
 			$this->setUpdated();
 		}
 		$this->status = $status;
@@ -240,7 +240,7 @@ class Order implements OrderEntity, OrderNumber
 
 	public function getStatusHuman(): string
 	{
-		return $this->status->getLabel();
+		return $this->getStatus()->getLabel();
 	}
 
 
@@ -416,6 +416,7 @@ class Order implements OrderEntity, OrderNumber
 				$items[] = $item;
 			}
 		}
+		/** @phpstan-ignore-next-line */
 		$this->items = $items;
 	}
 

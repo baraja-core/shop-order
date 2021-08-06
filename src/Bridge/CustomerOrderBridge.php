@@ -8,6 +8,7 @@ namespace Baraja\Shop\Order;
 use Baraja\Doctrine\EntityManager;
 use Baraja\Shop\Customer\OrderLoader;
 use Baraja\Shop\Order\Entity\Order;
+use Nette\Utils\DateTime;
 
 final class CustomerOrderBridge implements OrderLoader
 {
@@ -36,7 +37,7 @@ final class CustomerOrderBridge implements OrderLoader
 				'id' => (int) $order->getId(),
 				'number' => $order->getNumber(),
 				'price' => $order->getPrice(),
-				'date' => $order->getInsertedDate(),
+				'date' => DateTime::from($order->getInsertedDate()),
 			];
 		}
 

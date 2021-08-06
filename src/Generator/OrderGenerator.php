@@ -74,6 +74,7 @@ final class OrderGenerator
 		$selectedDelivery = $cart->getDelivery();
 		$selectedPayment = $cart->getPayment();
 		if ($selectedDelivery === null) {
+			/** @var Delivery $selectedDelivery */
 			$selectedDelivery = $this->entityManager->getRepository(Delivery::class)
 				->createQueryBuilder('d')
 				->setMaxResults(1)
@@ -81,16 +82,17 @@ final class OrderGenerator
 				->getOneOrNullResult();
 			$cart->setDelivery($selectedDelivery);
 		}
-		$deliveryAddress->setCountry($selectedDelivery->getCountryCode());
-		$invoiceAddress->setCountry($selectedDelivery->getCountryCode());
+		$deliveryAddress->setCountry($selectedDelivery->getCountry());
+		$invoiceAddress->setCountry($selectedDelivery->getCountry());
 		if ($selectedPayment === null) {
-			$cart->setPayment(
-				$this->entityManager->getRepository(Payment::class)
-					->createQueryBuilder('p')
-					->setMaxResults(1)
-					->getQuery()
-					->getOneOrNullResult()
-			);
+			/** @var Payment $selectedPayment */
+			$selectedPayment = $this->entityManager->getRepository(Payment::class)
+				->createQueryBuilder('p')
+				->setMaxResults(1)
+				->getQuery()
+				->getOneOrNullResult();
+
+			$cart->setPayment($selectedPayment);
 		}
 
 		$order = new Order(
@@ -153,9 +155,14 @@ final class OrderGenerator
 	}
 
 
-	public function createEmptyOrder(Customer $customer, Country $country): Order
+	public function createEmptyOrder(Customer $customer, ?Country $country = null): Order
 	{
-		$address = static function (Customer $customer) use ($country) : Address {
+		if ($country === null) {
+			throw new \InvalidArgumentException('Country is mandatory.');
+		}
+
+		$address = static function (Customer $customer) use ($country): Address
+		{
 			return new Address(
 				$country,
 				$customer->getFirstName(),

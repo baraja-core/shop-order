@@ -6,14 +6,9 @@ namespace Baraja\Shop\Order;
 
 
 use Baraja\Doctrine\EntityManager;
-use Baraja\Shop\Cart\Entity\Cart;
-use Baraja\Shop\Cart\Entity\OrderNumber;
-use Baraja\Shop\Cart\OrderInfo;
-use Baraja\Shop\Customer\Entity\Customer;
 use Baraja\Shop\Delivery\BranchManager;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Payment\OrderPaymentClient;
-use Contributte\GopayInline\Client;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
 
@@ -77,40 +72,5 @@ final class OrderManager implements \Baraja\Shop\Cart\OrderManager
 			$order->setDeliveryBranchId($branchId);
 		}
 		$this->entityManager->flush();
-	}
-
-
-	/**
-	 * @deprecated use native service
-	 */
-	public function setStatus(Order $order, string $status): void
-	{
-		$this->statusManager->setStatus($order, $status);
-	}
-
-
-	/**
-	 * @deprecated use native service
-	 */
-	public function getGoPayClient(): Client
-	{
-	}
-
-
-	/**
-	 * @deprecated use native service
-	 */
-	public function createOrder(OrderInfo $orderInfo, Cart $cart): OrderNumber
-	{
-		return $this->orderGenerator->createOrder($orderInfo, $cart);
-	}
-
-
-	/**
-	 * @deprecated use native service
-	 */
-	public function createEmptyOrder(Customer $customer): Order
-	{
-		return $this->orderGenerator->createEmptyOrder($customer);
 	}
 }

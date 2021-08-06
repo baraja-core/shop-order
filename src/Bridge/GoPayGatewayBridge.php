@@ -29,7 +29,7 @@ use Tracy\ILogger;
 final class GoPayGatewayBridge implements Gateway, OrderPaymentProvider
 {
 	public function __construct(
-		private OrderManagerAccessor $orderManager,
+		private OrderStatusManager $orderStatusManager,
 		private EntityManager $entityManager,
 		private Configuration $configuration,
 		private Emailer $emailer,
@@ -140,7 +140,7 @@ final class GoPayGatewayBridge implements Gateway, OrderPaymentProvider
 				errorMessage: 'Chyba při zpracování objednávky.'
 			);
 		}
-		if ($payment->getOrder()->getStatus() === OrderStatus::STATUS_PAID) {
+		if ($payment->getOrder()->getStatus()->getCode() === OrderStatus::STATUS_PAID) {
 			return new GatewayResponse(
 				redirect: WebController::getLinkGenerator()->default($order),
 				errorMessage: 'Objednávka již byla zaplacena.'
@@ -148,7 +148,7 @@ final class GoPayGatewayBridge implements Gateway, OrderPaymentProvider
 		}
 
 		$client = $this->getClient();
-		$status = $client->payments->verify((int) $payment->getGatewayId())->getData()['state'];
+		$status = $client->payments->verify((int) $payment->getGatewayId())->getData()['state'] ?? '';
 
 		$statusChanged = $status !== $payment->getStatus();
 		$payment->setStatus($status);
@@ -156,7 +156,7 @@ final class GoPayGatewayBridge implements Gateway, OrderPaymentProvider
 
 		if ($status === PaymentState::PAID) {
 			try {
-				$this->orderManager->get()->setStatus($payment->getOrder(), OrderStatus::STATUS_PAID);
+				$this->orderStatusManager->setStatus($payment->getOrder(), OrderStatus::STATUS_PAID);
 			} catch (\Throwable $e) {
 				Debugger::log($e);
 
@@ -199,7 +199,7 @@ final class GoPayGatewayBridge implements Gateway, OrderPaymentProvider
 
 	private function getClient(): Client
 	{
-		/** @var array{'go-id': string, 'client-id': string, 'client-secret': string} $config */
+		/** @var array{go-id: string, client-id: string, client-secret: string} $config */
 		$config = $this->configuration->getMultipleMandatory(['go-id', 'client-id', 'client-secret'], 'gopay');
 
 		return new Client(

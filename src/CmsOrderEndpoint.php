@@ -36,6 +36,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	public function __construct(
 		private EntityManager $entityManager,
 		private OrderManager $orderManager,
+		private OrderGenerator $orderGenerator,
 		private InvoiceManager $invoiceManager,
 		private Emailer $emailer,
 		private OrderStatusManager $orderStatusManager,
@@ -485,7 +486,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			$this->sendError('Customer "' . $customerId . '" does not exist.');
 		}
 
-		$order = $this->orderManager->createEmptyOrder($customer);
+		$order = $this->orderGenerator->createEmptyOrder($customer);
 		$this->flashMessage('Order "' . $order->getNumber() . '" has been created.', 'success');
 		$this->sendJson(
 			[
@@ -642,7 +643,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	public function postChangeStatus(int $id, string $status): void
 	{
 		$order = $this->getOrderById($id);
-		$this->orderManager->setStatus($order, $status);
+		$this->orderStatusManager->setStatus($order, $status);
 		$this->flashMessage('Stav objednávky ' . $order->getNumber() . ' byl změněn.', 'success');
 		$this->sendOk();
 	}
