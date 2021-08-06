@@ -7,6 +7,8 @@ namespace Baraja\Shop\Order;
 
 use Baraja\Doctrine\ORM\DI\OrmAnnotationsExtension;
 use Baraja\Newsletter\NewsletterManager;
+use Baraja\Plugin\Component\VueComponent;
+use Baraja\Plugin\PluginManager;
 use Baraja\Shop\Order\Application\WebController;
 use Baraja\Shop\Order\Bridge\HeurekaOverenoCreatedOrderEvent;
 use Baraja\Shop\Order\Bridge\RegisterNewsletterCreatedOrderEvent;
@@ -83,6 +85,41 @@ final class ShopOrderExtension extends CompilerExtension
 				->setFactory(GoPayGatewayBridge::class)
 				->setAutowired(GoPayGatewayBridge::class);
 		}
+
+		/** @var ServiceDefinition $pluginManager */
+		$pluginManager = $this->getContainerBuilder()->getDefinitionByType(PluginManager::class);
+		$pluginManager->addSetup('?->addComponent(?)', ['@self', [
+			'key' => 'orderDefault',
+			'name' => 'cms-order-default',
+			'implements' => CmsOrderPlugin::class,
+			'componentClass' => VueComponent::class,
+			'view' => 'default',
+			'source' => __DIR__ . '/../templates/default.js',
+			'position' => 100,
+			'tab' => 'Order feed',
+			'params' => [],
+		]]);
+		$pluginManager->addSetup('?->addComponent(?)', ['@self', [
+			'key' => 'orderOverview',
+			'name' => 'cms-order-overview',
+			'implements' => CmsOrderPlugin::class,
+			'componentClass' => VueComponent::class,
+			'view' => 'detail',
+			'source' => __DIR__ . '/../templates/overview.js',
+			'position' => 100,
+			'tab' => 'Overview',
+			'params' => ['id'],
+		]]);
+		$pluginManager->addSetup('?->addComponent(?)', ['@self', [
+			'key' => 'orderExport',
+			'name' => 'cms-order-vat-export',
+			'implements' => CmsOrderVatExportPlugin::class,
+			'componentClass' => VueComponent::class,
+			'view' => 'default',
+			'source' => __DIR__ . '/../templates/export.js',
+			'position' => 100,
+			'tab' => 'vat export',
+		]]);
 	}
 
 
