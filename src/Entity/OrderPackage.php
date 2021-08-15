@@ -53,6 +53,9 @@ class OrderPackage
 	#[ORM\Column(type: 'text', nullable: true)]
 	private ?string $finalTrackUrl = null;
 
+	#[ORM\Column(type: 'datetime')]
+	private \DateTimeInterface $insertedDate;
+
 
 	public function __construct(
 		Order $order,
@@ -68,6 +71,7 @@ class OrderPackage
 		$this->batchId = $batchId;
 		$this->shipper = $shipper;
 		$this->carrierId = $carrierId;
+		$this->insertedDate = new \DateTimeImmutable;
 	}
 
 
@@ -200,5 +204,11 @@ class OrderPackage
 	public function setFinalTrackUrl(?string $finalTrackUrl): void
 	{
 		$this->finalTrackUrl = $finalTrackUrl;
+	}
+
+
+	public function getInsertedDate(): \DateTimeInterface
+	{
+		return $this->insertedDate;
 	}
 }
