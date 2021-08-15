@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order;
 
 
-use App\BalikobotManager;
 use Baraja\Country\CountryManager;
 use Baraja\Doctrine\EntityManager;
 use Baraja\Search\Search;
@@ -15,6 +14,7 @@ use Baraja\Shop\Delivery\BranchManager;
 use Baraja\Shop\Delivery\Entity\BranchInterface;
 use Baraja\Shop\Delivery\Entity\Delivery;
 use Baraja\Shop\Invoice\InvoiceManager;
+use Baraja\Shop\Order\Delivery\OrderDeliveryManager;
 use Baraja\Shop\Order\Document\OrderDocumentManager;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderItem;
@@ -36,6 +36,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		private EntityManager $entityManager,
 		private OrderManager $orderManager,
 		private OrderGenerator $orderGenerator,
+		private OrderDeliveryManager $deliveryManager,
 		private InvoiceManager $invoiceManager,
 		private Emailer $emailer,
 		private OrderStatusManager $orderStatusManager,
@@ -455,28 +456,15 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			->getQuery()
 			->getResult();
 
-		/** @var BalikobotManager $bot */
-		$bot = $this->container->getByType(BalikobotManager::class);
-
-		$orderCandidates = [];
 		foreach ($orders as $order) {
-			if (
-				$order->getDelivery()->getBotShipper() === null
-				|| \count($order->getPackages()) > 0
-			) {
-				continue;
+			try {
+				$this->deliveryManager->sendOrder($order);
+			} catch (\InvalidArgumentException $e) {
+				$this->flashMessage($e->getMessage(), self::FLASH_MESSAGE_ERROR);
 			}
-			$orderCandidates[] = $order;
 		}
 
-		try {
-			$bot->createPackages($orderCandidates);
-		} catch (\Throwable $e) {
-			Debugger::log($e, ILogger::CRITICAL);
-		}
-		$this->entityManager->flush();
-
-		$this->flashMessage(count($orderCandidates) . ' shipments have been established.', 'success');
+		$this->flashMessage('Shipments have been sent.', self::FLASH_MESSAGE_SUCCESS);
 		$this->sendOk();
 	}
 
@@ -520,18 +508,8 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	public function postCreatePackage(int $id): void
 	{
 		$order = $this->getOrderById($id);
-		if ($order->getDelivery()->getBotShipper() === null) {
-			$this->sendError('The order is delivered to the store, it cannot be shipped to the carrier.');
-		}
-
-		/** @var BalikobotManager $bot */
-		$bot = $this->container->getByType(BalikobotManager::class);
-		try {
-			$bot->createPackages([$order]);
-		} catch (\Throwable $e) {
-			Debugger::log($e, ILogger::CRITICAL);
-		}
-		$this->entityManager->flush();
+		$this->deliveryManager->sendOrder($order);
+		$this->flashMessage('Package has been created.', self::FLASH_MESSAGE_SUCCESS);
 		$this->sendOk();
 	}
 
