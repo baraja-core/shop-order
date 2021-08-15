@@ -49,4 +49,16 @@ final class OrderWorkflow
 			$this->emailer->sendOrderStorno($order);
 		}
 	}
+
+
+	public function getIntervalForCancelOrder(): int
+	{
+		return 1_814_400; // 21 days
+	}
+
+
+	public function getIntervalForPingOrder(): int
+	{
+		return 604_800; // 7 days
+	}
 }

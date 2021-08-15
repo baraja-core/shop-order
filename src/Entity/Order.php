@@ -62,6 +62,9 @@ class Order implements OrderEntity, OrderNumber
 	#[ORM\Column(type: 'float', options: ['unsigned' => true])]
 	private float $price;
 
+	#[ORM\Column(type: 'currency', length: 3)]
+	private string $currency;
+
 	#[ORM\Column(type: 'float', options: ['unsigned' => true])]
 	private float $priceWithoutVat;
 
@@ -304,6 +307,22 @@ class Order implements OrderEntity, OrderNumber
 			$this->setUpdated();
 			$this->price = $price;
 		}
+	}
+
+
+	public function getCurrency(): string
+	{
+		return $this->currency;
+	}
+
+
+	public function setCurrency(string $currency): void
+	{
+		$currency = strtoupper($currency);
+		if (preg_match('/^[A-Z]{3}$/', $currency) !== 1) {
+			throw new \InvalidArgumentException('Currency "' . $currency . '" does not match valid format.');
+		}
+		$this->currency = $currency;
 	}
 
 

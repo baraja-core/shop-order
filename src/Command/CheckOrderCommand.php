@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Command;
 
 
+use Baraja\BankTransferAuthorizator\Authorizator;
 use Baraja\Doctrine\EntityManager;
 use Baraja\Doctrine\EntityManagerException;
 use Baraja\FioPaymentAuthorizator\Transaction;
@@ -13,6 +14,7 @@ use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderStatus;
 use Baraja\Shop\Order\OrderStatusManager;
 use Baraja\Shop\Order\Payment\OrderPaymentClient;
+use Baraja\Shop\Order\Status\OrderWorkflow;
 use Baraja\Shop\Order\TransactionManager;
 use Nette\Application\UI\InvalidLinkException;
 use Nette\Utils\DateTime;
@@ -28,8 +30,9 @@ final class CheckOrderCommand extends Command
 		private EntityManager $entityManager,
 		private OrderStatusManager $orderStatusManager,
 		private Emailer $emailer,
-		private TransactionManager $transactionManager,
+		private TransactionManager $tm,
 		private OrderPaymentClient $orderPaymentClient,
+		private OrderWorkflow $workflow,
 	) {
 		parent::__construct();
 	}
@@ -50,87 +53,114 @@ final class CheckOrderCommand extends Command
 		/** @var Order[] $orders */
 		$orders = $this->entityManager->getRepository(Order::class)
 			->createQueryBuilder('orderEntity')
-			->where('orderEntity.status = :status')
-			->setParameter('status', OrderStatus::STATUS_NEW)
+			->leftJoin('orderEntity.status', 'status')
+			->where('status.code = :code')
+			->setParameter('code', OrderStatus::STATUS_NEW)
 			->getQuery()
 			->getResult();
 
+		/** @var array<string, float> $unauthorizedVariables */
 		$unauthorizedVariables = [];
+		/** @var array<string, Order> $orderByVariable */
 		$orderByVariable = [];
-		$now = \time();
 
 		foreach ($orders as $order) {
 			$unauthorizedVariables[$order->getNumber()] = $order->getPrice();
 			$orderByVariable[$order->getNumber()] = $order;
-			$cancel = false;
 
-			echo $order->getNumber() . ' [' . $order->getPrice() . ' CZK]';
-			echo ' ['
-				. $order->getInsertedDate()
-					->format('Y-m-d H:i:s')
-				. ']';
-
-			// 21 days - cancel order
-			if ($now - $order->getInsertedDate()
-					->getTimestamp() > 1_814_400) {
-				$cancel = true;
-				echo ' (cancel mail)';
-				$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_STORNO);
-			}
-
-			// 7 days - send ping mail
-			if (
-				$cancel === false
-				&& $order->isSendPingMail() === false
-				&& $now - $order->getInsertedDate()
-					->getTimestamp() > 604_800
-			) {
-				echo ' (ping mail)';
-				$this->emailer->sendOrderPingMail($order);
-				$order->setSendPingMail(true);
-			}
-
+			echo $order->getNumber() . ' [' . $order->getPrice() . ' ' . $order->getCurrency() . ']';
+			echo ' [' . $order->getInsertedDate()->format('Y-m-d H:i:s') . ']';
+			$this->updateStatusByWorkflow($order);
 			echo "\n";
 		}
 
 		$authorizator = $this->orderPaymentClient->getAuthorizator();
-		echo 'Check and save umatched:' . "\n";
+		echo 'Check and save unmatched:' . "\n";
+		$this->checkUnmatchedTransactions(array_keys($unauthorizedVariables), $authorizator);
+
+		echo "\n\n" . 'Saving..,' . "\n\n";
+		$this->entityManager->flush();
+		echo "\n\n" . '------' . "\n\n" . 'Authorized:' . "\n\n";
+
+		$this->authOrders($unauthorizedVariables, $orderByVariable, $authorizator);
+
+		echo "\n\n";
+		echo 'Saving...' . "\n\n";
+		$this->entityManager->flush();
+		$this->checkSentOrders();
+		$this->entityManager->flush();
+
+		return 0;
+	}
+
+
+	private function updateStatusByWorkflow(Order $order): void
+	{
+		$cancel = false;
+		$now = time();
+		// cancel expired order
+		if ($now - $order->getInsertedDate()->getTimestamp() > $this->workflow->getIntervalForCancelOrder()) {
+			$cancel = true;
+			echo ' (cancel mail)';
+			$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_STORNO);
+		}
+
+		// send ping mail
+		if (
+			$cancel === false
+			&& $order->isSendPingMail() === false
+			&& $now - $order->getInsertedDate()->getTimestamp() > $this->workflow->getIntervalForPingOrder()
+		) {
+			echo ' (ping mail)';
+			$this->emailer->sendOrderPingMail($order);
+			$order->setSendPingMail(true);
+		}
+	}
+
+
+	/**
+	 * @param int[] $unauthorizedVariables
+	 */
+	private function checkUnmatchedTransactions(array $unauthorizedVariables, Authorizator $authorizator): void
+	{
 		try {
-			$unmatchedTransactions = [];
 			$processed = [];
-			/** @var Transaction $unmatchedTransaction */
-			foreach ($authorizator->getUnmatchedTransactions(array_keys($unauthorizedVariables)) as $unmatchedTransaction) {
-				if (isset($processed[$unmatchedTransaction->getIdTransaction()]) === false
-					&& $this->transactionManager->transactionExist((int) $unmatchedTransaction->getIdTransaction()) === false
-					&& $this->transactionManager->orderWasPaidByVariableSymbol($unmatchedTransaction->getVariableSymbol()) === false) {
-					if ($unmatchedTransaction->getPrice() > 0) {
-						$unmatchedTransactions[] = $unmatchedTransaction;
+			$unmatchedTransactionsList = $authorizator->getUnmatchedTransactions($unauthorizedVariables);
+			foreach ($unmatchedTransactionsList as $transaction) {
+				if (
+					isset($processed[$transaction->getIdTransaction()]) === false
+					&& $this->tm->transactionExist((int) $transaction->getIdTransaction()) === false
+					&& $this->tm->orderHasPaidByVariableSymbol($transaction->getVariableSymbol()) === false
+				) {
+					if ($transaction->getPrice() > 0) {
+						$this->tm->storeUnmatchedTransaction($transaction);
 					}
-					echo $unmatchedTransaction->getIdTransaction() . "\n";
-					$this->transactionManager->storeToDb($unmatchedTransaction, true);
-					$processed[$unmatchedTransaction->getIdTransaction()] = true;
+					echo $transaction->getIdTransaction() . "\n";
+					$this->tm->storeTransaction($transaction, true);
+					$processed[$transaction->getIdTransaction()] = true;
 				}
 			}
 		} catch (\Throwable $e) {
 			Debugger::log($e, ILogger::CRITICAL);
 			die;
 		}
+	}
 
-		echo "\n\n";
-		echo 'Saving..,' . "\n\n";
-		$this->entityManager->flush();
-		echo "\n\n";
 
-		echo '------' . "\n\n" . 'Authorized:' . "\n\n";
-
+	/**
+	 * @param array<string, float> $unauthorizedVariables
+	 * @param array<string, Order> $orderByVariable
+	 */
+	private function authOrders(array $unauthorizedVariables, array $orderByVariable, Authorizator $authorizator): void
+	{
 		try {
 			$authorizator->authOrders(
 				$unauthorizedVariables,
 				function (Transaction $transaction) use ($orderByVariable): void
 				{
 					$entity = null;
-					if ($this->transactionManager->transactionExist((int) $transaction->getIdTransaction()) === false) {
-						$entity = $this->transactionManager->storeToDb($transaction);
+					if ($this->tm->transactionExist((int) $transaction->getIdTransaction()) === false) {
+						$entity = $this->tm->storeTransaction($transaction);
 					}
 					$variable = (string) $transaction->getVariableSymbol();
 					if ($variable !== '') {
@@ -148,14 +178,6 @@ final class CheckOrderCommand extends Command
 			Debugger::log($e, ILogger::CRITICAL);
 			die;
 		}
-
-		echo "\n\n";
-		echo 'Saving...' . "\n\n";
-		$this->entityManager->flush();
-		$this->checkSentOrders();
-		$this->entityManager->flush();
-
-		return 0;
 	}
 
 
@@ -164,7 +186,8 @@ final class CheckOrderCommand extends Command
 		/** @var Order[] $orders */
 		$orders = $this->entityManager->getRepository(Order::class)
 			->createQueryBuilder('o')
-			->where('o.status = :status')
+			->leftJoin('o.status', 'status')
+			->where('status.code = :status')
 			->andWhere('o.updatedDate <= :days')
 			->setParameter('status', OrderStatus::STATUS_SENT)
 			->setParameter('days', DateTime::from('now - 10 days'))

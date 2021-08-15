@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order;
 
 
+use Baraja\BankTransferAuthorizator\Transaction as BankTransaction;
 use Baraja\Doctrine\EntityManager;
 use Baraja\Shop\Order\Entity\OrderPayment;
 use Baraja\Shop\Order\Entity\OrderStatus;
@@ -20,7 +21,7 @@ final class TransactionManager
 	}
 
 
-	public function storeToDb(\Baraja\FioPaymentAuthorizator\Transaction $transaction, bool $flush = false): Transaction
+	public function storeTransaction(BankTransaction $transaction, bool $flush = false): Transaction
 	{
 		$transactionEntity = new Transaction(
 			$transaction->getId(),
@@ -53,6 +54,11 @@ final class TransactionManager
 	}
 
 
+	public function storeUnmatchedTransaction(BankTransaction $transaction): void
+	{
+	}
+
+
 	public function transactionExist(int $idTransaction): bool
 	{
 		static $cache = [];
@@ -75,7 +81,7 @@ final class TransactionManager
 	}
 
 
-	public function orderWasPaidByVariableSymbol(?int $number): bool
+	public function orderHasPaidByVariableSymbol(?int $number): bool
 	{
 		if ($number === null) {
 			return false;
