@@ -8,59 +8,49 @@ namespace Baraja\Shop\Order\Entity;
 use Baraja\Doctrine\Identifier\IdentifierUnsigned;
 use Doctrine\ORM\Mapping as ORM;
 
-/**
- * @ORM\Entity()
- * @ORM\Table(name="shop__order_package")
- */
+#[ORM\Entity]
+#[ORM\Table(name: 'shop__order_package')]
 class OrderPackage
 {
 	use IdentifierUnsigned;
 
-	/** @ORM\ManyToOne(targetEntity="Order", inversedBy="packages") */
+	#[ORM\ManyToOne(targetEntity: Order::class, inversedBy: 'packages')]
 	private Order $order;
 
-	/** @ORM\Column(type="string", name="`bot_order_id`") */
+	#[ORM\Column(name: 'bot_order_id', type: 'string', length: 48)]
 	private string $orderId;
 
-	/** @ORM\Column(type="integer") */
+	#[ORM\Column(type: 'integer')]
 	private int $packageId;
 
-	/**
-	 * Package batch ID (EID)
-	 *
-	 * @ORM\Column(type="string")
-	 */
+	/** Package batch ID (EID) */
+	#[ORM\Column(type: 'string', length: 64)]
 	private string $batchId;
 
-	/** @ORM\Column(type="string") */
+	#[ORM\Column(type: 'string', length: 32)]
 	private string $shipper;
 
-	/**
-	 * Carrier ID (for package tracking)
-	 *
-	 * @ORM\Column(type="string")
-	 */
+	/** Carrier ID (for package tracking) */
+	#[ORM\Column(type: 'string', length: 48)]
 	private string $carrierId;
 
-	/** @ORM\Column(type="string", nullable=true) */
+	#[ORM\Column(type: 'text', nullable: true)]
 	private ?string $trackUrl = null;
 
-	/** @ORM\Column(type="string", nullable=true) */
+	#[ORM\Column(type: 'text', nullable: true)]
 	private ?string $labelUrl = null;
 
-	/** @ORM\Column(type="string", nullable=true) */
+	#[ORM\Column(type: 'text', nullable: true)]
 	private ?string $carrierIdSwap = null;
 
-	/**
-	 * @var string[]
-	 * @ORM\Column(type="json", nullable=true)
-	 */
+	/** @var string[] */
+	#[ORM\Column(type: 'json')]
 	private array $pieces = [];
 
-	/** @ORM\Column(type="string", nullable=true) */
+	#[ORM\Column(type: 'string', nullable: true)]
 	private ?string $finalCarrierId = null;
 
-	/** @ORM\Column(type="text", nullable=true) */
+	#[ORM\Column(type: 'text', nullable: true)]
 	private ?string $finalTrackUrl = null;
 
 
