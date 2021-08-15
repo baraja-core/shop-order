@@ -27,12 +27,17 @@ final class OrderStatusManager
 	/**
 	 * @return OrderStatus[]
 	 */
-	public function getAllStatues(): array
+	public function getAllStatuses(): array
 	{
 		static $cache;
 		if ($cache === null) {
 			/** @var OrderStatus[] $cache */
 			$cache = $this->entityManager->getRepository(OrderStatus::class)->findAll();
+			if ($cache === []) {
+				$this->initDefault();
+
+				return $this->getAllStatuses();
+			}
 		}
 
 		return $cache;
@@ -41,7 +46,7 @@ final class OrderStatusManager
 
 	public function getStatusByCode(string $code): OrderStatus
 	{
-		foreach ($this->getAllStatues() as $status) {
+		foreach ($this->getAllStatuses() as $status) {
 			if ($status->getCode() === $code) {
 				return $status;
 			}
@@ -57,7 +62,7 @@ final class OrderStatusManager
 	public function getKeyValueList(): array
 	{
 		$return = [];
-		foreach ($this->getAllStatues() as $status) {
+		foreach ($this->getAllStatuses() as $status) {
 			$return[$status->getCode()] = $status->getName();
 		}
 
@@ -78,6 +83,18 @@ final class OrderStatusManager
 			$changedEvent->process($order, $oldStatus, $status);
 		}
 
+		$this->entityManager->flush();
+	}
+
+
+	public function initDefault(): void
+	{
+		$this->entityManager->persist(new OrderStatus(OrderStatus::STATUS_NEW, 'New'));
+		$this->entityManager->persist(new OrderStatus(OrderStatus::STATUS_SENT, 'Sent'));
+		$this->entityManager->persist(new OrderStatus(OrderStatus::STATUS_DONE, 'Done'));
+		$this->entityManager->persist(new OrderStatus(OrderStatus::STATUS_STORNO, 'Storno'));
+		$this->entityManager->persist(new OrderStatus(OrderStatus::STATUS_TEST, 'Test'));
+		$this->entityManager->persist(new OrderStatus(OrderStatus::STATUS_RETURNED, 'Returned'));
 		$this->entityManager->flush();
 	}
 }
