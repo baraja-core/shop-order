@@ -156,14 +156,12 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			->addSelect('PARTIAL item.{id, count, price, sale}')
 			->addSelect('PARTIAL product.{id, name}')
 			->addSelect('productVariant')
-			->addSelect('PARTIAL invoice.{id, number}')
 			->addSelect('PARTIAL paymentReal.{id}')
 			->addSelect('PARTIAL package.{id}')
 			->leftJoin('o.customer', 'customer')
 			->leftJoin('o.items', 'item')
 			->leftJoin('item.product', 'product')
 			->leftJoin('item.variant', 'productVariant')
-			->leftJoin('o.invoices', 'invoice')
 			->leftJoin('o.payments', 'paymentReal')
 			->leftJoin('o.packages', 'package')
 			->where('o.id IN (:ids)')
@@ -227,10 +225,11 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				})(
 					$order->getItems()
 				),
-				'invoices' => (function ($items) use ($order): array
+				'invoices' => [],
+				/*(function ($items) use ($order): array
 				{
 					$return = [];
-					/** @var Invoice $item */
+					/** @var Invoice $item * /
 					foreach ($items as $item) {
 						$return[] = [
 							'id' => $item->getId(),
@@ -247,7 +246,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 					return $return;
 				})(
 					$order->getInvoices()
-				),
+				),*/
 				'payments' => (static function ($items): array
 				{
 					$return = [];
@@ -375,7 +374,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		}
 
 		$invoices = [];
-		foreach ($order->getInvoices() as $invoice) {
+		/*foreach ($order->getInvoices() as $invoice) {
 			$invoices[] = [
 				'id' => $invoice->getId(),
 				'number' => $invoice->getNumber(),
@@ -389,7 +388,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 					]
 				),
 			];
-		}
+		}*/
 
 		$packages = [];
 		foreach ($order->getPackages() as $package) {
