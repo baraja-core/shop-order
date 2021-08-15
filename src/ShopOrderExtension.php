@@ -15,6 +15,7 @@ use Baraja\Shop\Order\Bridge\RegisterNewsletterCreatedOrderEvent;
 use Baraja\Shop\Order\Command\CheckOrderCommand;
 use Baraja\Shop\Order\Document\OrderDocumentManager;
 use Baraja\Shop\Order\Payment\OrderPaymentClient;
+use Baraja\Shop\Order\Repository\OrderRepository;
 use Baraja\Shop\Order\Status\OrderWorkflow;
 use Baraja\Url\Url;
 use Contributte\GopayInline\Client;
@@ -38,6 +39,9 @@ final class ShopOrderExtension extends CompilerExtension
 
 		$builder->addAccessorDefinition($this->prefix('orderManagerAccessor'))
 			->setImplement(OrderManagerAccessor::class);
+
+		$builder->addDefinition($this->prefix('orderRepository'))
+			->setFactory(OrderRepository::class);
 
 		$builder->addDefinition($this->prefix('orderGenerator'))
 			->setFactory(OrderGenerator::class);

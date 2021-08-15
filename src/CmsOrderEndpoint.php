@@ -14,13 +14,12 @@ use Baraja\Shop\Customer\Entity\Customer;
 use Baraja\Shop\Delivery\BranchManager;
 use Baraja\Shop\Delivery\Entity\BranchInterface;
 use Baraja\Shop\Delivery\Entity\Delivery;
-use Baraja\Shop\Invoice\Entity\Invoice;
 use Baraja\Shop\Invoice\InvoiceManager;
 use Baraja\Shop\Order\Document\OrderDocumentManager;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderItem;
 use Baraja\Shop\Order\Entity\OrderPayment;
-use Baraja\Shop\Order\Entity\OrderStatus;
+use Baraja\Shop\Order\Repository\OrderRepository;
 use Baraja\Shop\Payment\Entity\Payment;
 use Baraja\Shop\Product\Entity\Product;
 use Baraja\Shop\Product\Entity\ProductVariant;
@@ -43,7 +42,8 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		private BranchManager $branchManager,
 		private CountryManager $countryManager,
 		private OrderDocumentManager $documentManager,
-		private Search $search
+		private Search $search,
+		private OrderRepository $orderRepository,
 	) {
 	}
 
@@ -59,88 +59,17 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		int $limit = 128,
 		int $page = 1,
 	): void {
-		$orderCandidateSelection = $this->entityManager->getRepository(Order::class)
-			->createQueryBuilder('o')
-			->select('PARTIAL o.{id}');
-
-		if ($orderBy !== null) {
-			if ($orderBy === 'old') {
-				$orderCandidateSelection->orderBy('o.updatedDate', 'ASC');
-			} elseif ($orderBy === 'number') {
-				$orderCandidateSelection->orderBy('o.number', 'ASC');
-			} elseif ($orderBy === 'number-desc') {
-				$orderCandidateSelection->orderBy('o.number', 'DESC');
-			}
-		} else {
-			$orderCandidateSelection->orderBy('o.number', 'DESC');
-		}
-		if ($query !== null) {
-			$orderCandidateSelection->andWhere('o.id IN (:searchIds)')
-				->setParameter(
-					'searchIds',
-					$this->search->search(
-						$query,
-						[
-							Order::class => [
-								'number',
-								'notice',
-								'customer.email',
-								'customer.firstName',
-								'customer.lastName',
-							],
-						],
-						useAnalytics: false
-					)
-						->getIds()
-				);
-		}
-		if ($status === null) {
-			$orderCandidateSelection->andWhere('o.status != :statusDone')
-				->andWhere('o.status != :statusStorno')
-				->andWhere('o.status != :statusTest')
-				->setParameter('statusDone', OrderStatus::STATUS_DONE)
-				->setParameter('statusStorno', OrderStatus::STATUS_STORNO)
-				->setParameter('statusTest', OrderStatus::STATUS_TEST);
-		} elseif ($status === 'trzby') {
-			$orderCandidateSelection
-				->andWhere('o.status != :statusStorno')
-				->andWhere('o.status != :statusTest')
-				->setParameter('statusStorno', OrderStatus::STATUS_STORNO)
-				->setParameter('statusTest', OrderStatus::STATUS_TEST);
-		} elseif ($status !== 'all') {
-			$orderCandidateSelection->andWhere('o.status = :status')
-				->setParameter('status', $status);
-		}
-		if ($dateFrom !== null) {
-			$orderCandidateSelection->andWhere('o.insertedDate >= :dateFrom')
-				->setParameter('dateFrom', $dateFrom . ' 00:00:00');
-		}
-		if ($dateTo !== null) {
-			$orderCandidateSelection->andWhere('o.insertedDate <= :dateTo')
-				->setParameter('dateTo', $dateTo . ' 23:59:59');
-		}
-		if ($delivery !== null) {
-			$orderCandidateSelection->andWhere('o.delivery = :delivery')
-				->setParameter('delivery', $delivery);
-		}
-		if ($payment !== null) {
-			$orderCandidateSelection->andWhere('o.payment = :payment')
-				->setParameter('payment', $payment);
-		}
-
-		$count = (int) (clone $orderCandidateSelection)
-			->orderBy('o.id', 'DESC')
-			->select('COUNT(o.id)')
-			->getQuery()
-			->getSingleScalarResult();
-
-		$orderCandidates = $orderCandidateSelection
-			->setMaxResults($limit)
-			->setFirstResult($limit * ($page - 1))
-			->getQuery()
-			->getArrayResult();
-
-		$candidateIds = array_map(static fn(array $order): int => (int) $order['id'], $orderCandidates);
+		$feed = $this->orderRepository->getFeed(
+			query: $query,
+			status: $status,
+			delivery: $delivery,
+			payment: $payment,
+			orderBy: $orderBy,
+			dateFrom: $dateFrom,
+			dateTo: $dateTo,
+			limit: $limit,
+			page: $page,
+		);
 
 		/** @var Delivery[] $deliveries */
 		$deliveries = $this->entityManager->getRepository(Delivery::class)->findAll();
@@ -148,37 +77,16 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		/** @var Payment[] $payments */
 		$payments = $this->entityManager->getRepository(Payment::class)->findAll();
 
-		/** @var Order[] $orders */
-		$orders = $this->entityManager->getRepository(Order::class)
-			->createQueryBuilder('o')
-			->select('PARTIAL o.{id, hash, number, status, price, sale, insertedDate, updatedDate, notice}')
-			->addSelect('PARTIAL customer.{id, email, firstName, lastName, phone}')
-			->addSelect('PARTIAL item.{id, count, price, sale}')
-			->addSelect('PARTIAL product.{id, name}')
-			->addSelect('productVariant')
-			->addSelect('PARTIAL paymentReal.{id}')
-			->addSelect('PARTIAL package.{id}')
-			->leftJoin('o.customer', 'customer')
-			->leftJoin('o.items', 'item')
-			->leftJoin('item.product', 'product')
-			->leftJoin('item.variant', 'productVariant')
-			->leftJoin('o.payments', 'paymentReal')
-			->leftJoin('o.packages', 'package')
-			->where('o.id IN (:ids)')
-			->setParameter('ids', $candidateIds)
-			->orderBy('o.number', 'DESC')
-			->getQuery()
-			->getResult();
-
 		$sum = 0;
 		$return = [];
-		foreach ($orders as $order) {
+		/** @var Order $order */
+		foreach ($feed['orders'] as $order) {
 			$return[] = [
 				'id' => $order->getId(),
 				'checked' => false,
 				'color' => $order->getColor(),
 				'number' => $order->getNumber(),
-				'status' => $order->getStatus(),
+				'status' => $order->getStatus()->getCode(),
 				'statusHuman' => $order->getStatusHuman(),
 				'price' => $order->getBasePrice(),
 				'sale' => $order->getSale(),
@@ -258,7 +166,9 @@ final class CmsOrderEndpoint extends BaseEndpoint
 					}
 
 					return $return;
-				})($order->getPayments()),
+				})(
+					$order->getPayments()
+				),
 			];
 			$sum += $order->getPrice();
 		}
@@ -269,7 +179,8 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'statuses' => $this->formatBootstrapSelectArray($this->orderStatusManager->getKeyValueList()),
 				'sum' => $sum,
 				'filterStatuses' => $this->formatBootstrapSelectArray(
-					[null => '- výchozí stavy -', 'all' => 'VŠECHNY HODNOTY', 'trzby' => 'TRŽBY'] + $this->orderStatusManager->getKeyValueList()
+					[null => '- výchozí stavy -', 'all' => 'VŠECHNY HODNOTY', 'trzby' => 'TRŽBY'] + $this->orderStatusManager->getKeyValueList(
+					)
 				),
 				'filterPayments' => $this->formatBootstrapSelectArray(
 					[null => '- platby -'] + (static function (array $payments): array
@@ -300,7 +211,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 					)
 				),
 				'paginator' => (new Paginator)
-					->setItemCount($count)
+					->setItemCount($feed['count'])
 					->setItemsPerPage($limit)
 					->setPage($page),
 			]
@@ -456,7 +367,9 @@ final class CmsOrderEndpoint extends BaseEndpoint
 						}
 
 						return $branch;
-					})($branchId, $branch) : null,
+					})(
+						$branchId, $branch
+					) : null,
 				'deliveryBranchError' => $branchId !== null && $branch === null,
 				'paymentId' => $order->getPayment()->getId(),
 				'items' => $items,
@@ -511,8 +424,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		}
 
 		/** @var Customer[] $customers */
-		$customers = $selector->getQuery()
-			->getResult();
+		$customers = $selector->getQuery()->getResult();
 
 		$return = [];
 		foreach ($customers as $customer) {
