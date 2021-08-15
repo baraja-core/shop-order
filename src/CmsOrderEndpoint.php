@@ -442,6 +442,9 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	}
 
 
+	/**
+	 * @param array<int, array{id: int}> $items
+	 */
 	public function postProcessPacketMultiple(array $items): void
 	{
 		/** @var Order[] $orders */
@@ -457,8 +460,10 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 		$orderCandidates = [];
 		foreach ($orders as $order) {
-			if ($order->getDelivery()
-					->getBotShipper() === null || \count($order->getPackages()) > 0) {
+			if (
+				$order->getDelivery()->getBotShipper() === null
+				|| \count($order->getPackages()) > 0
+			) {
 				continue;
 			}
 			$orderCandidates[] = $order;
@@ -471,7 +476,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		}
 		$this->entityManager->flush();
 
-		$this->flashMessage('Bylo založeno ' . \count($orderCandidates) . ' zásilek.', 'success');
+		$this->flashMessage(count($orderCandidates) . ' shipments have been established.', 'success');
 		$this->sendOk();
 	}
 
@@ -499,12 +504,12 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 		$hydrate($order->getDeliveryAddress(), $deliveryAddress);
 		$hydrate($order->getInvoiceAddress(), $invoiceAddress);
-		$this->flashMessage('Adresy byly úspěšně uloženy.', 'success');
+		$this->flashMessage('The addresses have been successfully saved.', 'success');
 		$this->entityManager->flush();
 
 		if ($this->documentManager->isDocument((int) $order->getId())) {
 			$this->invoiceManager->createInvoice($order);
-			$this->flashMessage('Upravená faktura byla odeslána uživateli.', 'success');
+			$this->flashMessage('The revised invoice has been sent to the customer.', 'success');
 		}
 
 		$this->entityManager->flush();
@@ -516,7 +521,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	{
 		$order = $this->getOrderById($id);
 		if ($order->getDelivery()->getBotShipper() === null) {
-			$this->sendError('Objednávka je na prodejnu, nelze odeslat k přepravci.');
+			$this->sendError('The order is delivered to the store, it cannot be shipped to the carrier.');
 		}
 
 		/** @var BalikobotManager $bot */
@@ -544,9 +549,9 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$order->setDelivery($delivery);
 		$order->setPayment($payment);
 
-		$order->recountPrice();
+		$this->orderManager->recountPrice($order);
 		$this->entityManager->flush();
-		$this->flashMessage('Doprava a platba byla změněna.', 'success');
+		$this->flashMessage('Delivery and payment has been changed.', 'success');
 		$this->sendOk();
 	}
 
@@ -555,7 +560,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	{
 		$order = $this->getOrderById($id);
 		$this->orderStatusManager->setStatus($order, $status);
-		$this->flashMessage('Stav objednávky ' . $order->getNumber() . ' byl změněn.', 'success');
+		$this->flashMessage('Status of order ' . $order->getNumber() . ' has been changed.', 'success');
 		$this->sendOk();
 	}
 
@@ -563,16 +568,8 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	public function postRemoveItem(int $orderId, int $itemId): void
 	{
 		$order = $this->getOrderById($orderId);
-		foreach ($order->getItems() as $item) {
-			if ($item->getId() === $itemId) {
-				$order->removeItem($itemId);
-				$this->entityManager->remove($item);
-				break;
-			}
-		}
-		$order->recountPrice();
-		$this->entityManager->flush();
-		$this->flashMessage('Položka byla odstraněna.', 'success');
+		$this->orderManager->removeItem($order, $itemId);
+		$this->flashMessage('The item has been removed.', 'success');
 		$this->sendOk();
 	}
 
@@ -584,11 +581,11 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$order->setNotice($notice);
 		$order->setDeliveryPrice($deliverPrice);
 		$order->setPrice($price);
-		$order->recountPrice();
+		$this->orderManager->recountPrice($order);
 		$this->entityManager->flush();
 		$this->flashMessage(
-			'Objednávka ' . $order->getNumber() . ' byla uložena.'
-			. (abs($oldPrice - $order->getPrice()) > 0.001 ? ' Cena byla přepočítána.' : ''),
+			'Order ' . $order->getNumber() . ' has been saved.'
+			. (abs($oldPrice - $order->getPrice()) > 0.001 ? ' The price has been recalculated.' : ''),
 			'success'
 		);
 		$this->sendOk();
@@ -606,7 +603,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			}
 		}
 
-		$order->recountPrice();
+		$this->orderManager->recountPrice($order);
 		$this->entityManager->flush();
 		$this->sendOk();
 	}
@@ -663,7 +660,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 		$item = new OrderItem($order, $product, $variant, 1, $price);
 		$order->addItem($item);
-		$order->recountPrice();
+		$this->orderManager->recountPrice($order);
 		$this->entityManager->persist($item);
 		$this->entityManager->flush();
 
@@ -676,10 +673,10 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$order = $this->getOrderById($id);
 		try {
 			$invoice = $this->invoiceManager->createInvoice($order);
-			$this->flashMessage('Faktura ' . $invoice->getNumber() . ' byla úspěšně vystavena.', 'success');
+			$this->flashMessage('Invoice ' . $invoice->getNumber() . ' has been successfully created.', 'success');
 		} catch (\Throwable $e) {
 			Debugger::log($e, ILogger::CRITICAL);
-			$this->flashMessage('Faktura se nepodařilo vystavit:' . $e->getMessage(), 'error');
+			$this->flashMessage('Invoice failed to be issued:' . $e->getMessage(), 'error');
 		}
 		$this->entityManager->flush();
 		$this->sendOk();
@@ -701,7 +698,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			}
 		}
 
-		$this->flashMessage('Mail "' . $mail . '" byl odeslán.', 'success');
+		$this->flashMessage('E-mail "' . $mail . '" has been sent.', 'success');
 		$this->sendOk();
 	}
 
@@ -711,7 +708,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$order = $this->getOrderById($id);
 		$order->setSale($sale);
 		$this->entityManager->flush();
-		$this->flashMessage('Sleva byla nastavena.', 'success');
+		$this->flashMessage('The sale has been set.', 'success');
 		$this->sendOk();
 	}
 
@@ -722,11 +719,11 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		foreach ($order->getItems() as $item) {
 			if ($item->getId() === $itemId) {
 				$item->setSale($sale);
-				$this->flashMessage('Sleva byla nastavena.', 'success');
+				$this->flashMessage('The sale has been set.', 'success');
 				break;
 			}
 		}
-		$order->recountPrice();
+		$this->orderManager->recountPrice($order);
 		$this->entityManager->flush();
 		$this->sendOk();
 	}

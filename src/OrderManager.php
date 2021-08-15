@@ -49,6 +49,21 @@ final class OrderManager implements \Baraja\Shop\Cart\OrderManager
 	}
 
 
+	/**
+	 * @throws NoResultException|NonUniqueResultException
+	 */
+	public function getOrderById(int $id): Order
+	{
+		return $this->entityManager->getRepository(Order::class)
+			->createQueryBuilder('o')
+			->where('o.id = :id')
+			->setParameter('id', $id)
+			->setMaxResults(1)
+			->getQuery()
+			->getSingleResult();
+	}
+
+
 	public function isPaid(Order $order): bool
 	{
 		$sum = 0;
@@ -81,5 +96,25 @@ final class OrderManager implements \Baraja\Shop\Cart\OrderManager
 	public function createOrder(OrderInfo $orderInfo, Cart $cart): OrderNumber
 	{
 		return $this->orderGenerator->createOrder($orderInfo, $cart);
+	}
+
+
+	public function recountPrice(Order $order): void
+	{
+		$order->recountPrice();
+	}
+
+
+	public function removeItem(Order $order, int $itemId): void
+	{
+		foreach ($order->getItems() as $item) {
+			if ($item->getId() === $itemId) {
+				$order->removeItem($itemId);
+				$this->entityManager->remove($item);
+				break;
+			}
+		}
+		$order->recountPrice();
+		$this->entityManager->flush();
 	}
 }
