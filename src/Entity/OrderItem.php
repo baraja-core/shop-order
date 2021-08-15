@@ -28,13 +28,13 @@ class OrderItem
 	#[ORM\Column(type: 'text', nullable: true)]
 	private ?string $label = null;
 
-	#[ORM\Column(type: 'integer')]
+	#[ORM\Column(type: 'integer', options: ['unsigned' => true])]
 	private int $count;
 
-	#[ORM\Column(type: 'float')]
+	#[ORM\Column(type: 'float', options: ['unsigned' => true])]
 	private float $price;
 
-	#[ORM\Column(type: 'float')]
+	#[ORM\Column(type: 'float', options: ['unsigned' => true])]
 	private float $sale = 0;
 
 

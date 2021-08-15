@@ -59,19 +59,19 @@ class Order implements OrderEntity, OrderNumber
 	#[ORM\ManyToOne(targetEntity: Payment::class)]
 	private Payment $payment;
 
-	#[ORM\Column(type: 'float')]
+	#[ORM\Column(type: 'float', options: ['unsigned' => true])]
 	private float $price;
 
-	#[ORM\Column(type: 'float')]
+	#[ORM\Column(type: 'float', options: ['unsigned' => true])]
 	private float $priceWithoutVat;
 
-	#[ORM\Column(type: 'float')]
+	#[ORM\Column(type: 'float', options: ['unsigned' => true])]
 	private float $sale = 0;
 
-	#[ORM\Column(type: 'integer', nullable: true)]
+	#[ORM\Column(type: 'integer', nullable: true, options: ['unsigned' => true])]
 	private ?int $deliveryPrice;
 
-	#[ORM\Column(type: 'integer', nullable: true)]
+	#[ORM\Column(type: 'integer', nullable: true, options: ['unsigned' => true])]
 	private ?int $deliveryBranchId = null;
 
 	#[ORM\Column(type: 'datetime')]
@@ -95,7 +95,7 @@ class Order implements OrderEntity, OrderNumber
 	#[ORM\Column(type: 'text', nullable: true)]
 	private ?string $handoverUrl = null;
 
-	#[ORM\Column(type: 'integer', nullable: true)]
+	#[ORM\Column(type: 'integer', nullable: true, options: ['unsigned' => true])]
 	private ?int $deprecatedId = null;
 
 	#[ORM\Column(type: 'datetime', nullable: true)]

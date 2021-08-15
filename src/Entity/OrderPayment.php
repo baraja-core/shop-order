@@ -20,7 +20,7 @@ class OrderPayment
 	#[ORM\Column(type: 'string', length: 64)]
 	private string $gatewayId;
 
-	#[ORM\Column(type: 'float')]
+	#[ORM\Column(type: 'float', options: ['unsigned' => true])]
 	private float $price;
 
 	#[ORM\Column(type: 'string', length: 64, nullable: true)]

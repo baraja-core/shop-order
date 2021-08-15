@@ -46,7 +46,7 @@ class OrderStatus implements \Stringable
 	#[Column(type: 'string', length: 128, nullable: true)]
 	private ?string $systemHandle = null;
 
-	#[Column(type: 'integer', nullable: true)]
+	#[Column(type: 'integer', nullable: true, options: ['unsigned' => true])]
 	private ?int $workflowPosition = null;
 
 	#[Column(type: 'string', length: 7, nullable: true)]
