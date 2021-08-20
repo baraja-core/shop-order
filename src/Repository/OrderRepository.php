@@ -9,11 +9,13 @@ use Baraja\Doctrine\EntityManager;
 use Baraja\Search\Search;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderStatus;
+use Baraja\Shop\Order\OrderStatusManager;
 
 final class OrderRepository
 {
 	public function __construct(
 		private EntityManager $entityManager,
+		private OrderStatusManager $statusManager,
 		private Search $search,
 	) {
 	}
@@ -69,22 +71,26 @@ final class OrderRepository
 						->getIds()
 				);
 		}
-		if ($status === null) {
+		if ($status === null) { // find all
 			$orderCandidateSelection->andWhere('status.code != :statusDone')
 				->andWhere('status.code != :statusStorno')
 				->andWhere('status.code != :statusTest')
 				->setParameter('statusDone', OrderStatus::STATUS_DONE)
 				->setParameter('statusStorno', OrderStatus::STATUS_STORNO)
 				->setParameter('statusTest', OrderStatus::STATUS_TEST);
-		} elseif ($status === 'trzby') { // TODO: Use status collection
-			$orderCandidateSelection
-				->andWhere('status.code != :statusStorno')
-				->andWhere('status.code != :statusTest')
-				->setParameter('statusStorno', OrderStatus::STATUS_STORNO)
-				->setParameter('statusTest', OrderStatus::STATUS_TEST);
-		} elseif ($status !== 'all') {
+		} elseif ($this->statusManager->isRegularStatus($status)) {
 			$orderCandidateSelection->andWhere('status.code = :status')
 				->setParameter('status', $status);
+		} elseif ($this->statusManager->isCollection($status)) {
+			$collections = $this->statusManager->getCollections();
+			assert(isset($collections[$status]['codes']));
+			$orderCandidateSelection
+				->andWhere('status.code IN (:statusCollectionCodes)')
+				->setParameter('statusCollectionCodes', $collections[$status]['codes']);
+		} else {
+			throw new \InvalidArgumentException(
+				'Status "' . $status . '" is not valid regular status code or collection.',
+			);
 		}
 		if ($dateFrom !== null) {
 			$orderCandidateSelection->andWhere('o.insertedDate >= :dateFrom')

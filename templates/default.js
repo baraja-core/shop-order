@@ -18,7 +18,7 @@ Vue.component('cms-order-default', {
 					<div class="d-flex flex-column flex-sm-row align-items-sm-center pr-lg-0">
 						<div class="row w-100">
 							<div class="col">
-								<b-form-input size="sm" v-model="filter.query" @input="sync" class="mr-3 w-100" style="max-width:300px" placeholder="Hledejte kdekoli..."></b-form-input>
+								<b-form-input size="sm" v-model="filter.query" @input="sync" class="mr-3 w-100" style="max-width:300px" placeholder="Search anywhere..."></b-form-input>
 								<b-form-select size="sm" v-model="filter.status" :options="filterStatuses" @change="sync" style="width:164px"></b-form-select>
 								<b-form-select size="sm" v-model="filter.delivery" :options="filterDeliveries" @change="sync" style="width:128px"></b-form-select>
 								<b-form-select size="sm" v-model="filter.payment" :options="filterPayments" @change="sync" style="width:128px"></b-form-select>
@@ -37,12 +37,12 @@ Vue.component('cms-order-default', {
 		<b-card>
 			<div class="row">
 				<div class="col">
-					Počet: <b>{{ paginator.itemCount }}</b>
-					| Součet pohledu: <b>{{ sum }}&nbsp;Kč</b>
+					Count: <b>{{ paginator.itemCount }}</b>
+					| Sum of&nbsp;view: <b>{{ sum }}&nbsp;Kč</b>
 				</div>
 				<div class="col-sm-2 text-right">
-					<b-button @click="sendPackets()" variant="secondary" size="sm" v-b-tooltip.hover title="Kliknutím na tlačítko se pošlou všechny zobrazené zásilky do Balíkobota a všem se přidělí hromadně štítky.">
-						Založit zásilky
+					<b-button @click="sendPackets()" variant="secondary" size="sm" v-b-tooltip.hover title="Clicking the button will establish shipments with the carrier for all orders displayed. This action cannot be reverted.">
+						Create packages
 					</b-button>
 				</div>
 				<div class="col-sm-2">
@@ -57,16 +57,16 @@ Vue.component('cms-order-default', {
 			<table class="table table-sm">
 				<tr>
 					<th>
-						<b-button variant="secondary" size="sm" class="px-1 py-0" @click="markAll()">vše</b-button>
+						<b-button variant="secondary" size="sm" class="px-1 py-0" @click="markAll()">all</b-button>
 					</th>
-					<th>Číslo</th>
-					<th style="width:150px">Stav</th>
-					<th>Cena</th>
-					<th>Zákazník</th>
-					<th>Položky</th>
-					<th>Doprava</th>
-					<th>Platba</th>
-					<th>Fakturace</th>
+					<th>Number</th>
+					<th style="width:150px">Status</th>
+					<th>Price</th>
+					<th>Customer</th>
+					<th>Items</th>
+					<th>Delivery</th>
+					<th>Payment</th>
+					<th>Documents</th>
 				</tr>
 				<tr v-for="item in items">
 					<td>
@@ -77,9 +77,9 @@ Vue.component('cms-order-default', {
 						<span class="badge badge-secondary">{{ item.insertedDate }}</span><br>
 						<span class="badge badge-secondary">{{ item.updatedDate }}</span>
 					</td>
-					<td :class="{ 'table-primary': item.status === 'new', 'table-success': item.status === 'paid' }">
-						<b-form-select v-model="item.status" :options="statuses" size="sm" @change="changeStatus(item.id, item.status)" style="margin-bottom:5px;height:8px"></b-form-select>
-						<span class="badge badge-secondary" :style="'background:' + item.color">{{ item.statusHuman }}</span>
+					<td :class="{ 'table-primary': item.status.code === 'new', 'table-success': item.status.code === 'paid' }">
+						<b-form-select v-model="item.status.code" :options="statuses" size="sm" @change="changeStatus(item.id, item.status.code)" style="margin-bottom:5px;height:8px"></b-form-select>
+						<span class="badge badge-secondary" :style="'background:' + item.status.color">{{ item.status.label }}</span>
 					</td>
 					<td class="text-center">
 						<template v-if="item.sale > 0">
@@ -118,14 +118,14 @@ Vue.component('cms-order-default', {
 							</tr>
 						</table>
 						<div v-if="item.notice" class="card p-1" style="font-size:10pt;background:#eee">
-							<b>Poznámka:</b>&nbsp;{{ item.notice }}
+							<b>Note:</b>&nbsp;{{ item.notice }}
 						</div>
 					</td>
 					<td :class="{ 'table-success': item.package }">
 						<span class="badge badge-secondary" :style="'background:' + item.delivery.color">{{ item.delivery.name }}</span>
 						<br>{{ item.delivery.price }}&nbsp;Kč
 						<div v-if="item.package">
-							<span class="badge badge-success">BALÍK ZALOŽEN</span>
+							<span class="badge badge-success">PACKAGE READY</span>
 						</div>
 					</td>
 					<td>
@@ -147,7 +147,7 @@ Vue.component('cms-order-default', {
 			</b-pagination>
 		</b-card>
 	</template>
-	<b-modal id="modal-create-order" title="Nová objednávka" size="lg" @shown="openCreateOrder" hide-footer>
+	<b-modal id="modal-create-order" title="Create a new order" size="lg" @shown="openCreateOrder" hide-footer>
 		<div v-if="customerList === null" class="text-center my-5">
 			<b-spinner></b-spinner>
 		</div>
@@ -189,10 +189,10 @@ Vue.component('cms-order-default', {
 			filterPayments: [],
 			filterDeliveries: [],
 			orderByOptions: [
-				{value: null, text: 'Nejnovější'},
-				{value: 'old', text: 'Nejstarší'},
-				{value: 'number', text: 'Číslo ASC'},
-				{value: 'number-desc', text: 'Číslo DESC'},
+				{value: null, text: 'Latest'},
+				{value: 'old', text: 'Oldest'},
+				{value: 'number', text: 'Number ASC'},
+				{value: 'number-desc', text: 'Number DESC'},
 			],
 			limitOptions: [
 				{value: 32, text: '32'},

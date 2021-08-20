@@ -186,12 +186,6 @@ class Order implements OrderEntity, OrderNumber
 	}
 
 
-	public function getColor(): string
-	{
-		return $this->getStatus()->getColor();
-	}
-
-
 	public function getCustomer(): Customer
 	{
 		return $this->customer;
@@ -238,12 +232,6 @@ class Order implements OrderEntity, OrderNumber
 			$this->setUpdated();
 		}
 		$this->status = $status;
-	}
-
-
-	public function getStatusHuman(): string
-	{
-		return $this->getStatus()->getLabel();
 	}
 
 

@@ -59,14 +59,55 @@ final class OrderStatusManager
 	/**
 	 * @return array<string, string>
 	 */
-	public function getKeyValueList(): array
+	public function getKeyValueList(bool $collections = false): array
 	{
 		$return = [];
+		if ($collections === true) {
+			foreach ($this->getCollections() as $collectionCode => $collection) {
+				$return[$collectionCode] = $collection['label'];
+			}
+		}
 		foreach ($this->getAllStatuses() as $status) {
 			$return[$status->getCode()] = $status->getName();
 		}
 
 		return $return;
+	}
+
+
+	/**
+	 * @return array<string, array{label: string, codes:array<int, string>}>
+	 */
+	public function getCollections(): array
+	{
+		return [
+			'all' => [
+				'label' => 'VŠECHNY HODNOTY',
+				'codes' => [],
+			],
+			'trzby' => [
+				'label' => 'TRŽBY',
+				'codes' => [],
+			],
+		];
+	}
+
+
+	public function isRegularStatus(string $code): bool
+	{
+		foreach ($this->getAllStatuses() as $status) {
+			if ($status->getCode() === $code) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+
+	public function isCollection(string $code): bool
+	{
+		return isset($this->getCollections()[$code]);
 	}
 
 
@@ -89,12 +130,9 @@ final class OrderStatusManager
 
 	public function initDefault(): void
 	{
-		$this->entityManager->persist(new OrderStatus(OrderStatus::STATUS_NEW, 'New'));
-		$this->entityManager->persist(new OrderStatus(OrderStatus::STATUS_SENT, 'Sent'));
-		$this->entityManager->persist(new OrderStatus(OrderStatus::STATUS_DONE, 'Done'));
-		$this->entityManager->persist(new OrderStatus(OrderStatus::STATUS_STORNO, 'Storno'));
-		$this->entityManager->persist(new OrderStatus(OrderStatus::STATUS_TEST, 'Test'));
-		$this->entityManager->persist(new OrderStatus(OrderStatus::STATUS_RETURNED, 'Returned'));
+		foreach (OrderStatus::COMMON_STATUSES as $code) {
+			$this->entityManager->persist(new OrderStatus($code, str_replace('-', ' ', $code)));
+		}
 		$this->entityManager->flush();
 	}
 }

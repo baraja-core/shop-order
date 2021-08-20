@@ -14,17 +14,10 @@ use Tracy\ILogger;
 
 final class OrderWorkflow
 {
-	private InvoiceManagerInterface $invoiceManager;
-
-
 	public function __construct(
 		private Emailer $emailer,
-		?InvoiceManagerInterface $invoiceManager = null,
+		private ?InvoiceManagerInterface $invoiceManager = null,
 	) {
-		if ($invoiceManager === null) {
-			throw new \LogicException('Invoice manager does not exist, but it is mandatory.');
-		}
-		$this->invoiceManager = $invoiceManager;
 	}
 
 
@@ -34,7 +27,7 @@ final class OrderWorkflow
 		if ($status === OrderStatus::STATUS_PAID) {
 			$this->emailer->sendOrderPaid($order);
 			try {
-				$this->invoiceManager->createInvoice($order);
+				$this->getInvoiceManager()->createInvoice($order);
 			} catch (\Throwable $e) {
 				Debugger::log($e, ILogger::CRITICAL);
 			}
@@ -45,9 +38,9 @@ final class OrderWorkflow
 		} elseif ($status === OrderStatus::STATUS_SENT) {
 			$this->emailer->sendOrderSent($order);
 		} elseif ($status === OrderStatus::STATUS_DONE) {
-			if (PHP_SAPI !== 'cli' && $this->invoiceManager->isInvoice($order) === false) {
+			if (PHP_SAPI !== 'cli' && $this->getInvoiceManager()->isInvoice($order) === false) {
 				try {
-					$this->invoiceManager->createInvoice($order);
+					$this->getInvoiceManager()->createInvoice($order);
 				} catch (\Throwable $e) {
 					Debugger::log($e, ILogger::CRITICAL);
 				}
@@ -67,5 +60,15 @@ final class OrderWorkflow
 	public function getIntervalForPingOrder(): int
 	{
 		return 604_800; // 7 days
+	}
+
+
+	private function getInvoiceManager(): InvoiceManagerInterface
+	{
+		if ($this->invoiceManager === null) {
+			throw new \LogicException('Invoice manager does not exist, but it is mandatory.');
+		}
+
+		return $this->invoiceManager;
 	}
 }

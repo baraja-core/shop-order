@@ -31,6 +31,21 @@ class OrderStatus implements \Stringable
 		STATUS_DEALER_PAID = 'dealer-paid',
 		STATUS_DEALER_NON_PAID = 'dealer-non-paid';
 
+	public const COMMON_STATUSES = [
+		self::STATUS_NEW,
+		self::STATUS_PAID,
+		self::STATUS_PREPARING,
+		self::STATUS_SENT,
+		self::STATUS_DONE,
+		self::STATUS_PREPARED,
+		self::STATUS_STORNO,
+		self::STATUS_TEST,
+		self::STATUS_RETURNED,
+		self::STATUS_MISSING_ITEM,
+		self::STATUS_DEALER_PAID,
+		self::STATUS_DEALER_NON_PAID,
+	];
+
 	#[Column(type: 'string', length: 48, unique: true)]
 	private string $code;
 

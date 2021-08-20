@@ -84,10 +84,12 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			$return[] = [
 				'id' => $order->getId(),
 				'checked' => false,
-				'color' => $order->getColor(),
 				'number' => $order->getNumber(),
-				'status' => $order->getStatus()->getCode(),
-				'statusHuman' => $order->getStatusHuman(),
+				'status' => [
+					'code' => $order->getStatus()->getCode(),
+					'color' => $order->getStatus()->getColor(),
+					'label' => $order->getStatus()->getName(),
+				],
 				'price' => $order->getBasePrice(),
 				'sale' => $order->getSale(),
 				'finalPrice' => $order->getPrice(),
@@ -179,11 +181,10 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'statuses' => $this->formatBootstrapSelectArray($this->orderStatusManager->getKeyValueList()),
 				'sum' => $sum,
 				'filterStatuses' => $this->formatBootstrapSelectArray(
-					[null => '- výchozí stavy -', 'all' => 'VŠECHNY HODNOTY', 'trzby' => 'TRŽBY'] + $this->orderStatusManager->getKeyValueList(
-					)
+					[null => '- status -'] + $this->orderStatusManager->getKeyValueList(true)
 				),
 				'filterPayments' => $this->formatBootstrapSelectArray(
-					[null => '- platby -'] + (static function (array $payments): array
+					[null => '- payment -'] + (static function (array $payments): array
 					{
 						$return = [];
 						/** @var Payment $payment */
@@ -197,7 +198,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 					)
 				),
 				'filterDeliveries' => $this->formatBootstrapSelectArray(
-					[null => '- dopravy -'] + (static function (array $deliveries): array
+					[null => '- delivery -'] + (static function (array $deliveries): array
 					{
 						$return = [];
 						/** @var Delivery $delivery */
