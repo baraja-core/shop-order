@@ -12,7 +12,7 @@ use Doctrine\ORM\Mapping as ORM;
  * @ORM\Entity()
  * @ORM\Table(name="shop__transaction")
  */
-class Transaction implements TransactionEntity
+class OrderBankPayment implements TransactionEntity
 {
 	use IdentifierUnsigned;
 

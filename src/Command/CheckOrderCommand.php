@@ -15,7 +15,7 @@ use Baraja\Shop\Order\Entity\OrderStatus;
 use Baraja\Shop\Order\OrderStatusManager;
 use Baraja\Shop\Order\Payment\OrderPaymentClient;
 use Baraja\Shop\Order\Status\OrderWorkflow;
-use Baraja\Shop\Order\TransactionManager;
+use Baraja\Shop\Order\OrderPaymentManager;
 use Nette\Application\UI\InvalidLinkException;
 use Nette\Utils\DateTime;
 use Symfony\Component\Console\Command\Command;
@@ -30,7 +30,7 @@ final class CheckOrderCommand extends Command
 		private EntityManager $entityManager,
 		private OrderStatusManager $orderStatusManager,
 		private Emailer $emailer,
-		private TransactionManager $tm,
+		private OrderPaymentManager $tm,
 		private OrderPaymentClient $orderPaymentClient,
 		private OrderWorkflow $workflow,
 	) {

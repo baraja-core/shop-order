@@ -7,13 +7,15 @@ namespace Baraja\Shop\Order;
 
 use Baraja\BankTransferAuthorizator\Transaction as BankTransaction;
 use Baraja\Doctrine\EntityManager;
-use Baraja\Shop\Order\Entity\OrderPayment;
+use Baraja\Shop\Order\Entity\Order;
+use Baraja\Shop\Order\Entity\OrderOnlinePayment;
+use Baraja\Shop\Order\Entity\OrderPaymentEntity;
 use Baraja\Shop\Order\Entity\OrderStatus;
-use Baraja\Shop\Order\Entity\Transaction;
+use Baraja\Shop\Order\Entity\OrderBankPayment;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
 
-final class TransactionManager
+final class OrderPaymentManager
 {
 	public function __construct(
 		private EntityManager $entityManager,
@@ -21,9 +23,18 @@ final class TransactionManager
 	}
 
 
-	public function storeTransaction(BankTransaction $transaction, bool $flush = false): Transaction
+	/**
+	 * @return OrderPaymentEntity[]
+	 */
+	public function getPayments(Order $order): array
 	{
-		$transactionEntity = new Transaction(
+		return [];
+	}
+
+
+	public function storeTransaction(BankTransaction $transaction, bool $flush = false): OrderBankPayment
+	{
+		$transactionEntity = new OrderBankPayment(
 			$transaction->getId(),
 			$transaction->getDate(),
 			$transaction->getPrice(),
@@ -64,7 +75,7 @@ final class TransactionManager
 		static $cache = [];
 		if (isset($cache[$idTransaction]) === false) {
 			try {
-				$this->entityManager->getRepository(Transaction::class)
+				$this->entityManager->getRepository(OrderBankPayment::class)
 					->createQueryBuilder('transaction')
 					->where('transaction.idTransaction = :idTransaction')
 					->setParameter('idTransaction', $idTransaction)
@@ -90,7 +101,7 @@ final class TransactionManager
 		static $cache = [];
 		if (isset($cache[$number]) === false) {
 			try {
-				$this->entityManager->getRepository(OrderPayment::class)
+				$this->entityManager->getRepository(OrderOnlinePayment::class)
 					->createQueryBuilder('o')
 					->where('o.number = :number')
 					->setParameter('number', $number)

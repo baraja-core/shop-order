@@ -66,7 +66,7 @@ final class ShopOrderExtension extends CompilerExtension
 			->setFactory(Emailer::class);
 
 		$builder->addDefinition($this->prefix('transactionManager'))
-			->setFactory(TransactionManager::class);
+			->setFactory(OrderPaymentManager::class);
 
 		$builder->addDefinition($this->prefix('customerOrderBridge'))
 			->setFactory(CustomerOrderBridge::class);

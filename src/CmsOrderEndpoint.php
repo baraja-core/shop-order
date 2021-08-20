@@ -18,7 +18,7 @@ use Baraja\Shop\Order\Delivery\OrderDeliveryManager;
 use Baraja\Shop\Order\Document\OrderDocumentManager;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderItem;
-use Baraja\Shop\Order\Entity\OrderPayment;
+use Baraja\Shop\Order\Entity\OrderOnlinePayment;
 use Baraja\Shop\Order\Repository\OrderRepository;
 use Baraja\Shop\Payment\Entity\Payment;
 use Baraja\Shop\Product\Entity\Product;
@@ -159,7 +159,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'payments' => (static function ($items): array
 				{
 					$return = [];
-					/** @var OrderPayment $item */
+					/** @var OrderOnlinePayment $item */
 					foreach ($items as $item) {
 						$return[] = [
 							'id' => $item->getId(),
@@ -238,7 +238,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'gopayId' => $payment->getGatewayId(),
 				'price' => $payment->getPrice(),
 				'status' => $payment->getStatus(),
-				'insertedDate' => $payment->getInsertedDate(),
+				'insertedDate' => $payment->getDate(),
 			];
 		}
 

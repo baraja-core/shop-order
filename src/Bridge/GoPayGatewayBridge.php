@@ -9,7 +9,7 @@ use Baraja\Doctrine\EntityManager;
 use Baraja\DynamicConfiguration\Configuration;
 use Baraja\Shop\Order\Application\WebController;
 use Baraja\Shop\Order\Entity\Order;
-use Baraja\Shop\Order\Entity\OrderPayment;
+use Baraja\Shop\Order\Entity\OrderOnlinePayment;
 use Baraja\Shop\Order\Entity\OrderStatus;
 use Baraja\Shop\Order\Payment\Gateway\Gateway;
 use Baraja\Shop\Order\Payment\Gateway\GatewayResponse;
@@ -79,7 +79,7 @@ final class GoPayGatewayBridge implements Gateway, OrderPaymentProvider
 		);
 
 		if (isset($response['gw_url'])) {
-			$payment = new OrderPayment($order, (string) $response['id']);
+			$payment = new OrderOnlinePayment($order, (string) $response['id']);
 			$this->entityManager->persist($payment);
 			$order->addPayment($payment);
 			$this->entityManager->flush();
@@ -119,8 +119,8 @@ final class GoPayGatewayBridge implements Gateway, OrderPaymentProvider
 			->getSingleResult();
 
 		try {
-			/** @var OrderPayment $payment */
-			$payment = $this->entityManager->getRepository(OrderPayment::class)
+			/** @var OrderOnlinePayment $payment */
+			$payment = $this->entityManager->getRepository(OrderOnlinePayment::class)
 				->createQueryBuilder('payment')
 				->leftJoin('payment.order', 'o')
 				->where('payment.gopayId = :gopayId')

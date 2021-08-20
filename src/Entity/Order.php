@@ -112,12 +112,12 @@ class Order implements OrderEntity, OrderNumber
 	#[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderPackage::class)]
 	private $packages;
 
-	/** @var Transaction[]|Collection */
-	#[ORM\OneToMany(mappedBy: 'order', targetEntity: Transaction::class)]
+	/** @var OrderBankPayment[]|Collection */
+	#[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderBankPayment::class)]
 	private $transactions;
 
-	/** @var OrderPayment[]|Collection */
-	#[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderPayment::class)]
+	/** @var OrderOnlinePayment[]|Collection */
+	#[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderOnlinePayment::class)]
 	private $payments;
 
 	/** @var OrderMeta[]|Collection */
@@ -450,7 +450,7 @@ class Order implements OrderEntity, OrderNumber
 
 
 	/**
-	 * @return Transaction[]|Collection
+	 * @return OrderBankPayment[]|Collection
 	 */
 	public function getTransactions()
 	{
@@ -459,7 +459,7 @@ class Order implements OrderEntity, OrderNumber
 
 
 	/**
-	 * @return OrderPayment[]|Collection
+	 * @return OrderOnlinePayment[]|Collection
 	 */
 	public function getPayments()
 	{
@@ -467,7 +467,7 @@ class Order implements OrderEntity, OrderNumber
 	}
 
 
-	public function addPayment(OrderPayment $payment): void
+	public function addPayment(OrderOnlinePayment $payment): void
 	{
 		$this->payments[] = $payment;
 	}

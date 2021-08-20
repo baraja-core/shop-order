@@ -7,7 +7,7 @@ namespace Baraja\Shop\Order;
 
 use Baraja\DynamicConfiguration\Configuration;
 use Baraja\Shop\Order\Entity\Order;
-use Baraja\Shop\Order\Entity\OrderPayment;
+use Baraja\Shop\Order\Entity\OrderOnlinePayment;
 use Baraja\Shop\ShopInfo;
 use Baraja\Url\Url;
 use Latte\Engine;
@@ -251,7 +251,7 @@ final class Emailer
 	}
 
 
-	public function sendOrderFailMail(OrderPayment $payment): void
+	public function sendOrderFailMail(OrderOnlinePayment $payment): void
 	{
 		$this->mailer->send(
 			(new Message)

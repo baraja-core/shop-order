@@ -10,7 +10,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'shop__order_payment')]
-class OrderPayment
+class OrderOnlinePayment implements OrderPaymentEntity
 {
 	use IdentifierUnsigned;
 
@@ -69,7 +69,7 @@ class OrderPayment
 	}
 
 
-	public function getInsertedDate(): \DateTimeInterface
+	public function getDate(): \DateTimeInterface
 	{
 		return $this->insertedDate;
 	}
