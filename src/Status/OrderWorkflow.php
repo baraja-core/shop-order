@@ -14,10 +14,17 @@ use Tracy\ILogger;
 
 final class OrderWorkflow
 {
+	private InvoiceManagerInterface $invoiceManager;
+
+
 	public function __construct(
 		private Emailer $emailer,
-		private InvoiceManagerInterface $invoiceManager,
+		?InvoiceManagerInterface $invoiceManager = null,
 	) {
+		if ($invoiceManager === null) {
+			throw new \LogicException('Invoice manager does not exist, but it is mandatory.');
+		}
+		$this->invoiceManager = $invoiceManager;
 	}
 
 

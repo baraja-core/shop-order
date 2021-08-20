@@ -13,7 +13,6 @@ use Baraja\Shop\Customer\Entity\Customer;
 use Baraja\Shop\Delivery\BranchManager;
 use Baraja\Shop\Delivery\Entity\BranchInterface;
 use Baraja\Shop\Delivery\Entity\Delivery;
-use Baraja\Shop\Invoice\InvoiceManager;
 use Baraja\Shop\Order\Delivery\OrderDeliveryManager;
 use Baraja\Shop\Order\Document\OrderDocumentManager;
 use Baraja\Shop\Order\Entity\Order;
@@ -37,7 +36,6 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		private OrderManager $orderManager,
 		private OrderGenerator $orderGenerator,
 		private OrderDeliveryManager $deliveryManager,
-		private InvoiceManager $invoiceManager,
 		private Emailer $emailer,
 		private OrderStatusManager $orderStatusManager,
 		private BranchManager $branchManager,
@@ -45,6 +43,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		private OrderDocumentManager $documentManager,
 		private Search $search,
 		private OrderRepository $orderRepository,
+		private ?InvoiceManagerInterface $invoiceManager = null,
 	) {
 	}
 
