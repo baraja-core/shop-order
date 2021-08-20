@@ -8,18 +8,27 @@ namespace Baraja\Shop\Order;
 use Baraja\BankTransferAuthorizator\Transaction as BankTransaction;
 use Baraja\Doctrine\EntityManager;
 use Baraja\Shop\Order\Entity\Order;
+use Baraja\Shop\Order\Entity\OrderBankPayment;
 use Baraja\Shop\Order\Entity\OrderOnlinePayment;
 use Baraja\Shop\Order\Entity\OrderPaymentEntity;
 use Baraja\Shop\Order\Entity\OrderStatus;
-use Baraja\Shop\Order\Entity\OrderBankPayment;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
+use Nette\Caching\Cache;
+use Nette\Caching\Storage;
 
 final class OrderPaymentManager
 {
+	private ?Cache $cache = null;
+
+
 	public function __construct(
 		private EntityManager $entityManager,
+		?Storage $storage = null,
 	) {
+		if ($storage !== null) {
+			$this->cache = new Cache($storage, 'order-payment-manager');
+		}
 	}
 
 
@@ -28,7 +37,51 @@ final class OrderPaymentManager
 	 */
 	public function getPayments(Order $order): array
 	{
-		return [];
+		$results = [];
+		foreach ($this->getPaymentEntities() as $entity) {
+			$results[] = $this->entityManager->getRepository($entity)
+				->createQueryBuilder('payment')
+				->where('payment.order = :orderId')
+				->setParameter('orderId', $order->getId())
+				->getQuery()
+				->getResult();
+		}
+
+		/** @var OrderPaymentEntity[] $entities */
+		$entities = array_merge([], ...$results);
+		usort($entities, [$this, 'sortEntities']);
+
+		return $entities;
+	}
+
+
+	/**
+	 * @return array<int, class-string>
+	 */
+	public function getPaymentEntities(): array
+	{
+		$key = 'payment-entities';
+		try {
+			$cache = $this->cache !== null ? $this->cache->load($key) : null;
+		} catch (\Throwable) {
+			$cache = null;
+		}
+
+		if ($cache === null) {
+			$entities = [];
+			foreach ($this->entityManager->getMetadataFactory()->getAllMetadata() as $meta) {
+				$ref = $meta->getReflectionClass();
+				if ($ref->implementsInterface(OrderPaymentEntity::class) && $ref->hasProperty('order')) {
+					$entities[] = $meta->getName();
+				}
+			}
+			$cache = $entities;
+			if ($cache !== null) {
+				$this->cache->save($key, $entities);
+			}
+		}
+
+		return $cache;
 	}
 
 
@@ -118,5 +171,11 @@ final class OrderPaymentManager
 		}
 
 		return $cache[$number];
+	}
+
+
+	private function sortEntities(OrderPaymentEntity $a, OrderPaymentEntity $b): int
+	{
+		return $a->getDate()->getTimestamp() < $b->getDate()->getTimestamp() ? 1 : -1;
 	}
 }
