@@ -13,6 +13,7 @@ use Baraja\Shop\Order\Application\WebController;
 use Baraja\Shop\Order\Bridge\HeurekaOverenoCreatedOrderEvent;
 use Baraja\Shop\Order\Bridge\RegisterNewsletterCreatedOrderEvent;
 use Baraja\Shop\Order\Command\CheckOrderCommand;
+use Baraja\Shop\Order\Delivery\OrderCarrierManager;
 use Baraja\Shop\Order\Delivery\OrderDeliveryManager;
 use Baraja\Shop\Order\Document\OrderDocumentManager;
 use Baraja\Shop\Order\Payment\OrderPaymentClient;
@@ -49,6 +50,9 @@ final class ShopOrderExtension extends CompilerExtension
 
 		$builder->addDefinition($this->prefix('orderDeliveryManager'))
 			->setFactory(OrderDeliveryManager::class);
+
+		$builder->addDefinition($this->prefix('orderCarrierManager'))
+			->setFactory(OrderCarrierManager::class);
 
 		$builder->addDefinition($this->prefix('orderPaymentClient'))
 			->setFactory(OrderPaymentClient::class);
