@@ -42,6 +42,9 @@ final class ShopOrderExtension extends CompilerExtension
 		$builder->addAccessorDefinition($this->prefix('orderManagerAccessor'))
 			->setImplement(OrderManagerAccessor::class);
 
+		$builder->addDefinition($this->prefix('orderGroupManager'))
+			->setFactory(OrderGroupManager::class);
+
 		$builder->addDefinition($this->prefix('orderRepository'))
 			->setFactory(OrderRepository::class);
 
