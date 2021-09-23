@@ -32,6 +32,12 @@ final class CmsOrderPlugin extends BasePlugin implements SearchablePlugin
 	}
 
 
+	public function getIcon(): ?string
+	{
+		return 'cash-stack';
+	}
+
+
 	public function actionDetail(int $id): void
 	{
 		/** @var Order $order */
