@@ -34,6 +34,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	public function __construct(
 		private EntityManager $entityManager,
 		private OrderManager $orderManager,
+		private OrderGroupManager $orderGroupManager,
 		private OrderGenerator $orderGenerator,
 		private OrderDeliveryManager $deliveryManager,
 		private Emailer $emailer,
@@ -175,11 +176,18 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			$sum += $order->getPrice();
 		}
 
+		$groups = [];
+		foreach ($this->orderGroupManager->getGroups() as $group) {
+			$groups[$group->getCode()] = (string) $group->getName();
+		}
+
 		$this->sendJson(
 			[
 				'items' => $return,
 				'statuses' => $this->formatBootstrapSelectArray($this->orderStatusManager->getKeyValueList()),
 				'sum' => $sum,
+				'defaultGroup' => $this->orderGroupManager->getDefaultGroup()->getCode(),
+				'filterGroups' => $this->formatBootstrapSelectArray($groups),
 				'filterStatuses' => $this->formatBootstrapSelectArray(
 					[null => '- status -'] + $this->orderStatusManager->getKeyValueList(true)
 				),

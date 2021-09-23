@@ -9,6 +9,7 @@ use Baraja\Doctrine\EntityManager;
 use Baraja\Search\Search;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderStatus;
+use Baraja\Shop\Order\OrderGroupManager;
 use Baraja\Shop\Order\OrderStatusManager;
 
 final class OrderRepository
@@ -16,6 +17,7 @@ final class OrderRepository
 	public function __construct(
 		private EntityManager $entityManager,
 		private OrderStatusManager $statusManager,
+		private OrderGroupManager $orderGroupManager,
 		private Search $search,
 	) {
 	}
@@ -32,13 +34,15 @@ final class OrderRepository
 		?string $orderBy = null,
 		?string $dateFrom = null,
 		?string $dateTo = null,
+		?string $group = null,
 		int $limit = 128,
 		int $page = 1,
 	): array {
 		$orderCandidateSelection = $this->entityManager->getRepository(Order::class)
 			->createQueryBuilder('o')
 			->select('PARTIAL o.{id}')
-			->leftJoin('o.status', 'status');
+			->leftJoin('o.status', 'status')
+			->leftJoin('o.group', 'orderGroup');
 
 		if ($orderBy !== null) {
 			if ($orderBy === 'old') {
@@ -51,7 +55,7 @@ final class OrderRepository
 		} else {
 			$orderCandidateSelection->orderBy('o.number', 'DESC');
 		}
-		if ($query !== null) {
+		if ($query !== null && trim($query) !== '') {
 			$orderCandidateSelection->andWhere('o.id IN (:searchIds)')
 				->setParameter(
 					'searchIds',
@@ -108,6 +112,11 @@ final class OrderRepository
 			$orderCandidateSelection->andWhere('o.payment = :payment')
 				->setParameter('payment', $payment);
 		}
+		$orderCandidateSelection->andWhere('orderGroup.code = :groupCode')
+			->setParameter(
+				'groupCode',
+				$group ?? $this->orderGroupManager->getDefaultGroup()->getCode()
+			);
 
 		$count = (int) (clone $orderCandidateSelection)
 			->orderBy('o.id', 'DESC')

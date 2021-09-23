@@ -18,6 +18,7 @@ use Baraja\Shop\Customer\CustomerManager;
 use Baraja\Shop\Customer\Entity\Customer;
 use Baraja\Shop\Delivery\Entity\Delivery;
 use Baraja\Shop\Order\Entity\Order;
+use Baraja\Shop\Order\Entity\OrderGroup;
 use Baraja\Shop\Order\Entity\OrderItem;
 use Baraja\Shop\Order\Entity\OrderStatus;
 use Baraja\Shop\Payment\Entity\Payment;
@@ -38,6 +39,7 @@ final class OrderGenerator
 		private EntityManager $entityManager,
 		private CartManager $cartManager,
 		private OrderStatusManager $statusManager,
+		private OrderGroupManager $orderGroupManager,
 		private Localization $localization,
 		private CustomerManager $customerManager,
 		private User $user,
@@ -47,7 +49,7 @@ final class OrderGenerator
 	}
 
 
-	public function createOrder(OrderInfo $orderInfo, Cart $cart): OrderNumber
+	public function createOrder(OrderInfo $orderInfo, Cart $cart, ?OrderGroup $group = null): OrderNumber
 	{
 		if ($cart->isEmpty()) {
 			throw new \LogicException('Can not create empty order (cart id: "' . $cart->getId() . '").');
@@ -95,6 +97,7 @@ final class OrderGenerator
 		}
 
 		$order = new Order(
+			group: $group ?? $this->orderGroupManager->getDefaultGroup(),
 			status: $this->statusManager->getStatusByCode(OrderStatus::STATUS_NEW),
 			customer: $this->processCustomer($info, $cart),
 			deliveryAddress: $deliveryAddress,
@@ -148,7 +151,7 @@ final class OrderGenerator
 	}
 
 
-	public function createEmptyOrder(Customer $customer, ?Country $country = null): Order
+	public function createEmptyOrder(Customer $customer, ?Country $country = null, ?OrderGroup $group = null): Order
 	{
 		if ($country === null) {
 			throw new \InvalidArgumentException('Country is mandatory.');
@@ -187,6 +190,7 @@ final class OrderGenerator
 		$deliveryAddress = $address($customer);
 		$invoiceAddress = $address($customer);
 		$order = new Order(
+			group: $group ?? $this->orderGroupManager->getDefaultGroup(),
 			status: $this->statusManager->getStatusByCode(OrderStatus::STATUS_NEW),
 			customer: $customer,
 			deliveryAddress: $deliveryAddress,

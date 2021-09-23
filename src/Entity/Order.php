@@ -29,6 +29,9 @@ class Order implements OrderEntity, OrderNumber
 
 	public const FREE_DELIVERY_LIMIT = 1_000;
 
+	#[ORM\ManyToOne(targetEntity: OrderGroup::class)]
+	private OrderGroup $group;
+
 	#[ORM\ManyToOne(targetEntity: Customer::class)]
 	private Customer $customer;
 
@@ -62,7 +65,7 @@ class Order implements OrderEntity, OrderNumber
 	#[ORM\Column(type: 'float', options: ['unsigned' => true])]
 	private float $price;
 
-	#[ORM\Column(type: 'currency', length: 3)]
+	#[ORM\Column(type: 'string', length: 3)]
 	private string $currency;
 
 	#[ORM\Column(type: 'float', options: ['unsigned' => true])]
@@ -126,6 +129,7 @@ class Order implements OrderEntity, OrderNumber
 
 
 	public function __construct(
+		OrderGroup $group,
 		OrderStatus $status,
 		Customer $customer,
 		Address $deliveryAddress,
@@ -137,6 +141,7 @@ class Order implements OrderEntity, OrderNumber
 		float $price,
 		float $priceWithoutVat,
 	) {
+		$this->group = $group;
 		$this->status = $status;
 		$this->customer = $customer;
 		$this->deliveryAddress = $deliveryAddress;
@@ -183,6 +188,12 @@ class Order implements OrderEntity, OrderNumber
 	public function setDeliveryPrice(int $deliveryPrice): void
 	{
 		$this->deliveryPrice = $deliveryPrice;
+	}
+
+
+	public function getGroup(): OrderGroup
+	{
+		return $this->group;
 	}
 
 

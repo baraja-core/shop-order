@@ -19,6 +19,7 @@ Vue.component('cms-order-default', {
 						<div class="row w-100">
 							<div class="col">
 								<b-form-input size="sm" v-model="filter.query" @input="sync" class="mr-3 w-100" style="max-width:300px" placeholder="Search anywhere..."></b-form-input>
+								<b-form-select size="sm" v-model="filter.group" :options="filterGroups" @change="sync" style="width:85px"></b-form-select>
 								<b-form-select size="sm" v-model="filter.status" :options="filterStatuses" @change="sync" style="width:164px"></b-form-select>
 								<b-form-select size="sm" v-model="filter.delivery" :options="filterDeliveries" @change="sync" style="width:128px"></b-form-select>
 								<b-form-select size="sm" v-model="filter.payment" :options="filterPayments" @change="sync" style="width:128px"></b-form-select>
@@ -54,7 +55,7 @@ Vue.component('cms-order-default', {
 					</b-pagination>
 				</div>
 			</div>
-			<table class="table table-sm">
+			<table class="table table-sm cms-table-no-border-top">
 				<tr>
 					<th>
 						<b-button variant="secondary" size="sm" class="px-1 py-0" @click="markAll()">all</b-button>
@@ -100,12 +101,13 @@ Vue.component('cms-order-default', {
 						<span v-if="item.customer.phone" style="font-size:10pt"><br>{{ item.customer.phone }}</span>
 					</td>
 					<td class="p-0">
-						<table class="w-100" style="font-size:10pt">
+						<table class="w-100" cellspacing="0" cellpadding="0" style="font-size:10pt">
 							<tr v-for="orderItem in item.items">
-								<td width="32">
-									<span :class="['badge', orderItem.count === 1 ? 'badge-secondary' : 'badge-danger', 'px-1', 'py-0']" style="font-size:11pt">{{ orderItem.count }}</span>
+								<td class="text-right" width="32">
+									<template v-if="orderItem.count === 1">1</template>
+									<span v-else class="badge badge-danger px-1 py-0" style="font-size:11pt">{{ orderItem.count }}</span>
 								</td>
-								<td>{{ orderItem.name }}</td>
+								<td style="padding:2px 0">{{ orderItem.name }}</td>
 								<td class="text-right">
 									<template v-if="orderItem.sale > 0">
 										<s class="text-danger">{{ orderItem.price }}&nbsp;Kč</s><br>
@@ -118,7 +120,7 @@ Vue.component('cms-order-default', {
 							</tr>
 						</table>
 						<div v-if="item.notice" class="card p-1" style="font-size:10pt;background:#eee">
-							<b>Note:</b>&nbsp;{{ item.notice }}
+							<span>{{ item.notice }}</span>
 						</div>
 					</td>
 					<td :class="{ 'table-success': item.package }">
@@ -143,7 +145,7 @@ Vue.component('cms-order-default', {
 				v-model="paginator.page"
 				:per-page="paginator.itemsPerPage"
 				@change="syncPaginator()"
-				:total-rows="paginator.itemCount" align="right" size="sm">
+				:total-rows="paginator.itemCount" align="center" size="sm">
 			</b-pagination>
 		</b-card>
 	</template>
@@ -185,6 +187,7 @@ Vue.component('cms-order-default', {
 				itemCount: 0,
 			},
 			statuses: [],
+			filterGroups: [],
 			filterStatuses: [],
 			filterPayments: [],
 			filterDeliveries: [],
@@ -205,6 +208,7 @@ Vue.component('cms-order-default', {
 			],
 			filter: {
 				query: '',
+				group: null,
 				orderBy: null,
 				status: null,
 				delivery: null,
@@ -238,9 +242,13 @@ Vue.component('cms-order-default', {
 					this.sum = req.data.sum;
 					this.paginator = req.data.paginator;
 					this.statuses = req.data.statuses;
+					this.filterGroups = req.data.filterGroups;
 					this.filterStatuses = req.data.filterStatuses;
 					this.filterPayments = req.data.filterPayments;
 					this.filterDeliveries = req.data.filterDeliveries;
+					if (this.filter.group === null) {
+						this.filter.group = req.data.defaultGroup;
+					}
 				});
 		},
 		changeStatus(id, status) {
