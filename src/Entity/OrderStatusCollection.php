@@ -23,6 +23,7 @@ class OrderStatusCollection
 	#[Column(type: 'string', length: 48)]
 	private string $label;
 
+	/** @var array<int, string> */
 	#[Column(type: 'json')]
 	private array $codes;
 
@@ -63,7 +64,7 @@ class OrderStatusCollection
 
 
 	/**
-	 * @return string[]
+	 * @return array<int, string>
 	 */
 	public function getCodes(): array
 	{
@@ -72,7 +73,7 @@ class OrderStatusCollection
 
 
 	/**
-	 * @param string[] $codes
+	 * @param array<int, string> $codes
 	 */
 	public function setCodes(array $codes): void
 	{
