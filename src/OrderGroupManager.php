@@ -57,6 +57,28 @@ final class OrderGroupManager
 	}
 
 
+	public function getById(int $id): OrderGroup
+	{
+		foreach ($this->getGroups() as $group) {
+			if ($group->getId() === $id) {
+				return $group;
+			}
+		}
+		throw new \InvalidArgumentException('Group "' . $id . '" does not exist.');
+	}
+
+
+	public function getByCode(string $code): OrderGroup
+	{
+		foreach ($this->getGroups() as $group) {
+			if ($group->getCode() === $code) {
+				return $group;
+			}
+		}
+		throw new \InvalidArgumentException('Group "' . $code . '" does not exist.');
+	}
+
+
 	public function setDefault(OrderGroup $group, bool $default = true): void
 	{
 		$groups = $this->getGroups();

@@ -9,6 +9,7 @@ use Baraja\Country\CountryManager;
 use Baraja\Doctrine\EntityManager;
 use Baraja\Search\Search;
 use Baraja\Shop\Address\Entity\Address;
+use Baraja\Shop\Customer\CustomerManager;
 use Baraja\Shop\Customer\Entity\Customer;
 use Baraja\Shop\Delivery\BranchManager;
 use Baraja\Shop\Delivery\Entity\BranchInterface;
@@ -34,6 +35,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	public function __construct(
 		private EntityManager $entityManager,
 		private OrderManager $orderManager,
+		private CustomerManager $customerManager,
 		private OrderGroupManager $orderGroupManager,
 		private OrderGenerator $orderGenerator,
 		private OrderDeliveryManager $deliveryManager,
@@ -52,6 +54,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	public function actionDefault(
 		?string $query = null,
 		?string $status = null,
+		?string $group = null,
 		?int $delivery = null,
 		?int $payment = null,
 		?string $orderBy = null,
@@ -68,15 +71,10 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			orderBy: $orderBy,
 			dateFrom: $dateFrom,
 			dateTo: $dateTo,
+			group: $group,
 			limit: $limit,
 			page: $page,
 		);
-
-		/** @var Delivery[] $deliveries */
-		$deliveries = $this->entityManager->getRepository(Delivery::class)->findAll();
-
-		/** @var Payment[] $payments */
-		$payments = $this->entityManager->getRepository(Payment::class)->findAll();
 
 		$sum = 0;
 		$return = [];
@@ -136,28 +134,12 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				})(
 					$order->getItems()
 				),
-				'invoices' => [],
-				/*(function ($items) use ($order): array
-				{
-					$return = [];
-					/** @var Invoice $item * /
-					foreach ($items as $item) {
-						$return[] = [
-							'id' => $item->getId(),
-							'number' => $item->getNumber(),
-							'url' => $this->link(
-								'Front:Invoice:default', [
-									'number' => $item->getNumber(),
-									'hash' => $order->getHash(),
-								]
-							),
-						];
-					}
-
-					return $return;
-				})(
-					$order->getInvoices()
-				),*/
+				'documents' => [
+					[
+						'url' => '#',
+						'label' => 'Test',
+					],
+				],
 				'payments' => (static function ($items): array
 				{
 					$return = [];
@@ -176,16 +158,36 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			$sum += $order->getPrice();
 		}
 
+		$this->sendJson(
+			[
+				'items' => $return,
+				'sum' => $sum,
+				'paginator' => (new Paginator)
+					->setItemCount($feed['count'])
+					->setItemsPerPage($limit)
+					->setPage($page),
+			]
+		);
+	}
+
+
+	public function actionFilter(): void
+	{
+		/** @var Delivery[] $deliveries */
+		$deliveries = $this->entityManager->getRepository(Delivery::class)->findAll();
+
+		/** @var Payment[] $payments */
+		$payments = $this->entityManager->getRepository(Payment::class)->findAll();
+
 		$groups = [];
-		foreach ($this->orderGroupManager->getGroups() as $group) {
-			$groups[$group->getCode()] = (string) $group->getName();
+		foreach ($this->orderGroupManager->getGroups() as $groupItem) {
+			$groups[$groupItem->getCode()] = (string) $groupItem->getName();
 		}
 
 		$this->sendJson(
 			[
-				'items' => $return,
+				'loaded' => true,
 				'statuses' => $this->formatBootstrapSelectArray($this->orderStatusManager->getKeyValueList()),
-				'sum' => $sum,
 				'defaultGroup' => $this->orderGroupManager->getDefaultGroup()->getCode(),
 				'filterGroups' => $this->formatBootstrapSelectArray($groups),
 				'filterStatuses' => $this->formatBootstrapSelectArray(
@@ -219,10 +221,14 @@ final class CmsOrderEndpoint extends BaseEndpoint
 						$deliveries
 					)
 				),
-				'paginator' => (new Paginator)
-					->setItemCount($feed['count'])
-					->setItemsPerPage($limit)
-					->setPage($page),
+				'orderByOptions' => $this->formatBootstrapSelectArray(
+					[
+						null => 'Latest',
+						'old' => 'Oldest',
+						'number' => 'Number ASC',
+						'number-desc' =>  'Number DESC',
+					]
+				)
 			]
 		);
 	}
@@ -392,22 +398,24 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	}
 
 
-	public function postCreateEmptyOrder(int $customerId): void
+	public function postCreateEmptyOrder(int $customerId, int $countryId, string $groupId): void
 	{
 		try {
-			/** @var Customer $customer */
-			$customer = $this->entityManager->getRepository(Customer::class)
-				->createQueryBuilder('c')
-				->where('c.id = :id')
-				->setParameter('id', $customerId)
-				->setMaxResults(1)
-				->getQuery()
-				->getSingleResult();
+			$customer = $this->customerManager->getById($customerId);
 		} catch (NoResultException | NonUniqueResultException) {
 			$this->sendError('Customer "' . $customerId . '" does not exist.');
 		}
+		try {
+			$country = $this->countryManager->getById($countryId);
+		} catch (NoResultException | NonUniqueResultException) {
+			$this->sendError('Country "' . $countryId . '" does not exist.');
+		}
 
-		$order = $this->orderGenerator->createEmptyOrder($customer);
+		$order = $this->orderGenerator->createEmptyOrder(
+			customer: $customer,
+			country: $country,
+			group: $this->orderGroupManager->getByCode($groupId)
+		);
 		$this->flashMessage('Order "' . $order->getNumber() . '" has been created.', 'success');
 		$this->sendJson(
 			[
@@ -443,9 +451,17 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			];
 		}
 
+		$countries = [];
+		foreach ($this->countryManager->getAll() as $country) {
+			if ($country->isActive()) {
+				$countries[$country->getId()] = $country->getName();
+			}
+		}
+
 		$this->sendJson(
 			[
 				'items' => $return,
+				'countries' => $this->formatBootstrapSelectArray($countries),
 			]
 		);
 	}
@@ -711,6 +727,122 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		}
 		$this->orderManager->recountPrice($order);
 		$this->entityManager->flush();
+		$this->sendOk();
+	}
+
+
+	public function actionGroupList(): void
+	{
+		$groups = [];
+		foreach ($this->orderGroupManager->getGroups() as $group) {
+			$groups[] = [
+				'id' => $group->getId(),
+				'name' => $group->getName(),
+				'code' => $group->getCode(),
+				'active' => $group->isActive(),
+				'default' => $group->isDefault(),
+				'nextVariable' => $this->orderGenerator->getNextVariable($group),
+			];
+		}
+
+		$this->sendJson(
+			[
+				'groups' => $groups,
+			]
+		);
+	}
+
+
+	public function actionStatusList(): void
+	{
+		$statuses = [];
+		$selectList = [];
+		foreach ($this->orderStatusManager->getAllStatuses() as $status) {
+			$statuses[] = [
+				'id' => $status->getId(),
+				'name' => $status->getName(),
+				'internalName' => $status->getInternalName(),
+				'label' => $status->getLabel(),
+				'publicLabel' => $status->getPublicLabel(),
+				'systemHandle' => $status->getSystemHandle(),
+				'position' => $status->getWorkflowPosition(),
+				'code' => $status->getCode(),
+				'color' => $status->getColor(),
+			];
+			$selectList[$status->getCode()] = $status->getName();
+		}
+
+		$collections = [];
+		foreach ($this->orderStatusManager->getCollections() as $collectionCode => $collection) {
+			$collectionCodes = [];
+			foreach ($collection['codes'] as $collectionCodeString) {
+				$collectionCodeEntity = $this->orderStatusManager->getStatusByCode($collectionCodeString);
+				$collectionCodes[] = [
+					'label' => $collectionCodeEntity->getLabel(),
+					'color' => $collectionCodeEntity->getColor(),
+				];
+			}
+			$collections[] = [
+				'code' => $collectionCode,
+				'label' => $collection['label'],
+				'codes' => $collectionCodes,
+			];
+		}
+
+		$this->sendJson(
+			[
+				'statuses' => $statuses,
+				'collections' => $collections,
+				'selectList' => $this->formatBootstrapSelectArray($selectList),
+			]
+		);
+	}
+
+
+	/**
+	 * @param array<int, array{id: int, code: string, internalName: string, label: string, publicLabel: string, systemHandle: string|null, position: int, color: string}> $statusList
+	 */
+	public function postSaveStatusList(array $statusList): void
+	{
+		foreach ($statusList as $item) {
+			$status = $this->orderStatusManager->getStatusByCode($item['code']);
+			$status->setInternalName($item['internalName']);
+			$status->setLabel($item['label']);
+			$status->setPublicLabel($item['publicLabel']);
+			$status->setSystemHandle($item['systemHandle']);
+			$status->setWorkflowPosition((int) $item['position']);
+			$status->setColor($item['color']);
+		}
+		$this->entityManager->flush();
+		$this->flashMessage('Status list has been updated.', self::FLASH_MESSAGE_SUCCESS);
+		$this->sendOk();
+	}
+
+
+	public function postCreateGroup(string $name, string $code): void
+	{
+		$this->orderGroupManager->create($name, $code);
+		$this->entityManager->flush();
+		$this->flashMessage('Group has been created.', self::FLASH_MESSAGE_SUCCESS);
+		$this->sendOk();
+	}
+
+
+	public function postCreateStatus(string $name, string $code): void
+	{
+		$this->orderStatusManager->createStatus($name, $code);
+		$this->flashMessage('Status has been created.', self::FLASH_MESSAGE_SUCCESS);
+		$this->sendOk();
+	}
+
+
+	/**
+	 * @param array<int, string> $statuses
+	 */
+	public function postCreateStatusCollection(string $code, string $label, array $statuses): void
+	{
+		$this->orderStatusManager->createCollection($code, $label, $statuses);
+		$this->flashMessage('Status collection has been created.', self::FLASH_MESSAGE_SUCCESS);
 		$this->sendOk();
 	}
 

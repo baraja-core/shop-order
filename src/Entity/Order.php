@@ -20,6 +20,8 @@ use Nette\Utils\Random;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'shop__order')]
+#[ORM\UniqueConstraint(name: 'order__number_group', columns: ['number', 'group_id'])]
+#[Index(columns: ['number'], name: 'order__number')]
 #[Index(columns: ['status_id'], name: 'order__status')]
 #[Index(columns: ['inserted_date'], name: 'order__inserted_date')]
 #[Index(columns: ['inserted_date', 'status_id', 'id'], name: 'order__feed')]
@@ -41,7 +43,7 @@ class Order implements OrderEntity, OrderNumber
 	#[ORM\ManyToOne(targetEntity: Address::class)]
 	private Address $invoiceAddress;
 
-	#[ORM\Column(type: 'string', length: 24, unique: true)]
+	#[ORM\Column(type: 'string', length: 24)]
 	private string $number;
 
 	#[ORM\ManyToOne(targetEntity: OrderStatus::class)]
@@ -133,19 +135,20 @@ class Order implements OrderEntity, OrderNumber
 		OrderStatus $status,
 		Customer $customer,
 		Address $deliveryAddress,
-		Address $invoiceAddress,
+		?Address $invoiceAddress,
 		string $number,
 		string $locale,
 		Delivery $delivery,
 		Payment $payment,
 		float $price,
 		float $priceWithoutVat,
+		string $currency,
 	) {
 		$this->group = $group;
 		$this->status = $status;
 		$this->customer = $customer;
 		$this->deliveryAddress = $deliveryAddress;
-		$this->invoiceAddress = $invoiceAddress;
+		$this->invoiceAddress = $invoiceAddress ?? $deliveryAddress;
 		$this->number = $number;
 		$this->locale = $locale;
 		$this->delivery = $delivery;
@@ -155,6 +158,7 @@ class Order implements OrderEntity, OrderNumber
 		$this->deliveryPrice = $price > self::FREE_DELIVERY_LIMIT
 			? 0
 			: $delivery->getPrice();
+		$this->setCurrency($currency);
 		$this->hash = Random::generate(32);
 		$this->insertedDate = new \DateTimeImmutable;
 		$this->updatedDate = new \DateTime;

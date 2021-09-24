@@ -8,6 +8,7 @@ namespace Baraja\Shop\Order;
 use Baraja\Doctrine\EntityManager;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderStatus;
+use Baraja\Shop\Order\Entity\OrderStatusCollection;
 use Baraja\Shop\Order\Status\OrderStatusChangedEvent;
 use Baraja\Shop\Order\Status\OrderWorkflow;
 
@@ -32,7 +33,11 @@ final class OrderStatusManager
 		static $cache;
 		if ($cache === null) {
 			/** @var OrderStatus[] $cache */
-			$cache = $this->entityManager->getRepository(OrderStatus::class)->findAll();
+			$cache = $this->entityManager->getRepository(OrderStatus::class)
+				->createQueryBuilder('status')
+				->orderBy('status.workflowPosition', 'ASC')
+				->getQuery()
+				->getResult();
 			if ($cache === []) {
 				$this->initDefault();
 
@@ -46,6 +51,7 @@ final class OrderStatusManager
 
 	public function getStatusByCode(string $code): OrderStatus
 	{
+		$code = strtolower($code);
 		foreach ($this->getAllStatuses() as $status) {
 			if ($status->getCode() === $code) {
 				return $status;
@@ -80,16 +86,20 @@ final class OrderStatusManager
 	 */
 	public function getCollections(): array
 	{
-		return [
-			'all' => [
-				'label' => 'VŠECHNY HODNOTY',
-				'codes' => [],
-			],
-			'trzby' => [
-				'label' => 'TRŽBY',
-				'codes' => [],
-			],
-		];
+		static $cache;
+		if ($cache === null) {
+			/** @var OrderStatusCollection[] $collections */
+			$collections = $this->entityManager->getRepository(OrderStatusCollection::class)->findAll();
+			$cache = [];
+			foreach ($collections as $collection) {
+				$cache[$collection->getCode()] = [
+					'label' => $collection->getLabel(),
+					'codes' => $collection->getCodes(),
+				];
+			}
+		}
+
+		return $cache;
 	}
 
 
@@ -125,6 +135,33 @@ final class OrderStatusManager
 		}
 
 		$this->entityManager->flush();
+	}
+
+
+	public function createStatus(string $name, string $code): OrderStatus
+	{
+		$status = new OrderStatus($name, $code);
+		$this->entityManager->persist($status);
+		$this->entityManager->flush();
+
+		return $status;
+	}
+
+
+	/**
+	 * @param array<int, string> $statuses
+	 */
+	public function createCollection(string $code, string $label, array $statuses): OrderStatusCollection
+	{
+		$statusList = [];
+		foreach ($statuses as $statusCode) {
+			$statusList[] = $this->getStatusByCode($statusCode)->getCode();
+		}
+		$collection = new OrderStatusCollection($code, $label, $statusList);
+		$this->entityManager->persist($collection);
+		$this->entityManager->flush();
+
+		return $collection;
 	}
 
 

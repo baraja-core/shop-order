@@ -132,6 +132,9 @@ class OrderStatus implements \Stringable
 
 	public function setPublicLabel(?string $publicLabel): void
 	{
+		if ($publicLabel !== null && preg_match('/^(?:\d+)\.\s+(.+)$/', $publicLabel, $parser)) {
+			$publicLabel = $parser[1] ?? $publicLabel;
+		}
 		if ($publicLabel !== $this->getPublicLabel()) {
 			$this->publicLabel = $publicLabel;
 		}
@@ -146,18 +149,27 @@ class OrderStatus implements \Stringable
 
 	public function setSystemHandle(?string $systemHandle): void
 	{
+		if ($systemHandle !== null) {
+			$systemHandle = trim($systemHandle);
+			if ($systemHandle === '') {
+				$systemHandle = null;
+			}
+		}
 		$this->systemHandle = $systemHandle;
 	}
 
 
 	public function getWorkflowPosition(): ?int
 	{
-		return $this->workflowPosition;
+		return $this->workflowPosition ?? 0;
 	}
 
 
 	public function setWorkflowPosition(?int $workflowPosition): void
 	{
+		if ($workflowPosition === null) {
+			$workflowPosition = 0;
+		}
 		$this->workflowPosition = $workflowPosition;
 	}
 

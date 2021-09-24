@@ -32,9 +32,6 @@ final class HeurekaOverenoCreatedOrderEvent implements CreatedOrderEvent
 	{
 		$apiKey = $this->getApiKey();
 		$metaKey = $order->getMetaKey(self::META_KEY);
-		if ($apiKey === null) {
-			trigger_error('Heureka Overeno API key is not set.');
-		}
 		if ($apiKey === null || $metaKey === 'true') {
 			return;
 		}

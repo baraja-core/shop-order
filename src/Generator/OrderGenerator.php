@@ -23,6 +23,7 @@ use Baraja\Shop\Order\Entity\OrderItem;
 use Baraja\Shop\Order\Entity\OrderStatus;
 use Baraja\Shop\Payment\Entity\Payment;
 use Baraja\VariableGenerator\Order\DefaultOrderVariableLoader;
+use Baraja\VariableGenerator\Strategy\YearPrefixIncrementStrategy;
 use Baraja\VariableGenerator\VariableGenerator;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
@@ -96,18 +97,20 @@ final class OrderGenerator
 			$cart->setPayment($selectedPayment);
 		}
 
+		$group = $group ?? $this->orderGroupManager->getDefaultGroup();
 		$order = new Order(
-			group: $group ?? $this->orderGroupManager->getDefaultGroup(),
+			group: $group,
 			status: $this->statusManager->getStatusByCode(OrderStatus::STATUS_NEW),
 			customer: $this->processCustomer($info, $cart),
 			deliveryAddress: $deliveryAddress,
 			invoiceAddress: $invoiceAddress,
-			number: $this->getNextVariable(),
+			number: $this->getNextVariable($group),
 			locale: $this->localization->getLocale(),
 			delivery: $selectedDelivery,
 			payment: $selectedPayment,
 			price: $cart->getPrice(),
 			priceWithoutVat: $cart->getPriceWithoutVat(),
+			currency: $this->getDefaultCurrency(),
 		);
 		$order->setNotice($info->getNotice());
 		if ($order->getCustomer()->getDefaultOrderSale() > 0) {
@@ -151,12 +154,8 @@ final class OrderGenerator
 	}
 
 
-	public function createEmptyOrder(Customer $customer, ?Country $country = null, ?OrderGroup $group = null): Order
+	public function createEmptyOrder(Customer $customer, Country $country, ?OrderGroup $group = null): Order
 	{
-		if ($country === null) {
-			throw new \InvalidArgumentException('Country is mandatory.');
-		}
-
 		$address = static function (Customer $customer) use ($country): Address
 		{
 			return new Address(
@@ -189,18 +188,20 @@ final class OrderGenerator
 
 		$deliveryAddress = $address($customer);
 		$invoiceAddress = $address($customer);
+		$group = $group ?? $this->orderGroupManager->getDefaultGroup();
 		$order = new Order(
-			group: $group ?? $this->orderGroupManager->getDefaultGroup(),
+			group: $group,
 			status: $this->statusManager->getStatusByCode(OrderStatus::STATUS_NEW),
 			customer: $customer,
 			deliveryAddress: $deliveryAddress,
 			invoiceAddress: $invoiceAddress,
-			number: $this->getNextVariable(),
+			number: $this->getNextVariable($group),
 			locale: $this->localization->getLocale(),
 			delivery: $delivery,
 			payment: $payment,
 			price: 0,
-			priceWithoutVat: 0
+			priceWithoutVat: 0,
+			currency: $this->getDefaultCurrency(),
 		);
 		$order->setNotice('Manually created order.');
 
@@ -220,9 +221,12 @@ final class OrderGenerator
 	 * Atomically generates a new free order number.
 	 * The order number generation uses an internal lock to prevent duplicate numbers from being generated.
 	 */
-	public function getNextVariable(): string
+	public function getNextVariable(OrderGroup $group): string
 	{
-		return (string) (new VariableGenerator(new DefaultOrderVariableLoader($this->entityManager, Order::class)))
+		return (string) (new VariableGenerator(
+			new VariableLoader($this->entityManager, $group),
+			new YearPrefixIncrementStrategy(null, 9)
+		))
 			->generate();
 	}
 
@@ -298,5 +302,11 @@ final class OrderGenerator
 		}
 
 		return $customer;
+	}
+
+
+	private function getDefaultCurrency(): string
+	{
+		return 'CZK';
 	}
 }
