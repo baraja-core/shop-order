@@ -7,6 +7,7 @@ namespace Baraja\Shop\Order;
 
 use Baraja\BankTransferAuthorizator\Transaction as BankTransaction;
 use Baraja\Doctrine\EntityManager;
+use Baraja\FioPaymentAuthorizator\Transaction as FioTransaction;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderBankPayment;
 use Baraja\Shop\Order\Entity\OrderOnlinePayment;
@@ -19,16 +20,14 @@ use Nette\Caching\Storage;
 
 final class OrderPaymentManager
 {
-	private ?Cache $cache = null;
+	private Cache $cache;
 
 
 	public function __construct(
 		private EntityManager $entityManager,
-		?Storage $storage = null,
+		Storage $storage,
 	) {
-		if ($storage !== null) {
-			$this->cache = new Cache($storage, 'order-payment-manager');
-		}
+		$this->cache = new Cache($storage, 'order-payment-manager');
 	}
 
 
@@ -62,7 +61,7 @@ final class OrderPaymentManager
 	{
 		$key = 'payment-entities';
 		try {
-			$cache = $this->cache !== null ? $this->cache->load($key) : null;
+			$cache = $this->cache->load($key);
 		} catch (\Throwable) {
 			$cache = null;
 		}
@@ -87,27 +86,31 @@ final class OrderPaymentManager
 
 	public function storeTransaction(BankTransaction $transaction, bool $flush = false): OrderBankPayment
 	{
-		$transactionEntity = new OrderBankPayment(
-			$transaction->getId(),
-			$transaction->getDate(),
-			$transaction->getPrice(),
-			$transaction->getCurrency(),
-			$transaction->getToAccount(),
-			$transaction->getToAccountName(),
-			$transaction->getToBankCode(),
-			$transaction->getToBankName(),
-			$transaction->getConstantSymbol(),
-			$transaction->getVariableSymbol(),
-			$transaction->getSpecificSymbol(),
-			$transaction->getUserNotice(),
-			$transaction->getToMessage(),
-			$transaction->getType(),
-			$transaction->getSender(),
-			$transaction->getMessage(),
-			$transaction->getComment(),
-			$transaction->getBic(),
-			$transaction->getIdTransaction()
-		);
+		if ($transaction instanceof FioTransaction) {
+			$transactionEntity = new OrderBankPayment(
+				$transaction->getId(),
+				$transaction->getDate(),
+				$transaction->getPrice(),
+				$transaction->getCurrency(),
+				$transaction->getToAccount(),
+				$transaction->getToAccountName(),
+				$transaction->getToBankCode(),
+				$transaction->getToBankName(),
+				$transaction->getConstantSymbol(),
+				$transaction->getVariableSymbol(),
+				$transaction->getSpecificSymbol(),
+				$transaction->getUserNotice(),
+				$transaction->getToMessage(),
+				$transaction->getType(),
+				$transaction->getSender(),
+				$transaction->getMessage(),
+				$transaction->getComment(),
+				$transaction->getBic(),
+				$transaction->getIdTransaction()
+			);
+		} else {
+			throw new \LogicException('Transaction type "' . get_debug_type($transaction) . '" is not supported now.');
+		}
 
 		$this->entityManager->persist($transactionEntity);
 		if ($flush === true) {
