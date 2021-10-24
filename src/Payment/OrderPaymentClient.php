@@ -49,6 +49,9 @@ final class OrderPaymentClient
 	}
 
 
+	/**
+	 * @return never-return
+	 */
 	public function processPayment(Order $order): void
 	{
 		if ($this->orderManager->isPaid($order)) {
@@ -59,8 +62,21 @@ final class OrderPaymentClient
 		if ($provider instanceof Gateway) {
 			$response = $provider->pay($order);
 			$redirect = $response->getRedirect();
-			// TODO: Implement common order processing method.
+			$errorMessage = $response->getErrorMessage();
+			if ($redirect !== null) {
+				WebController::redirect($redirect);
+			}
+			if ($errorMessage !== null) {
+				echo $errorMessage;
+				die;
+			}
+		} else {
+			throw new \LogicException(
+				'Order can not be paid, '
+				. 'because provider "' . $provider::class . '" is not gateway.',
+			);
 		}
+		throw new \LogicException('Order can not be paid, because no provider exist.');
 	}
 
 
@@ -97,5 +113,11 @@ final class OrderPaymentClient
 		}
 
 		return new MultiAuthorizator($services);
+	}
+
+
+	public function addPaymentProvider(OrderPaymentProvider $provider): void
+	{
+		$this->providers[] = $provider;
 	}
 }

@@ -27,6 +27,10 @@ class OrderFile implements OrderDocument
 	#[ORM\Column(type: 'string', length: 128)]
 	private string $filename;
 
+	/** @var array<int, string> */
+	#[ORM\Column(type: 'json')]
+	private array $tags = [];
+
 	#[ORM\Column(type: 'datetime')]
 	private \DateTimeInterface $insertedDate;
 
@@ -70,6 +74,39 @@ class OrderFile implements OrderDocument
 	public function setLabel(string $label): void
 	{
 		$this->label = $label;
+	}
+
+
+	/**
+	 * @return array<int, string>
+	 */
+	public function getTags(): array
+	{
+		return $this->tags;
+	}
+
+
+	public function addTag(string $tag): void
+	{
+		$this->tags[] = $tag;
+	}
+
+
+	public function hasTag(string $tag): bool
+	{
+		return in_array($tag, $this->getTags(), true);
+	}
+
+
+	public function removeTag(string $tag): void
+	{
+		$return = [];
+		foreach ($this->getTags() as $tagItem) {
+			if ($tagItem !== $tag) {
+				$return[] = $tag;
+			}
+		}
+		$this->tags = $return;
 	}
 
 

@@ -63,7 +63,7 @@ class OrderPackage
 		int $packageId,
 		string $batchId,
 		string $shipper,
-		string $carrierId
+		string $carrierId,
 	) {
 		$this->order = $order;
 		$this->orderId = $orderId;

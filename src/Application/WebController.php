@@ -36,6 +36,19 @@ final class WebController
 	}
 
 
+	/**
+	 * @return never-return
+	 */
+	public static function redirect(string $url): void
+	{
+		header('Location: ' . $url);
+		die;
+	}
+
+
+	/**
+	 * @return never-return
+	 */
 	public function run(): void
 	{
 		$action = (string) preg_replace('~^order/?~', '', Url::get()->getRelativeUrl(false));

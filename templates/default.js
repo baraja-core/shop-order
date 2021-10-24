@@ -16,6 +16,7 @@ Vue.component('cms-order-default', {
 		<div class="col-sm-9 text-right">
 			<b-button variant="secondary" v-b-modal.modal-status-manager>Status manager</b-button>
 			<b-button variant="secondary" v-b-modal.modal-group-manager>Group manager</b-button>
+			<b-button variant="secondary" v-b-modal.modal-rules>Rules</b-button>
 			<b-button variant="success" v-b-modal.modal-create-order>New order</b-button>
 		</div>
 	</div>
@@ -354,6 +355,60 @@ Vue.component('cms-order-default', {
 			<b-button type="submit" variant="primary">Create</b-button>
 		</b-form>
 	</b-modal>
+	<b-modal id="modal-rules" title="Workflow rules" size="xl" @shown="openRulesManager" hide-footer>
+		<div v-if="workflowRulesList === null" class="text-center my-5">
+			<b-spinner></b-spinner>
+		</div>
+		<template v-else>
+			<table class="table table-sm cms-table-no-border-top">
+				<tr>
+					<th>Label</th>
+					<th>Status</th>
+					<th>Active</th>
+					<th>Priority</th>
+					<th>Definition</th>
+				</tr>
+				<tr v-for="rule in workflowRulesList">
+					<td>{{ rule.label }}</td>
+					<td><span class="badge badge-secondary">{{ rule.status }}</span></td>
+					<td>{{ rule.active }}</td>
+					<td>{{ rule.priority }}</td>
+					<td>
+						<ul>
+							<li v-if="rule.newStatus !== null">
+								Set new status <span class="badge badge-secondary">{{ rule.newStatus }}</span>
+							</li>
+							<li v-if="rule.automaticInterval !== null">
+								Automatic interval <code>{{ rule.automaticInterval }}</code>
+							</li>
+							<li v-if="rule.emailTemplate !== null">
+								Send e-mail with template <code>{{ rule.emailTemplate }}</code>
+							</li>
+							<li v-if="rule.emailTemplate !== null">
+								Send e-mail with template <code>{{ rule.emailTemplate }}</code>
+							</li>
+							<li>
+								Inserted date: <code>{{ rule.insertedDate }}</code>,<br>
+								Active from: <code>{{ rule.activeFrom }}</code>,<br>
+								<template v-if="rule.activeTo === null">
+									infinity activity.
+								</template>
+								<template v-else>
+									active to {{ rule.rule.activeTo }}.
+								</template>
+							</li>
+							<li v-if="rule.ignoreIfPinged">
+								Ignore if order has been pinged.
+							</li>
+							<li v-if="rule.markAsPinged">
+								Mark order as pinged.
+							</li>
+						</ul>
+					</td>
+				</tr>
+			</table>
+		</template>
+	</b-modal>
 </div>`,
 	data() {
 		return {
@@ -413,6 +468,7 @@ Vue.component('cms-order-default', {
 			statusList: null,
 			statusSelectList: null,
 			statusCollectionList: null,
+			workflowRulesList: null,
 			newGroupForm: {
 				name: '',
 				code: ''
@@ -508,6 +564,15 @@ Vue.component('cms-order-default', {
 					this.statusList = req.data.statuses;
 					this.statusCollectionList = req.data.collections;
 					this.statusSelectList = req.data.selectList;
+				});
+		},
+		openRulesManager() {
+			if (this.workflowRulesList !== null) {
+				return;
+			}
+			axiosApi.get('cms-order/workflow-rules')
+				.then(req => {
+					this.workflowRulesList = req.data.events;
 				});
 		},
 		createOrder(customerId) {

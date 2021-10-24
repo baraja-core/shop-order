@@ -7,32 +7,32 @@ namespace Baraja\Shop\Order;
 
 use Baraja\Doctrine\EntityManager;
 use Baraja\DynamicConfiguration\Configuration;
+use Baraja\Shop\Currency\CurrencyManager;
 use Baraja\Shop\Order\Application\WebController;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderOnlinePayment;
 use Baraja\Shop\Order\Entity\OrderStatus;
 use Baraja\Shop\Order\Payment\Gateway\Gateway;
 use Baraja\Shop\Order\Payment\Gateway\GatewayResponse;
-use Baraja\Shop\Order\Payment\OrderPaymentProvider;
 use Contributte\GopayInline\Api\Entity\PaymentFactory;
-use Contributte\GopayInline\Api\Lists\Currency;
 use Contributte\GopayInline\Api\Lists\PaymentInstrument;
 use Contributte\GopayInline\Api\Lists\PaymentState;
 use Contributte\GopayInline\Client;
 use Contributte\GopayInline\Config;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
+use Psr\Log\LoggerInterface;
 use Tracy\Debugger;
-use Tracy\Dumper;
-use Tracy\ILogger;
 
-final class GoPayGatewayBridge implements Gateway, OrderPaymentProvider
+final class GoPayGatewayBridge implements Gateway
 {
 	public function __construct(
 		private OrderStatusManager $orderStatusManager,
 		private EntityManager $entityManager,
 		private Configuration $configuration,
 		private Emailer $emailer,
+		private CurrencyManager $currencyManager,
+		private ?LoggerInterface $logger = null,
 	) {
 	}
 
@@ -52,7 +52,7 @@ final class GoPayGatewayBridge implements Gateway, OrderPaymentProvider
 						],
 					],
 					'amount' => $order->getPrice(),
-					'currency' => Currency::CZK, // TODO: Use default currency
+					'currency' => $this->currencyManager->getMainCurrency()->getCode(),
 					'order_number' => $order->getNumber(),
 					'order_description' => 'Objednávka ' . $order->getNumber(),
 					'items' => [
@@ -87,7 +87,12 @@ final class GoPayGatewayBridge implements Gateway, OrderPaymentProvider
 			return new GatewayResponse($response['gw_url']);
 		}
 
-		Debugger::log(new \Exception(Dumper::toText($response)), ILogger::CRITICAL);
+		if ($this->logger !== null) {
+			$this->logger->critical(
+				'Gateway error: ' . json_encode($response, JSON_THROW_ON_ERROR),
+				iterator_to_array($response->getIterator()),
+			);
+		}
 
 		return new GatewayResponse(
 			WebController::getLinkGenerator()->default($order),

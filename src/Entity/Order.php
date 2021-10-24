@@ -59,10 +59,10 @@ class Order implements OrderEntity, OrderNumber
 	private string $locale;
 
 	#[ORM\ManyToOne(targetEntity: Delivery::class)]
-	private Delivery $delivery;
+	private ?Delivery $delivery;
 
 	#[ORM\ManyToOne(targetEntity: Payment::class)]
-	private Payment $payment;
+	private ?Payment $payment;
 
 	#[ORM\Column(type: 'float', options: ['unsigned' => true])]
 	private float $price;
@@ -138,8 +138,8 @@ class Order implements OrderEntity, OrderNumber
 		?Address $invoiceAddress,
 		string $number,
 		string $locale,
-		Delivery $delivery,
-		Payment $payment,
+		?Delivery $delivery,
+		?Payment $payment,
 		float $price,
 		float $priceWithoutVat,
 		string $currency,
@@ -155,7 +155,7 @@ class Order implements OrderEntity, OrderNumber
 		$this->payment = $payment;
 		$this->price = $price;
 		$this->priceWithoutVat = $priceWithoutVat;
-		$this->deliveryPrice = $price > self::FREE_DELIVERY_LIMIT
+		$this->deliveryPrice = $price > self::FREE_DELIVERY_LIMIT || $delivery === null
 			? 0
 			: $delivery->getPrice();
 		$this->setCurrency($currency);
@@ -184,8 +184,20 @@ class Order implements OrderEntity, OrderNumber
 
 	public function getDeliveryPrice(): int
 	{
-		return $this->deliveryPrice
-			?? ($this->deliveryPrice = $this->getPrice() > self::FREE_DELIVERY_LIMIT ? 0 : $this->delivery->getPrice());
+		if ($this->deliveryPrice === null) {
+			if ($this->getPrice() > self::FREE_DELIVERY_LIMIT) { // free delivery
+				$return = 0;
+			} elseif ($this->delivery !== null) {
+				$return = $this->delivery->getPrice();
+			} else {
+				$return = 0;
+			}
+			$this->deliveryPrice = $return;
+		} else {
+			$return = $this->deliveryPrice;
+		}
+
+		return $return;
 	}
 
 
@@ -256,7 +268,7 @@ class Order implements OrderEntity, OrderNumber
 	}
 
 
-	public function getDelivery(): Delivery
+	public function getDelivery(): ?Delivery
 	{
 		return $this->delivery;
 	}
@@ -264,7 +276,10 @@ class Order implements OrderEntity, OrderNumber
 
 	public function setDelivery(Delivery $delivery): void
 	{
-		if ($delivery->getId() !== $this->delivery->getId()) {
+		if (
+			$this->delivery !== null
+			&& $delivery->getId() !== $this->delivery->getId()
+		) {
 			$this->setUpdated();
 		}
 		$this->delivery = $delivery;
@@ -279,7 +294,10 @@ class Order implements OrderEntity, OrderNumber
 
 	public function setPayment(Payment $payment): void
 	{
-		if ($payment->getId() !== $this->payment->getId()) {
+		if (
+			$this->payment !== null
+			&& $payment->getId() !== $this->payment->getId()
+		) {
 			$this->setUpdated();
 		}
 		$this->payment = $payment;
@@ -354,7 +372,9 @@ class Order implements OrderEntity, OrderNumber
 			$sum += $item->getFinalPrice() * $item->getCount();
 		}
 		$sum += $this->getDeliveryPrice();
-		$sum += $this->payment->getPrice();
+		if ($this->payment !== null) {
+			$sum += $this->payment->getPrice();
+		}
 
 		$this->price = $sum;
 	}

@@ -20,6 +20,7 @@ use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderItem;
 use Baraja\Shop\Order\Entity\OrderOnlinePayment;
 use Baraja\Shop\Order\Repository\OrderRepository;
+use Baraja\Shop\Order\Status\OrderWorkflow;
 use Baraja\Shop\Payment\Entity\Payment;
 use Baraja\Shop\Product\Entity\Product;
 use Baraja\Shop\Product\Entity\ProductVariant;
@@ -46,6 +47,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		private OrderDocumentManager $documentManager,
 		private Search $search,
 		private OrderRepository $orderRepository,
+		private OrderWorkflow $workflow,
 		private ?InvoiceManagerInterface $invoiceManager = null,
 	) {
 	}
@@ -480,13 +482,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			->getQuery()
 			->getResult();
 
-		foreach ($orders as $order) {
-			try {
-				$this->deliveryManager->sendOrder($order);
-			} catch (\InvalidArgumentException $e) {
-				$this->flashMessage($e->getMessage(), self::FLASH_MESSAGE_ERROR);
-			}
-		}
+		$this->deliveryManager->sendOrders($orders);
 
 		$this->flashMessage('Shipments have been sent.', self::FLASH_MESSAGE_SUCCESS);
 		$this->sendOk();
@@ -532,7 +528,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	public function postCreatePackage(int $id): void
 	{
 		$order = $this->getOrderById($id);
-		$this->deliveryManager->sendOrder($order);
+		$this->deliveryManager->sendOrders([$order]);
 		$this->flashMessage('Package has been created.', self::FLASH_MESSAGE_SUCCESS);
 		$this->sendOk();
 	}
@@ -696,7 +692,9 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		}
 		if ($mail === 'invoice') {
 			foreach ($this->documentManager->getDocuments((int) $order->getId()) as $document) {
-				$this->emailer->sendOrderInvoice($document, $this->invoiceManager->getInvoicePath($document));
+				if ($document->hasTag('invoice')) {
+					$this->emailer->sendOrderInvoice($document);
+				}
 			}
 		}
 
@@ -857,6 +855,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'id' => $document->getId(),
 				'number' => $document->getNumber(),
 				'label' => $document->getLabel(),
+				'tags' => $document->getTags(),
 				'downloadLink' => $document->getDownloadLink(),
 			];
 		}
@@ -866,6 +865,34 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'items' => $documents,
 			]
 		);
+	}
+
+
+	public function actionWorkflowRules(): void
+	{
+		$events = [];
+		foreach ($this->workflow->getEvents() as $event) {
+			$newStatus = $event->getNewStatus();
+			$events[] = [
+				'id' => $event->getId(),
+				'status' => $event->getStatus()->getName(),
+				'newStatus' => $newStatus === null ? null : $newStatus->getName(),
+				'label' => $event->getLabel(),
+				'priority' => $event->getPriority(),
+				'active' => $event->isActive(),
+				'automaticInterval' => $event->getAutomaticInterval(),
+				'emailTemplate' => $event->getEmailTemplate(),
+				'insertedDate' => $event->getInsertedDate(),
+				'activeFrom' => $event->getActiveFrom(),
+				'activeTo' => $event->getActiveTo(),
+				'ignoreIfPinged' => $event->isIgnoreIfPinged(),
+				'markAsPinged' => $event->isMarkAsPinged(),
+			];
+		}
+
+		$this->sendJson([
+			'events' => $events,
+		]);
 	}
 
 

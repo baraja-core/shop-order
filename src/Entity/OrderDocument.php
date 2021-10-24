@@ -15,5 +15,16 @@ interface OrderDocument
 
 	public function getLabel(): string;
 
+	/**
+	 * @return array<int, string>
+	 */
+	public function getTags(): array;
+
+	public function addTag(string $tag): void;
+
+	public function hasTag(string $tag): bool;
+
+	public function removeTag(string $tag): void;
+
 	public function getDownloadLink(): string;
 }

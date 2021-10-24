@@ -49,6 +49,18 @@ final class OrderDocumentManager
 	}
 
 
+	public function getDocumentByTag(Order|int $order, string $tag): ?OrderDocument
+	{
+		foreach ($this->getDocuments($order) as $document) {
+			if ($document->hasTag($tag)) {
+				return $document;
+			}
+		}
+
+		return null;
+	}
+
+
 	/**
 	 * @return array<int, class-string>
 	 */

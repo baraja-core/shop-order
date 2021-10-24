@@ -13,12 +13,14 @@ Vue.component('cms-order-document', {
 				<th>ID</th>
 				<th>Number</th>
 				<th>Label</th>
+				<th>Tags</th>
 				<th>Download</th>
 			</tr>
 			<tr v-for="file in items">
 				<td>{{ file.id }}</td>
 				<td>{{ file.number }}</td>
 				<td>{{ file.label }}</td>
+				<td>{{ file.tags }}</td>
 				<td>
 					<a :href="file.downloadLink" target="_blank">
 						<b-button variant="secondary" size="sm">download</b-button>

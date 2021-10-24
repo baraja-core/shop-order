@@ -14,6 +14,7 @@
 		"baraja-core/shop-cart": "^1.0",
 		"baraja-core/shop-address": "^1.0",
 		"baraja-core/shop-customer": "^1.0",
+		"baraja-core/shop-currency": "^1.0",
 		"baraja-core/newsletter": "^1.0",
 		"baraja-core/emailer": "^1.0",
 		"baraja-core/variable-generator": "^2.0",

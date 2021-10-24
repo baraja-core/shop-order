@@ -38,6 +38,9 @@ class OrderWorkflowEvent
 	#[ORM\Column(type: 'boolean')]
 	private bool $markAsPinged = false;
 
+	#[ORM\Column(name: 'stop_if_match', type: 'boolean')]
+	private bool $stopWorkflowIfMatch = false;
+
 	#[ORM\Column(type: 'datetime')]
 	private \DateTimeInterface $insertedDate;
 
@@ -156,6 +159,18 @@ class OrderWorkflowEvent
 	public function setMarkAsPinged(bool $markAsPinged): void
 	{
 		$this->markAsPinged = $markAsPinged;
+	}
+
+
+	public function isStopWorkflowIfMatch(): bool
+	{
+		return $this->stopWorkflowIfMatch;
+	}
+
+
+	public function setStopWorkflowIfMatch(bool $stopWorkflowIfMatch): void
+	{
+		$this->stopWorkflowIfMatch = $stopWorkflowIfMatch;
 	}
 
 

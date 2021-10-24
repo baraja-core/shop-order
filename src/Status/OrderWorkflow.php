@@ -83,7 +83,9 @@ final class OrderWorkflow
 			->getResult();
 
 		foreach ($events as $event) {
-			$this->processEvent($order, $event);
+			if ($this->processEvent($order, $event) && $event->isStopWorkflowIfMatch()) {
+				break;
+			}
 		}
 		$this->entityManager->flush();
 	}
@@ -116,30 +118,55 @@ final class OrderWorkflow
 
 			$interval = (int) $automatedEvent->getAutomaticInterval();
 			foreach ($orders as $order) {
-				if ($now - $order->getUpdatedDate()->getTimestamp() > $interval) {
-					$this->processEvent($order, $automatedEvent);
+				if (
+					$now - $order->getUpdatedDate()->getTimestamp() > $interval
+					&& $this->processEvent($order, $automatedEvent)
+					&& $automatedEvent->isStopWorkflowIfMatch()
+				) {
+					break;
 				}
 			}
 		}
 	}
 
 
-	public function processEvent(Order $order, OrderWorkflowEvent $event): void
+	public function processEvent(Order $order, OrderWorkflowEvent $event): bool
 	{
 		if ($event->isIgnoreIfPinged() && $order->isPinged()) {
-			return;
+			return false;
 		}
+		$action = false;
 		$newStatus = $event->getNewStatus();
 		if ($newStatus !== null) {
 			$order->setStatus($newStatus);
+			$action = true;
 		}
 		$emailTemplate = $event->getEmailTemplate();
 		if ($emailTemplate !== null) {
 			$this->emailer->sendTemplate($order, $emailTemplate);
+			$action = true;
 		}
 		if ($event->isMarkAsPinged()) {
 			$order->setPinged();
+			$action = true;
 		}
+
+		return $action;
+	}
+
+
+	/**
+	 * @return array<int, OrderWorkflowEvent>
+	 */
+	public function getEvents(): array
+	{
+		return $this->entityManager->getRepository(OrderWorkflowEvent::class)
+			->createQueryBuilder('e')
+			->orderBy('e.active', 'DESC')
+			->addOrderBy('e.status', 'ASC')
+			->addOrderBy('e.priority', 'DESC')
+			->getQuery()
+			->getResult();
 	}
 
 

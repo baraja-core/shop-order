@@ -5,26 +5,29 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order;
 
 
-use Baraja\Doctrine\EntityManager;
 use Baraja\Shop\Customer\OrderLoader;
 use Baraja\Shop\Order\Entity\Order;
-use Nette\Utils\DateTime;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\EntityRepository;
 
 final class CustomerOrderBridge implements OrderLoader
 {
 	public function __construct(
-		private EntityManager $entityManager,
+		private EntityManagerInterface $entityManager,
 	) {
 	}
 
 
 	/**
-	 * @return array<int, array{id: int, number: string, price: float, date: \DateTime}>
+	 * @return array<int, array{id: int, number: string, price: float, date: \DateTimeImmutable}>
 	 */
 	public function getOrders(int $customerId): array
 	{
 		/** @var Order[] $orders */
-		$orders = $this->entityManager->getRepository(Order::class)
+		$orders = (new EntityRepository(
+			$this->entityManager,
+			$this->entityManager->getClassMetadata(Order::class)
+		))
 			->createQueryBuilder('o')
 			->where('o.customer = :customerId')
 			->setParameter('customerId', $customerId)
@@ -33,11 +36,12 @@ final class CustomerOrderBridge implements OrderLoader
 
 		$return = [];
 		foreach ($orders as $order) {
+			$date = $order->getInsertedDate();
 			$return[] = [
 				'id' => (int) $order->getId(),
 				'number' => $order->getNumber(),
 				'price' => $order->getPrice(),
-				'date' => DateTime::from($order->getInsertedDate()),
+				'date' => new \DateTimeImmutable($date->format('Y-m-d H:i:s.u'), $date->getTimezone()),
 			];
 		}
 
