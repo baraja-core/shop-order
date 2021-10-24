@@ -11,9 +11,13 @@ use Baraja\Shop\Cart\Entity\OrderNumber;
 use Baraja\Shop\Cart\OrderInfo;
 use Baraja\Shop\Delivery\BranchManager;
 use Baraja\Shop\Order\Entity\Order;
+use Baraja\Shop\Order\Entity\OrderFile;
 use Baraja\Shop\Order\Payment\OrderPaymentClient;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
+use Nette\Http\FileUpload;
+use Nette\Utils\FileSystem;
+use Nette\Utils\Strings;
 
 final class OrderManager implements \Baraja\Shop\Cart\OrderManager
 {
@@ -24,7 +28,11 @@ final class OrderManager implements \Baraja\Shop\Cart\OrderManager
 		private EntityManager $entityManager,
 		private BranchManager $branchManager,
 		private Emailer $emailer,
+		private string $wwwDir,
 	) {
+		if (!is_dir($wwwDir)) {
+			throw new \LogicException('Parameter wwwDir does not exist, because path "' . $wwwDir . '" given.');
+		}
 		$paymentClient->injectOrderManager($this);
 	}
 
@@ -116,5 +124,37 @@ final class OrderManager implements \Baraja\Shop\Cart\OrderManager
 		}
 		$order->recountPrice();
 		$this->entityManager->flush();
+	}
+
+
+	public function addFile(
+		Order $order,
+		string|FileUpload $path,
+		?string $name = null,
+		?string $label = null,
+		?string $number = null
+	): OrderFile {
+		if (is_string($path)) {
+			$pathString = $path;
+		} else {
+			$pathString = $path->getTemporaryFile();
+		}
+		if ($name === null) {
+			$name = basename($pathString);
+		}
+		if (str_contains($name, '.') === false) {
+			throw new \InvalidArgumentException('File name must contains extension, but "' . $name . '" given.');
+		}
+		if ($label === null) {
+			$label = Strings::firstUpper((string) preg_replace('/^(.+)\..*$/', '$1', $name));
+		}
+
+		$file = new OrderFile($order, $number, $label, $name);
+		$diskPath = $this->wwwDir . '/' . OrderFile::getRelativePath($file);
+		FileSystem::copy($pathString, $diskPath);
+		$this->entityManager->persist($file);
+		$this->entityManager->flush();
+
+		return $file;
 	}
 }

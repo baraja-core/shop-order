@@ -12,7 +12,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'shop__order_message')]
-final class OrderMessage
+class OrderMessage
 {
 	use IdentifierUnsigned;
 

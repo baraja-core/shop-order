@@ -6,6 +6,7 @@ namespace Baraja\Shop\Order\Document;
 
 
 use Baraja\Doctrine\EntityManager;
+use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderDocument;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
@@ -23,24 +24,23 @@ final class OrderDocumentManager
 	}
 
 
-	public function isDocument(int $orderId): bool
+	public function isDocument(Order|int $order): bool
 	{
-		return $this->getDocuments($orderId) !== [];
+		return $this->getDocuments($order) !== [];
 	}
 
 
 	/**
 	 * @return OrderDocument[]
 	 */
-	public function getDocuments(int $orderId): array
+	public function getDocuments(Order|int $order): array
 	{
 		$return = [];
 		foreach ($this->getEntities() as $entity) {
 			$return[] = $this->entityManager->getRepository($entity)
 				->createQueryBuilder('e')
 				->where('e.order = :orderId')
-				->setParameter('orderId', $orderId)
-				->setMaxResults(1)
+				->setParameter('orderId', is_int($order) ? $order : $order->getId())
 				->getQuery()
 				->getResult();
 		}

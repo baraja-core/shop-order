@@ -37,7 +37,8 @@ final class ShopOrderExtension extends CompilerExtension
 		OrmAnnotationsExtension::addAnnotationPathToManager($builder, 'Baraja\Shop\Order\Entity', __DIR__ . '/Entity');
 
 		$builder->addDefinition($this->prefix('orderManager'))
-			->setFactory(OrderManager::class);
+			->setFactory(OrderManager::class)
+			->setArgument('wwwDir', $builder->parameters['wwwDir'] ?? '');
 
 		$builder->addAccessorDefinition($this->prefix('orderManagerAccessor'))
 			->setImplement(OrderManagerAccessor::class);
@@ -123,6 +124,17 @@ final class ShopOrderExtension extends CompilerExtension
 			'source' => __DIR__ . '/../templates/overview.js',
 			'position' => 100,
 			'tab' => 'Overview',
+			'params' => ['id'],
+		]]);
+		$pluginManager->addSetup('?->addComponent(?)', ['@self', [
+			'key' => 'orderDocument',
+			'name' => 'cms-order-document',
+			'implements' => CmsOrderPlugin::class,
+			'componentClass' => VueComponent::class,
+			'view' => 'detail',
+			'source' => __DIR__ . '/../templates/document.js',
+			'position' => 70,
+			'tab' => 'Documents',
 			'params' => ['id'],
 		]]);
 		$pluginManager->addSetup('?->addComponent(?)', ['@self', [

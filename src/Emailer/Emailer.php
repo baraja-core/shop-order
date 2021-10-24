@@ -6,6 +6,7 @@ namespace Baraja\Shop\Order;
 
 
 use Baraja\DynamicConfiguration\Configuration;
+use Baraja\Emailer\EmailerAccessor;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderOnlinePayment;
 use Baraja\Shop\ShopInfo;
@@ -21,11 +22,17 @@ final class Emailer
 {
 	public function __construct(
 		private Mailer $mailer,
+		private EmailerAccessor $emailer,
 		private ShopInfo $shopInfo,
 		private Configuration $configuration,
 		private LinkGenerator $linkGenerator,
 		private ?Translator $translator = null
 	) {
+	}
+
+
+	public function sendTemplate(Order $order, string $template): void
+	{
 	}
 
 

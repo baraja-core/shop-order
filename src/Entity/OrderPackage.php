@@ -20,7 +20,7 @@ class OrderPackage
 	#[ORM\Column(name: 'bot_order_id', type: 'string', length: 48)]
 	private string $orderId;
 
-	#[ORM\Column(type: 'integer')]
+	#[ORM\Column(type: 'integer', options: ['unsigned' => true])]
 	private int $packageId;
 
 	/** Package batch ID (EID) */
@@ -53,8 +53,8 @@ class OrderPackage
 	#[ORM\Column(type: 'text', nullable: true)]
 	private ?string $finalTrackUrl = null;
 
-	#[ORM\Column(type: 'datetime')]
-	private \DateTimeInterface $insertedDate;
+	#[ORM\Column(type: 'datetime', nullable: true)]
+	private ?\DateTimeInterface $insertedDate;
 
 
 	public function __construct(
@@ -209,6 +209,10 @@ class OrderPackage
 
 	public function getInsertedDate(): \DateTimeInterface
 	{
+		if ($this->insertedDate === null) {
+			$this->insertedDate = new \DateTimeImmutable;
+		}
+
 		return $this->insertedDate;
 	}
 }

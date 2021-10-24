@@ -108,12 +108,12 @@ final class CheckOrderCommand extends Command
 		// send ping mail
 		if (
 			$cancel === false
-			&& $order->isSendPingMail() === false
+			&& $order->isPinged() === false
 			&& $now - $order->getInsertedDate()->getTimestamp() > $this->workflow->getIntervalForPingOrder()
 		) {
 			echo ' (ping mail)';
 			$this->emailer->sendOrderPingMail($order);
-			$order->setSendPingMail(true);
+			$order->setPinged(true);
 		}
 	}
 

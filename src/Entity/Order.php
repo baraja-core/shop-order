@@ -89,7 +89,7 @@ class Order implements OrderEntity, OrderNumber
 	private \DateTimeInterface $updatedDate;
 
 	#[ORM\Column(type: 'boolean')]
-	private bool $sendPingMail = false;
+	private bool $pinged = false;
 
 	#[ORM\Column(type: 'text', nullable: true)]
 	private ?string $notice = null;
@@ -372,15 +372,15 @@ class Order implements OrderEntity, OrderNumber
 	}
 
 
-	public function isSendPingMail(): bool
+	public function isPinged(): bool
 	{
-		return $this->sendPingMail;
+		return $this->pinged;
 	}
 
 
-	public function setSendPingMail(bool $sendPingMail): void
+	public function setPinged(bool $pinged = true): void
 	{
-		$this->sendPingMail = $sendPingMail;
+		$this->pinged = $pinged;
 	}
 
 

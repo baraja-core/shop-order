@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order;
 
 
-use Baraja\Country\CountryManager;
+use Baraja\Country\CountryManagerAccessor;
 use Baraja\Doctrine\EntityManager;
 use Baraja\Search\Search;
 use Baraja\Shop\Address\Entity\Address;
@@ -42,7 +42,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		private Emailer $emailer,
 		private OrderStatusManager $orderStatusManager,
 		private BranchManager $branchManager,
-		private CountryManager $countryManager,
+		private CountryManagerAccessor $countryManager,
 		private OrderDocumentManager $documentManager,
 		private Search $search,
 		private OrderRepository $orderRepository,
@@ -226,9 +226,9 @@ final class CmsOrderEndpoint extends BaseEndpoint
 						null => 'Latest',
 						'old' => 'Oldest',
 						'number' => 'Number ASC',
-						'number-desc' =>  'Number DESC',
+						'number-desc' => 'Number DESC',
 					]
-				)
+				),
 			]
 		);
 	}
@@ -406,7 +406,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			$this->sendError('Customer "' . $customerId . '" does not exist.');
 		}
 		try {
-			$country = $this->countryManager->getById($countryId);
+			$country = $this->countryManager->get()->getById($countryId);
 		} catch (NoResultException | NonUniqueResultException) {
 			$this->sendError('Country "' . $countryId . '" does not exist.');
 		}
@@ -452,7 +452,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		}
 
 		$countries = [];
-		foreach ($this->countryManager->getAll() as $country) {
+		foreach ($this->countryManager->get()->getAll() as $country) {
 			if ($country->isActive()) {
 				$countries[$country->getId()] = $country->getName();
 			}
@@ -508,7 +508,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			$address->setStreet((string) $data['street']);
 			$address->setCity((string) $data['city']);
 			$address->setZip((string) $data['zip']);
-			$address->setCountry($this->countryManager->getByCode((string) $data['country']));
+			$address->setCountry($this->countryManager->get()->getByCode((string) $data['country']));
 			$address->setCompanyName((string) $data['companyName']);
 			$address->setCin((string) $data['ic']);
 			$address->setTin((string) $data['dic']);
@@ -800,7 +800,8 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 
 	/**
-	 * @param array<int, array{id: int, code: string, internalName: string, label: string, publicLabel: string, systemHandle: string|null, position: int, color: string}> $statusList
+	 * @param array<int, array{id: int, code: string, internalName: string, label: string, publicLabel: string,
+	 *     systemHandle: string|null, position: int, color: string}> $statusList
 	 */
 	public function postSaveStatusList(array $statusList): void
 	{
@@ -844,6 +845,27 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$this->orderStatusManager->createCollection($code, $label, $statuses);
 		$this->flashMessage('Status collection has been created.', self::FLASH_MESSAGE_SUCCESS);
 		$this->sendOk();
+	}
+
+
+	public function actionDocument(int $id): void
+	{
+		$order = $this->getOrderById($id);
+		$documents = [];
+		foreach ($this->documentManager->getDocuments($order) as $document) {
+			$documents[] = [
+				'id' => $document->getId(),
+				'number' => $document->getNumber(),
+				'label' => $document->getLabel(),
+				'downloadLink' => $document->getDownloadLink(),
+			];
+		}
+
+		$this->sendJson(
+			[
+				'items' => $documents,
+			]
+		);
 	}
 
 

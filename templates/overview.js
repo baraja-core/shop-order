@@ -1,6 +1,6 @@
 Vue.component('cms-order-overview', {
 	props: ['id'],
-	template: `<b-card>
+	template: `<cms-card>
 	<div v-if="order === null" class="text-center my-5">
 		<b-spinner></b-spinner>
 	</div>
@@ -436,7 +436,7 @@ Vue.component('cms-order-overview', {
 	<div id="zasilkovna-open-button" class="packeta-selector-open" style="display:none"></div>
 	<div id="packeta-selector-branch-id" class="packeta-selector-branch-id" style="display:none"></div>
 	<div id="packeta-selector-branch-name" class="packeta-selector-branch-name" style="display:none"></div>
-</b-card>`,
+</cms-card>`,
 	data() {
 		return {
 			order: null,
