@@ -9,6 +9,7 @@ use Baraja\Doctrine\EntityManager;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderStatus;
 use Baraja\Shop\Order\Entity\OrderStatusCollection;
+use Baraja\Shop\Order\Entity\OrderStatusHistory;
 use Baraja\Shop\Order\Status\OrderStatusChangedEvent;
 use Baraja\Shop\Order\Status\OrderWorkflow;
 
@@ -127,7 +128,11 @@ final class OrderStatusManager
 		if (is_string($status)) {
 			$status = $this->getStatusByCode($status);
 		}
+		if ($oldStatus->getId() === $status->getId()) {
+			return;
+		}
 
+		$this->entityManager->persist(new OrderStatusHistory($order, $status));
 		$order->setStatus($status);
 		$this->workflow->run($order);
 		foreach ($this->onChangeEvents as $changedEvent) {
