@@ -18,7 +18,7 @@ Vue.component('cms-order-overview', {
 				Price sum:
 				<div class="row">
 					<div class="col">
-						<b-form-input v-model="order.price"></b-form-input>
+						<b-form-input v-model="order.price" :class="{ 'alert-success': Math.abs(order.price) <= 0.001 }"></b-form-input>
 					</div>
 					<div class="col-3">
 						<b style="font-size:18pt">Kč</b>
@@ -43,10 +43,10 @@ Vue.component('cms-order-overview', {
 						</div>
 						<table class="table table-sm cms-table-no-border-top">
 							<tr>
-								<th width="20">ID</th>
+								<th width="20">#</th>
 								<th>Label</th>
-								<th width="64">Mn.</th>
-								<th width="90">J.&nbsp;cena</th>
+								<th width="64">Σ</th>
+								<th width="90">U.&nbsp;price</th>
 								<th width="90">Price</th>
 								<th></th>
 							</tr>
@@ -110,13 +110,13 @@ Vue.component('cms-order-overview', {
 							</tr>
 						</table>
 						<b-alert v-if="order.sale > 0" :show="true">
-							Na celou objednávku byla nastavena sleva: <b>{{ order.sale }}&nbsp;Kč</b>
+							A discount has been set on the entire order: <b>{{ order.sale }}&nbsp;Kč</b>
 							<div class="mt-3">
-								<b-button size="sm" @click="setOrderSale()">Změnit výši slevy nebo zrušit</b-button>
+								<b-button size="sm" @click="setOrderSale()">Change the discount amount or cancel</b-button>
 							</div>
 						</b-alert>
 						<div v-else class="text-right">
-							<b-button size="sm" @click="setOrderSale()">Nastavit slevu na celou objednávku</b-button>
+							<b-button size="sm" @click="setOrderSale()">Set a discount for the entire order</b-button>
 						</div>
 					</b-card>
 					<div class="row">
@@ -129,9 +129,9 @@ Vue.component('cms-order-overview', {
 						<div class="col">
 							<b-card class="mt-3">
 								<h5>Workflow notification</h5>
-								<b-button variant="secondary" size="sm" @click="sendEmail('new-order')">Přijetí objednávky</b-button>
-								<b-button variant="secondary" size="sm" @click="sendEmail('paid')">Zaplaceno</b-button>
-								<b-button variant="secondary" size="sm" @click="sendEmail('invoice')">Faktura</b-button>
+								<b-button variant="secondary" size="sm" @click="sendEmail('new-order')">Order accepted</b-button>
+								<b-button variant="secondary" size="sm" @click="sendEmail('paid')">Paid</b-button>
+								<b-button variant="secondary" size="sm" @click="sendEmail('invoice')">Invoice</b-button>
 							</b-card>
 						</div>
 					</div>
@@ -165,83 +165,87 @@ Vue.component('cms-order-overview', {
 								<div :class="['alert', showDelivery ? 'alert-secondary' : 'alert-warning', 'px-2', 'my-0']">
 									<div class="row">
 										<div class="col">
-											<h5>{{ showDelivery ? 'Doručovací adresa' : 'Fakturační adresa' }}</h5>
+											<h5>{{ showDelivery ? 'Delivery address' : 'Invoice address' }}</h5>
 										</div>
 										<div class="col-4 text-right">
-											<b-btn size="sm" class="btn btn-sm py-0" @click="showDelivery=!showDelivery">Přepnout</b-btn>
+											<b-btn size="sm" class="btn btn-sm py-0" @click="showDelivery=!showDelivery">Switch</b-btn>
 										</div>
 									</div>
 									<div>
 										<div class="row">
 											<div class="col pr-0">
-												<small>Jméno:</small>
+												<small>Firstname:</small>
 												<b-form-input v-model="address.firstName" size="sm"></b-form-input>
 											</div>
 											<div class="col pl-0">
-												<small>Příjmení:</small>
+												<small>Lastname:</small>
 												<b-form-input v-model="address.lastName" size="sm"></b-form-input>
 											</div>
 										</div>
 										<div class="row">
 											<div class="col">
-												<small>Ulice:</small>
+												<small>Street:</small>
 												<b-form-input v-model="address.street" size="sm"></b-form-input>
 											</div>
 										</div>
 										<div class="row">
 											<div class="col pr-0">
-												<small>Město:</small>
+												<small>City:</small>
 												<b-form-input v-model="address.city" size="sm"></b-form-input>
 											</div>
-											<div class="col-3 p-0">
-												<small>PSČ:</small>
+											<div class="col-4 p-0">
+												<small>ZIP:</small>
 												<b-form-input v-model="address.zip" size="sm"></b-form-input>
-											</div>
-											<div class="col-3 pl-0">
-												<small>Země:</small>
-												<b-form-input v-model="address.country" size="sm"></b-form-input>
 											</div>
 										</div>
 										<div class="row">
 											<div class="col">
-												<small>Název firmy:</small>
+												<small>Country:</small>
+												<b-form-select v-model="address.country" :options="countryList" size="sm"></b-form-select>
+											</div>
+										</div>
+										<div class="row">
+											<div class="col">
+												<small>Company:</small>
 												<b-form-input v-model="address.companyName" size="sm"></b-form-input>
 											</div>
 										</div>
 										<div class="row">
 											<div class="col pr-0">
-												<small>IČ:</small>
+												<small>VAT number:</small>
 												<b-form-input v-model="address.ic" size="sm"></b-form-input>
 											</div>
 											<div class="col pl-0">
-												<small>DIČ:</small>
+												<small>TIN:</small>
 												<b-form-input v-model="address.dic" size="sm"></b-form-input>
 											</div>
 										</div>
 									</div>
 								</div>
-								<b-button variant="secondary" size="sm" @click="saveAddress()" class="mt-2">Uložit adresy a přegenerovat fakturu</b-button>
+								<b-button variant="secondary" size="sm" @click="saveAddress()" class="mt-2">
+									Save addresses and re-generate invoice
+								</b-button>
 							</b-card>
 						</div>
 						<div class="col">
 							<b-card>
 								<div class="row">
 									<div class="col">
-										<h5>Faktura</h5>
+										<h5>Invoice</h5>
 									</div>
 									<div class="col-4 text-right">
-										<b-button variant="secondary" size="sm" @click="createInvoice">Vystavit</b-button>
+										<b-button variant="secondary" size="sm" @click="createInvoice">Create</b-button>
 									</div>
 								</div>
-								<div v-if="order.invoices.length === 0" class="alert alert-info">
-									Nemá žádnou fakturu.
-								</div>
+								<p v-if="order.invoices.length === 0" class="text-secondary">
+									No invoice.
+								</p>
 								<table v-else class="table table-sm cms-table-no-border-top">
 									<tr>
-										<th>Číslo</th>
-										<th>Cena</th>
-										<th>Zapl.</th>
-										<th>Vystaveno</th>
+										<th>No.</th>
+										<th>Price</th>
+										<th>Paid?</th>
+										<th>Date</th>
 									</tr>
 									<tr v-for="invoice in order.invoices">
 										<td>
@@ -254,14 +258,16 @@ Vue.component('cms-order-overview', {
 								</table>
 							</b-card>
 							<b-card class="mt-3">
-								<div class="row">
-									<div class="col">
-										<h5>Zásilkovna</h5>
-									</div>
-									<div class="col-4 text-right">
-										<b-button variant="secondary" size="sm" @click="document.getElementById('zasilkovna-open-button').click()">Change</b-button>
-									</div>
-								</div>
+								<table class="w-100 mb-1">
+									<tr>
+										<td>
+											<h5>Packeta</h5>
+										</td>
+										<td class="text-right">
+											<b-button variant="secondary" size="sm" @click="document.getElementById('zasilkovna-open-button').click()">Change</b-button>
+										</td>
+									</tr>
+								</table>
 								<div class="alert alert-warning" v-if="order.deliveryBranch === null">
 									The branch has not been selected.
 								</div>
@@ -338,29 +344,30 @@ Vue.component('cms-order-overview', {
 		<b-card>
 			<div class="row">
 				<div class="col">
-					<h5>Přeprava balíku</h5>
+					<h5>Package delivery</h5>
 				</div>
 				<div v-if="order.packageHandoverUrl" class="col text-right">
 					<a :href="order.packageHandoverUrl" target="_blank">
-						<b-button variant="secondary" size="sm" class="py-0">Seznam dobírek</b-button>
+						<b-button variant="secondary" size="sm" class="py-0">List of cods</b-button>
 					</a>
 				</div>
 			</div>
 			<template v-if="order.package === null">
 				<p>
-					Pro tuto objednávku ještě neexistuje balík u přepravce.
-					Kliknutím na tlačítko se závazně vytvoří předpis zásilky u zvoleného přepravce podle způsobu dopravy.
-					Balík již nelze editovat.
-					Pokud změníte obsah objednávky,
-					nebude se tato změna již propagovat k přepravci a bude potřeba vytvořit novou zásilku.
-					Tato akce je nevratná.
+					There is no package with the carrier for this order yet.
+					Clicking on the button will create a binding shipment order with the selected carrier
+					according to the shipping method.
+					The package can no longer be edited.
+					If you change the contents of the order, this change will no longer be propagated
+					to the carrier and a new shipment will need to be created.
+					This action is non-reversible.
 				</p>
 				<template v-if="loading.createPackage === true">
 					<b-spinner class="my-3"></b-spinner>
 				</template>
 				<template v-else>
-					<b-button variant="warning" @click="createPackage()">Vytvořit balík u přepravce</b-button>
-					<p><b>Pozor:</b> Akci nelze odvolat zpět.</p>
+					<b-button variant="warning" @click="createPackage()">Create a package at the carrier</b-button>
+					<p><b>Warning:</b> The action cannot be revoked.</p>
 				</template>
 			</template>
 			<template v-else>
@@ -382,18 +389,18 @@ Vue.component('cms-order-overview', {
 						<td>
 							<template v-if="package.trackUrl">
 								<a :href="package.trackUrl" target="_blank">
-									<b-button variant="secondary" size="sm" class="py-0">Sledovat</b-button>
+									<b-button variant="secondary" size="sm" class="py-0">Track</b-button>
 								</a>
 							</template>
-							<i v-else>není</i>
+							<i v-else>-</i>
 						</td>
 						<td>
 							<template v-if="package.labelUrl">
 								<a :href="package.labelUrl" target="_blank">
-									<b-button variant="secondary" size="sm" class="py-0">Vytisknout</b-button>
+									<b-button variant="secondary" size="sm" class="py-0">Print</b-button>
 								</a>
 							</template>
-							<i v-else>není</i>
+							<i v-else>-</i>
 						</td>
 						<td>{{ package.carrierIdSwap }}</td>
 					</tr>
@@ -406,7 +413,7 @@ Vue.component('cms-order-overview', {
 			<b-spinner></b-spinner>
 		</div>
 		<template v-else>
-			<p>Vyberte položku k přidání do objednávky. Přidání položky způsobí přepočítání ceny celé objednávky.</p>
+			<p>Select an item to add to your order. Adding an item will cause the price of the entire order to be recalculated.</p>
 			<table class="table table-sm cms-table-no-border-top">
 				<tr v-for="item in addItemList">
 					<td>
@@ -440,6 +447,7 @@ Vue.component('cms-order-overview', {
 	data() {
 		return {
 			order: null,
+			countryList: [],
 			addItemList: null,
 			showDelivery: true,
 			loading: {
@@ -457,7 +465,7 @@ Vue.component('cms-order-overview', {
 		this.$nextTick(() => {
 			let packetaWidgetScript = document.createElement('script');
 			packetaWidgetScript.setAttribute('src', 'https://widget.packeta.com/www/js/packetaWidget.js');
-			packetaWidgetScript.setAttribute('data-api-key', 'klíč API klienta');
+			packetaWidgetScript.setAttribute('data-api-key', 'client API key');
 			document.head.appendChild(packetaWidgetScript);
 		});
 	},
@@ -471,6 +479,7 @@ Vue.component('cms-order-overview', {
 			axiosApi.get(`cms-order/overview?id=${this.id}`)
 				.then(req => {
 					this.order = req.data;
+					this.countryList = req.data.countryList;
 				});
 		},
 		syncZasilkovna() {
@@ -506,7 +515,7 @@ Vue.component('cms-order-overview', {
 			});
 		},
 		removeItem(id) {
-			if (confirm('Opravdu chcete smazat tuto položku?')) {
+			if (confirm('Do you really want to delete this item?')) {
 				axiosApi.post('cms-order/remove-item', {
 					orderId: this.id,
 					itemId: id
@@ -566,9 +575,9 @@ Vue.component('cms-order-overview', {
 			});
 		},
 		setOrderSale() {
-			let sale = prompt('Zadejte požadovanou slevu v korunách na celou objednávku (pokud slevu nechcete nastavit, napište "x"):');
+			let sale = prompt('Enter the desired discount for the entire order in the currency used (if you do not want to set a discount, type "x"):');
 			if (sale === 'x') {
-				alert('Žádná sleva nastavena nebude.');
+				alert('No discount will be set.');
 				return;
 			}
 			axiosApi.post('cms-order/set-order-sale', {
@@ -579,9 +588,9 @@ Vue.component('cms-order-overview', {
 			});
 		},
 		setItemSale(id) {
-			let sale = prompt('Zadejte požadovanou slevu v korunách na zvolenou položku (pokud slevu nechcete nastavit, napište "x"):');
+			let sale = prompt('Enter the desired discount for the selected item in the currency used (if you do not want to set a discount, type "x"):');
 			if (sale === 'x') {
-				alert('Žádná sleva nastavena nebude.');
+				alert('No discount will be set.');
 				return;
 			}
 			axiosApi.post('cms-order/set-item-sale', {

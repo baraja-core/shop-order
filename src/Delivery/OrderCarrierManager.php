@@ -83,7 +83,7 @@ final class OrderCarrierManager
 			$delivery = $order->getDelivery();
 			$orderCarrier = $delivery !== null ? $delivery->getCarrier() : null;
 			if ($orderCarrier === null) {
-				throw new \InvalidArgumentException('Carrier for order "' . $order->getId() . '" does not exist.');
+				throw new \InvalidArgumentException(sprintf('Carrier for order "%s" does not exist.', $order->getNumber()));
 			}
 			if ($carrier === null) {
 				$carrier = $orderCarrier;
