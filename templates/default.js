@@ -55,7 +55,7 @@ Vue.component('cms-order-default', {
 		<div class="row">
 			<div class="col">
 				Count: <b>{{ paginator.itemCount }}</b>
-				| Sum of&nbsp;view: <b>{{ sum }}&nbsp;Kč</b>
+				| Sum of&nbsp;view: <b>{{ sum }}&nbsp;{{ sumCurrency }}</b>
 			</div>
 			<div class="col-sm-2 text-right">
 				<b-button @click="sendPackets()" variant="secondary" size="sm" v-b-tooltip.hover title="Clicking the button will establish shipments with the carrier for all orders displayed. This action cannot be reverted.">
@@ -91,8 +91,8 @@ Vue.component('cms-order-default', {
 				</td>
 				<td>
 					<a :href="link('CmsOrder:detail', {id: item.id})">{{ item.number }}</a><br>
-					<span class="badge badge-secondary">{{ item.insertedDate }}</span><br>
-					<span class="badge badge-secondary">{{ item.updatedDate }}</span>
+					<span class="badge badge-secondary" v-b-tooltip.hover title="Inserted date">{{ item.insertedDate }}</span><br>
+					<span class="badge badge-secondary" v-b-tooltip.hover title="Last updated date">{{ item.updatedDate }}</span>
 				</td>
 				<td :class="{ 'table-primary': item.status.code === 'new', 'table-success': item.status.code === 'paid' }">
 					<b-form-select v-model="item.status.code" :options="staticFilter.statuses" size="sm" @change="changeStatus(item.id, item.status.code)" style="margin-bottom:5px;height:8px"></b-form-select>
@@ -100,15 +100,15 @@ Vue.component('cms-order-default', {
 				</td>
 				<td class="text-center">
 					<template v-if="item.sale > 0">
-						<s class="text-danger">{{ item.price }}&nbsp;Kč</s><br>
-						<b>{{ item.finalPrice }}&nbsp;Kč</b>
+						<s class="text-danger">{{ item.price }}&nbsp;{{ item.currency }}</s><br>
+						<b>{{ item.finalPrice }}&nbsp;{{ item.currency }}</b>
 					</template>
 					<template v-else>
-						{{ item.price }}&nbsp;Kč
+						{{ item.price }}&nbsp;{{ item.currency }}
 					</template>
 				</td>
 				<td>
-					<a :href="link('Customer:detail', {id: item.customer.id})">
+					<a :href="link('Customer:detail', {id: item.customer.id})" target="_blank">
 						{{ item.customer.firstName }}
 						{{ item.customer.lastName }}
 					</a>
@@ -117,7 +117,8 @@ Vue.component('cms-order-default', {
 					<span v-if="item.customer.phone" style="font-size:10pt"><br>{{ item.customer.phone }}</span>
 				</td>
 				<td class="p-0">
-					<table class="w-100" cellspacing="0" cellpadding="0" style="font-size:10pt">
+					<p v-if="item.items.length === 0" class="text-danger my-1">No items.</p>
+					<table v-else class="w-100" cellspacing="0" cellpadding="0" style="font-size:10pt">
 						<tr v-for="orderItem in item.items">
 							<td class="text-right" width="32">
 								<template v-if="orderItem.count === 1">1</template>
@@ -126,11 +127,11 @@ Vue.component('cms-order-default', {
 							<td style="padding:2px 0">{{ orderItem.name }}</td>
 							<td class="text-right">
 								<template v-if="orderItem.sale > 0">
-									<s class="text-danger">{{ orderItem.price }}&nbsp;Kč</s><br>
-									<b>{{ orderItem.finalPrice }}&nbsp;Kč</b>
+									<s class="text-danger">{{ orderItem.price }}&nbsp;{{ item.currency }}</s><br>
+									<b>{{ orderItem.finalPrice }}&nbsp;{{ item.currency }}</b>
 								</template>
 								<template v-else>
-									{{ orderItem.price }}&nbsp;Kč
+									{{ orderItem.price }}&nbsp;{{ item.currency }}
 								</template>
 							</td>
 						</tr>
@@ -141,14 +142,14 @@ Vue.component('cms-order-default', {
 				</td>
 				<td :class="{ 'table-success': item.package }">
 					<span class="badge badge-secondary" :style="'background:' + item.delivery.color">{{ item.delivery.name }}</span>
-					<br>{{ item.delivery.price }}&nbsp;Kč
+					<br>{{ item.delivery.price }}&nbsp;{{ item.currency }}
 					<div v-if="item.package">
 						<span class="badge badge-success">PACKAGE READY</span>
 					</div>
 				</td>
 				<td>
 					<span class="badge badge-secondary" :style="'background:' + item.payment.color">{{ item.payment.name }}</span>
-					<br>{{ item.payment.price }}&nbsp;Kč
+					<br>{{ item.payment.price }}&nbsp;{{ item.currency }}
 				</td>
 				<td>
 					<div v-for="document in item.documents">
@@ -445,6 +446,7 @@ Vue.component('cms-order-default', {
 			customerList: null,
 			customerListSearch: '',
 			sum: 0,
+			sumCurrency: '?',
 			paginator: {
 				itemsPerPage: 0,
 				page: 1,
@@ -527,6 +529,7 @@ Vue.component('cms-order-default', {
 				.then(req => {
 					this.items = req.data.items;
 					this.sum = req.data.sum;
+					this.sumCurrency = req.data.sumCurrency;
 					this.paginator = req.data.paginator;
 				});
 		},
@@ -558,6 +561,9 @@ Vue.component('cms-order-default', {
 			});
 		},
 		markAll() {
+			for (let i = 0; this.items[i] !== undefined; i++) {
+				this.items[i].checked = true;
+			}
 		},
 		openCreateOrder() {
 			if (this.customerList === null || this.customerListSearch !== '') {
