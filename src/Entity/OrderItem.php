@@ -104,6 +104,12 @@ class OrderItem
 	}
 
 
+	public function isRealProduct(): bool
+	{
+		return $this->product !== null;
+	}
+
+
 	public function getCount(): int
 	{
 		return $this->count;

@@ -143,15 +143,20 @@ Vue.component('cms-order-default', {
 					</div>
 				</td>
 				<td :class="{ 'table-success': item.package }">
-					<span class="badge badge-secondary" :style="'background:' + item.delivery.color">{{ item.delivery.name }}</span>
-					<br>{{ item.delivery.price }}&nbsp;{{ item.currency }}
+					<template v-if="item.delivery.name">
+						<span class="badge badge-secondary" :style="'background:' + item.delivery.color">{{ item.delivery.name }}</span>
+						<br>
+					</template>{{ item.delivery.price }}&nbsp;{{ item.currency }}
 					<div v-if="item.package">
 						<span class="badge badge-success">PACKAGE READY</span>
 					</div>
 				</td>
 				<td>
-					<span class="badge badge-secondary" :style="'background:' + item.payment.color">{{ item.payment.name }}</span>
-					<br>{{ item.payment.price }}&nbsp;{{ item.currency }}
+					<template v-if="item.payment.name">
+						<span class="badge badge-secondary" :style="'background:' + item.payment.color">{{ item.payment.name }}</span>
+						<br>
+					</template>
+					{{ item.payment.price }}&nbsp;{{ item.currency }}
 				</td>
 				<td>
 					<div v-for="document in item.documents">

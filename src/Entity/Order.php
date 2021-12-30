@@ -470,8 +470,7 @@ class Order implements OrderEntity, OrderNumber
 				$items[] = $item;
 			}
 		}
-		/** @phpstan-ignore-next-line */
-		$this->items = $items;
+		$this->items = new ArrayCollection($items);
 	}
 
 

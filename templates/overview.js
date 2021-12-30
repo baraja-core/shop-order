@@ -37,8 +37,9 @@ Vue.component('cms-order-overview', {
 							<div class="col">
 								<h5>Items</h5>
 							</div>
-							<div class="col-3 text-right">
-								<b-button variant="secondary" size="sm" v-b-modal.modal-add-item>Add item</b-button>
+							<div class="col-8 text-right">
+								<b-button variant="secondary" size="sm" v-b-modal.modal-add-product>Add product</b-button>
+								<b-button variant="secondary" size="sm" v-b-modal.modal-add-virtual-item>Add virtual item</b-button>
 							</div>
 						</div>
 						<table class="table table-sm cms-table-no-border-top">
@@ -58,10 +59,16 @@ Vue.component('cms-order-overview', {
 								</td>
 								<td>
 									<template v-if="item.type === 'product'">
-										<a :href="link('Product:detail', {id: item.productId})" target="_blank">
-											{{ item.name }}
-										</a>
-										<i v-if="item.variantId === null" class="text-warning">(regular)</i>
+										<template v-if="item.productId !== null">
+											<a :href="link('Product:detail', {id: item.productId})" target="_blank">
+												{{ item.name }}
+											</a>
+											<i v-if="item.variantId === null" class="text-warning">(regular)</i>
+										</template>
+										<template v-else>
+											<strong>{{ item.name }}</strong>
+											<i class="text-warning">(virtual)</i>
+										</template>
 									</template>
 									<template v-if="item.type === 'delivery'">
 										<b-form-select v-model="order.deliveryId" :options="order.deliveryList" size="sm" @change="changeDeliveryAndPayments"></b-form-select>
@@ -100,7 +107,10 @@ Vue.component('cms-order-overview', {
 								</td>
 								<td>
 									<span v-if="(item.count * item.price) === 0" class="text-success">FREE</span>
-									<template v-else>{{ item.count * item.price }}&nbsp;{{ order.currency }}</template>
+									<template v-else>
+										<s v-if="item.sale > 0">{{ item.count * item.price }}&nbsp;{{ order.currency }}</s>
+										<template v-else>{{ item.count * item.price }}&nbsp;{{ order.currency }}</template>
+									</template>
 								</td>
 								<td class="text-right">
 									<template v-if="item.type === 'product'">
@@ -408,7 +418,7 @@ Vue.component('cms-order-overview', {
 			</template>
 		</b-card>
 	</div>
-	<b-modal id="modal-add-item" title="Add new item" size="lg" @shown="openAddItemModal" hide-footer>
+	<b-modal id="modal-add-product" title="Add new product" size="lg" @shown="openAddItemModal" hide-footer>
 		<div v-if="addItemList === null" class="text-center my-5">
 			<b-spinner></b-spinner>
 		</div>
@@ -440,6 +450,19 @@ Vue.component('cms-order-overview', {
 			</table>
 		</template>
 	</b-modal>
+	<b-modal id="modal-add-virtual-item" title="Add new virtual item" hide-footer>
+		<b-form @submit="addVirtualItem">
+			<div class="mb-3">
+				Name:
+				<b-form-input v-model="virtualItemForm.name"></b-form-input>
+			</div>
+			<div class="mb-3">
+				Price:
+				<b-form-input type="number" v-model="virtualItemForm.price"></b-form-input>
+			</div>
+			<b-button type="submit" variant="primary" class="mt-3">Add product</b-button>
+		</b-form>
+	</b-modal>
 	<div id="zasilkovna-open-button" class="packeta-selector-open" style="display:none"></div>
 	<div id="packeta-selector-branch-id" class="packeta-selector-branch-id" style="display:none"></div>
 	<div id="packeta-selector-branch-name" class="packeta-selector-branch-name" style="display:none"></div>
@@ -457,6 +480,10 @@ Vue.component('cms-order-overview', {
 				name: '',
 				id: ''
 			},
+			virtualItemForm: {
+				name: '',
+				price: 0
+			}
 		}
 	},
 	created() {
@@ -538,6 +565,25 @@ Vue.component('cms-order-overview', {
 				variantId: variantId
 			}).then(() => {
 				this.openAddItemModal();
+				this.sync();
+			});
+		},
+		addVirtualItem(evt) {
+			evt.preventDefault();
+			if (!this.virtualItemForm.name) {
+				alert('Product name is mandatory.');
+				return;
+			}
+			axiosApi.post('cms-order/add-virtual-item', {
+				orderId: this.id,
+				name: this.virtualItemForm.name,
+				price: this.virtualItemForm.price
+			}).then(() => {
+				this.virtualItemForm = {
+					name: '',
+					price: 0
+				};
+				this.$bvModal.hide('modal-add-virtual-item');
 				this.sync();
 			});
 		},

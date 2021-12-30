@@ -138,7 +138,7 @@ final class OrderRepository
 			->select('PARTIAL o.{id, hash, number, price, currency, sale, insertedDate, updatedDate, notice, deliveryPrice}')
 			->addSelect('PARTIAL status.{id, code, label, workflowPosition, color}')
 			->addSelect('PARTIAL customer.{id, email, firstName, lastName, phone, premium, ban}')
-			->addSelect('PARTIAL item.{id, count, price, sale}')
+			->addSelect('PARTIAL item.{id, count, price, sale, label}')
 			->addSelect('PARTIAL product.{id, name}')
 			->addSelect('PARTIAL delivery.{id, name, price, color}')
 			->addSelect('PARTIAL payment.{id, name, price, color}')

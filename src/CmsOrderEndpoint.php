@@ -270,7 +270,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		foreach ($order->getItems() as $item) {
 			$items[] = [
 				'id' => $item->getId(),
-				'productId' => $item->getProduct()->getId(),
+				'productId' => $item->isRealProduct() ? $item->getProduct()->getId() : null,
 				'variantId' => $item->getVariant() === null ? null : $item->getVariant()->getId(),
 				'name' => $item->getLabel(),
 				'count' => $item->getCount(),
@@ -689,6 +689,20 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		}
 
 		$item = new OrderItem($order, $product, $variant, 1, $price);
+		$order->addItem($item);
+		$this->orderManager->recountPrice($order);
+		$this->entityManager->persist($item);
+		$this->entityManager->flush();
+
+		$this->sendOk();
+	}
+
+
+	public function postAddVirtualItem(int $orderId, string $name, int $price): void
+	{
+		$order = $this->getOrderById($orderId);
+		$item = new OrderItem($order, null, null, 1, $price);
+		$item->setLabel($name);
 		$order->addItem($item);
 		$this->orderManager->recountPrice($order);
 		$this->entityManager->persist($item);
