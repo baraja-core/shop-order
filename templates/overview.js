@@ -408,7 +408,7 @@ Vue.component('cms-order-overview', {
 			</template>
 		</b-card>
 	</div>
-	<b-modal id="modal-add-item" title="Nová položka" size="lg" @shown="openAddItemModal" hide-footer>
+	<b-modal id="modal-add-item" title="Add new item" size="lg" @shown="openAddItemModal" hide-footer>
 		<div v-if="addItemList === null" class="text-center my-5">
 			<b-spinner></b-spinner>
 		</div>
