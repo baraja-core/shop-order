@@ -92,9 +92,11 @@ final class OrderManager implements \Baraja\Shop\Cart\OrderManager
 	{
 		if ($branchId === null) {
 			$order->setDeliveryBranchId(null);
-		} elseif ($this->branchManager->getBranchById($order->getDelivery(), $branchId) === null) {
-			throw new \InvalidArgumentException('Branch "' . $branchId . '" does not exist.');
 		} else {
+			$delivery = $order->getDelivery();
+			if ($delivery !== null && $this->branchManager->getBranchById($delivery, $branchId) === null) {
+				throw new \InvalidArgumentException(sprintf('Branch "%s" does not exist.', $branchId));
+			}
 			$order->setDeliveryBranchId($branchId);
 		}
 		$this->entityManager->flush();

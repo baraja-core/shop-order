@@ -111,23 +111,23 @@ class Order implements OrderEntity, OrderNumber
 
 	/** @var OrderItem[]|Collection */
 	#[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderItem::class)]
-	private $items;
+	private Collection $items;
 
 	/** @var OrderPackage[]|Collection */
 	#[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderPackage::class)]
-	private $packages;
+	private Collection $packages;
 
 	/** @var OrderBankPayment[]|Collection */
 	#[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderBankPayment::class)]
-	private $transactions;
+	private Collection $transactions;
 
 	/** @var OrderOnlinePayment[]|Collection */
 	#[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderOnlinePayment::class)]
-	private $payments;
+	private Collection $payments;
 
 	/** @var OrderMeta[]|Collection */
 	#[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderMeta::class)]
-	private $metas;
+	private Collection $metas;
 
 
 	public function __construct(
@@ -286,7 +286,7 @@ class Order implements OrderEntity, OrderNumber
 	}
 
 
-	public function getPayment(): Payment
+	public function getPayment(): ?Payment
 	{
 		return $this->payment;
 	}

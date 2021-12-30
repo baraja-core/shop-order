@@ -9,6 +9,7 @@ use Baraja\Country\CountryManagerAccessor;
 use Baraja\Doctrine\EntityManager;
 use Baraja\Search\Search;
 use Baraja\Shop\Address\Entity\Address;
+use Baraja\Shop\Currency\CurrencyManagerAccessor;
 use Baraja\Shop\Customer\CustomerManager;
 use Baraja\Shop\Customer\Entity\Customer;
 use Baraja\Shop\Delivery\BranchManager;
@@ -48,6 +49,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		private Search $search,
 		private OrderRepository $orderRepository,
 		private OrderWorkflow $workflow,
+		private CurrencyManagerAccessor $currencyManager,
 		private ?InvoiceManagerInterface $invoiceManager = null,
 	) {
 	}
@@ -82,6 +84,8 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$return = [];
 		/** @var Order $order */
 		foreach ($feed['orders'] as $order) {
+			$deliveryItem = $order->getDelivery();
+			$paymentItem = $order->getPayment();
 			$return[] = [
 				'id' => $order->getId(),
 				'checked' => false,
@@ -94,6 +98,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'price' => $order->getBasePrice(),
 				'sale' => $order->getSale(),
 				'finalPrice' => $order->getPrice(),
+				'currency' => $order->getCurrency(),
 				'notice' => $order->getNotice(),
 				'insertedDate' => $order->getInsertedDate()->format('d.m.y H:i'),
 				'updatedDate' => $order->getUpdatedDate()->format('d.m.y H:i'),
@@ -106,16 +111,16 @@ final class CmsOrderEndpoint extends BaseEndpoint
 					'phone' => $order->getCustomer()->getPhone(),
 				],
 				'delivery' => [
-					'id' => $order->getDelivery()->getId(),
-					'name' => (string) $order->getDelivery()->getName(),
+					'id' => $deliveryItem === null ? null : $deliveryItem->getId(),
+					'name' => $deliveryItem === null ? null : (string) $deliveryItem->getName(),
 					'price' => $order->getDeliveryPrice(),
-					'color' => $order->getDelivery()->getColor(),
+					'color' => $deliveryItem === null ? null : $deliveryItem->getColor(),
 				],
 				'payment' => [
-					'id' => $order->getPayment()->getId(),
-					'name' => $order->getPayment()->getName(),
-					'price' => $order->getPayment()->getPrice(),
-					'color' => $order->getPayment()->getColor(),
+					'id' => $paymentItem === null ? null : $paymentItem->getId(),
+					'name' => $paymentItem === null ? null : $paymentItem->getName(),
+					'price' => $paymentItem === null ? 0 : $paymentItem->getPrice(),
+					'color' => $paymentItem === null ? null : $paymentItem->getColor(),
 				],
 				'items' => (static function ($items): array
 				{
@@ -164,6 +169,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			[
 				'items' => $return,
 				'sum' => $sum,
+				'sumCurrency' => $this->currencyManager->get()->getMainCurrency()->getCode(),
 				'paginator' => (new Paginator)
 					->setItemCount($feed['count'])
 					->setItemsPerPage($limit)
@@ -272,18 +278,24 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'type' => 'product',
 			];
 		}
+		$deliveryItem = $order->getDelivery();
 		$items[] = [
 			'id' => null,
-			'name' => 'Doprava ' . $order->getDelivery()->getName(),
+			'name' => $deliveryItem === null
+				? 'Unknown delivery'
+				: 'Delivery ' . $deliveryItem->getName(),
 			'count' => 1,
 			'price' => $order->getDeliveryPrice(),
 			'type' => 'delivery',
 		];
+		$paymentItem = $order->getPayment();
 		$items[] = [
 			'id' => null,
-			'name' => 'Platba ' . $order->getPayment()->getName(),
+			'name' => $paymentItem === null
+				? 'Unknown payment'
+				: 'Payment ' . $paymentItem->getName(),
 			'count' => 1,
-			'price' => $order->getPayment()->getPrice(),
+			'price' => $paymentItem === null ? 0 : $paymentItem->getPrice(),
 			'type' => 'payment',
 		];
 
@@ -333,8 +345,8 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 		$branch = null;
 		$branchId = $order->getDeliveryBranchId();
-		if ($branchId !== null) {
-			$branch = $this->branchManager->getBranchById($order->getDelivery(), $branchId);
+		if ($branchId !== null && $deliveryItem !== null) {
+			$branch = $this->branchManager->getBranchById($deliveryItem, $branchId);
 		}
 
 		$formatAddress = static function (Address $address): array
@@ -371,24 +383,19 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'invoiceAddress' => $formatAddress($order->getDeliveryAddress()),
 				'deliveryList' => $this->formatBootstrapSelectArray($deliverySelectbox),
 				'paymentList' => $this->formatBootstrapSelectArray($paymentSelectbox),
-				'deliveryId' => $order->getDelivery()
-					->getId(),
+				'deliveryId' => $deliveryItem === null ? null : $deliveryItem->getId(),
 				'deliverPrice' => $order->getDeliveryPrice(),
 				'deliveryBranch' => $branchId !== null
-					? (static function (int $id, ?BranchInterface $branch)
+					? (static function (int $id, ?BranchInterface $branch): BranchInterface|array
 					{
-						if ($branch === null) {
-							return [
-								'id' => $id,
-							];
-						}
-
-						return $branch;
+						return $branch ?? [
+							'id' => $id,
+						];
 					})(
 						$branchId, $branch
 					) : null,
 				'deliveryBranchError' => $branchId !== null && $branch === null,
-				'paymentId' => $order->getPayment()->getId(),
+				'paymentId' => $paymentItem === null ? null : $paymentItem->getId(),
 				'items' => $items,
 				'transactions' => $transactions,
 				'payments' => $payments,

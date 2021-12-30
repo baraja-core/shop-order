@@ -82,7 +82,11 @@ final class OrderPaymentClient
 
 	public function getBestCompatibleProvider(Order $order): OrderPaymentProvider
 	{
-		$orderPaymentCode = $order->getPayment()->getCode();
+		$payment = $order->getPayment();
+		if ($payment === null) {
+			throw new \InvalidArgumentException(sprintf('Payment for order "%s" has not set.', $order->getNumber()));
+		}
+		$orderPaymentCode = $payment->getCode();
 		foreach ($this->providers as $provider) {
 			if ($provider->getPaymentMethodCode() === $orderPaymentCode) {
 				return $provider;
