@@ -318,7 +318,12 @@ class Order implements OrderEntity, OrderNumber
 
 	public function getPrice(): float
 	{
-		return $this->price - $this->getSale();
+		$return = $this->price - $this->getSale();
+		if ($return < 0) {
+			$return = 0;
+		}
+
+		return $return;
 	}
 
 
