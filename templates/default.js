@@ -546,7 +546,7 @@ Vue.component('cms-order-default', {
 			axiosApi.post('cms-order/change-status', {
 				id: id,
 				status: status
-			}).then(req => {
+			}).then(() => {
 				this.sync();
 			});
 		},
@@ -556,7 +556,7 @@ Vue.component('cms-order-default', {
 		sendPackets() {
 			axiosApi.post('cms-order/process-packet-multiple', {
 				items: this.items
-			}).then(req => {
+			}).then(() => {
 				this.sync();
 			});
 		},
@@ -624,7 +624,7 @@ Vue.component('cms-order-default', {
 			axiosApi.post('cms-order/create-group', {
 				name: this.newGroupForm.name,
 				code: this.newGroupForm.code
-			}).then(req => {
+			}).then(() => {
 				this.groupList = null;
 				this.openGroupManager();
 				this.sync();
@@ -636,7 +636,7 @@ Vue.component('cms-order-default', {
 			axiosApi.post('cms-order/create-status', {
 				name: this.newStatus.name,
 				code: this.newStatus.code
-			}).then(req => {
+			}).then(() => {
 				this.statusList = null;
 				this.openStatusManager();
 				this.sync();
@@ -649,7 +649,7 @@ Vue.component('cms-order-default', {
 				code: this.newStatusCollection.code,
 				label: this.newStatusCollection.label,
 				statuses: this.newStatusCollection.statuses
-			}).then(req => {
+			}).then(() => {
 				this.statusList = null;
 				this.openStatusManager();
 				this.sync();
@@ -659,7 +659,7 @@ Vue.component('cms-order-default', {
 		saveStatusList() {
 			axiosApi.post('cms-order/save-status-list', {
 				statusList: this.statusList
-			}).then(req => {
+			}).then(() => {
 				this.statusList = null;
 				this.openStatusManager();
 			});

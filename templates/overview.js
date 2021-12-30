@@ -484,7 +484,7 @@ Vue.component('cms-order-overview', {
 			axiosApi.post('cms-order/change-status', {
 				id: this.id,
 				status: this.order.status
-			}).then(req => {
+			}).then(() => {
 				this.sync();
 			});
 		},
@@ -493,7 +493,7 @@ Vue.component('cms-order-overview', {
 				id: this.id,
 				deliveryId: this.order.deliveryId,
 				paymentId: this.order.paymentId
-			}).then(req => {
+			}).then(() => {
 				this.sync();
 			});
 		},
@@ -501,7 +501,7 @@ Vue.component('cms-order-overview', {
 			axiosApi.post('cms-order/change-quantity', {
 				id: this.id,
 				items: this.order.items
-			}).then(req => {
+			}).then(() => {
 				this.sync();
 			});
 		},
@@ -510,7 +510,7 @@ Vue.component('cms-order-overview', {
 				axiosApi.post('cms-order/remove-item', {
 					orderId: this.id,
 					itemId: id
-				}).then(req => {
+				}).then(() => {
 					this.sync();
 				});
 			}
@@ -527,7 +527,7 @@ Vue.component('cms-order-overview', {
 				orderId: this.id,
 				itemId: id,
 				variantId: variantId
-			}).then(req => {
+			}).then(() => {
 				this.openAddItemModal();
 				this.sync();
 			});
@@ -535,7 +535,7 @@ Vue.component('cms-order-overview', {
 		createInvoice() {
 			axiosApi.post('cms-order/create-invoice', {
 				id: this.id
-			}).then(req => {
+			}).then(() => {
 				this.sync();
 			});
 		},
@@ -545,7 +545,7 @@ Vue.component('cms-order-overview', {
 				notice: this.order.notice,
 				price: this.order.price,
 				deliverPrice: this.order.deliverPrice
-			}).then(req => {
+			}).then(() => {
 				this.sync();
 			});
 		},
@@ -553,14 +553,14 @@ Vue.component('cms-order-overview', {
 			axiosApi.post('cms-order/send-email', {
 				id: this.id,
 				mail: mail
-			}).then(req => {
+			}).then(() => {
 			});
 		},
 		createPackage() {
 			this.loading.createPackage = true;
 			axiosApi.post('cms-order/create-package', {
 				id: this.id
-			}).then(req => {
+			}).then(() => {
 				this.loading.createPackage = false;
 				this.sync();
 			});
@@ -574,7 +574,7 @@ Vue.component('cms-order-overview', {
 			axiosApi.post('cms-order/set-order-sale', {
 				id: this.id,
 				sale: sale
-			}).then(req => {
+			}).then(() => {
 				this.sync();
 			});
 		},
@@ -588,7 +588,7 @@ Vue.component('cms-order-overview', {
 				id: this.id,
 				itemId: id,
 				sale: sale
-			}).then(req => {
+			}).then(() => {
 				this.sync();
 			});
 		},
@@ -597,7 +597,7 @@ Vue.component('cms-order-overview', {
 				id: this.id,
 				deliveryAddress: this.order.deliveryAddress,
 				invoiceAddress: this.order.invoiceAddress
-			}).then(req => {
+			}).then(() => {
 				this.sync();
 			});
 		},
@@ -605,7 +605,7 @@ Vue.component('cms-order-overview', {
 			axiosApi.post('cms-order/set-branch-id', {
 				orderId: this.id,
 				branchId: this.zasilkovna.id
-			}).then(req => {
+			}).then(() => {
 				document.getElementById('packeta-selector-branch-name').innerHTML = '';
 				document.getElementById('packeta-selector-branch-id').innerHTML = '';
 				this.sync();
