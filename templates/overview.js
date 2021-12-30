@@ -7,15 +7,15 @@ Vue.component('cms-order-overview', {
 	<div v-else class="container-fluid">
 		<div class="row">
 			<div class="col">
-				Číslo objednávky:<br>
+				Order number:<br>
 				<div class="card px-3 py-1"><b>{{ order.number }}</b></div>
 			</div>
 			<div class="col">
-				Stav:
+				Status:
 				<b-form-select v-model="order.status" :options="order.statuses" size="sm" @change="changeStatus"></b-form-select>
 			</div>
 			<div class="col">
-				Cena celkem:
+				Price sum:
 				<div class="row">
 					<div class="col">
 						<b-form-input v-model="order.price"></b-form-input>
@@ -26,7 +26,7 @@ Vue.component('cms-order-overview', {
 				</div>
 			</div>
 			<div class="col-1 text-right">
-				<b-button variant="primary" @click="save">Uložit</b-button>
+				<b-button variant="primary" @click="save">Save</b-button>
 			</div>
 		</div>
 		<div class="my-3">
@@ -35,19 +35,19 @@ Vue.component('cms-order-overview', {
 					<b-card>
 						<div class="row">
 							<div class="col">
-								<h5>Položky</h5>
+								<h5>Items</h5>
 							</div>
 							<div class="col-3 text-right">
-								<b-button variant="secondary" size="sm" v-b-modal.modal-add-item>Nová položka</b-button>
+								<b-button variant="secondary" size="sm" v-b-modal.modal-add-item>Add item</b-button>
 							</div>
 						</div>
-						<table class="table table-sm">
+						<table class="table table-sm cms-table-no-border-top">
 							<tr>
 								<th width="20">ID</th>
-								<th>Název</th>
+								<th>Label</th>
 								<th width="64">Mn.</th>
 								<th width="90">J.&nbsp;cena</th>
-								<th width="90">Cena</th>
+								<th width="90">Price</th>
 								<th></th>
 							</tr>
 							<tr v-for="item in order.items">
@@ -61,7 +61,7 @@ Vue.component('cms-order-overview', {
 										<a :href="link('Product:detail', {id: item.productId})" target="_blank">
 											{{ item.name }}
 										</a>
-										<i v-if="item.variantId === null" class="text-warning">(není variantní)</i>
+										<i v-if="item.variantId === null" class="text-warning">(regular)</i>
 									</template>
 									<template v-if="item.type === 'delivery'">
 										<b-form-select v-model="order.deliveryId" :options="order.deliveryList" size="sm" @change="changeDeliveryAndPayments"></b-form-select>
@@ -83,7 +83,7 @@ Vue.component('cms-order-overview', {
 										<b-form-input type="number" v-model="order.deliverPrice" size="sm"></b-form-input>
 									</template>
 									<template v-else>
-										<span v-if="item.price === 0" class="text-success">ZDARMA</span>
+										<span v-if="item.price === 0" class="text-success">FREE</span>
 										<template v-else>
 											<template v-if="item.sale > 0">
 												<s class="text-danger">{{ item.price }}&nbsp;Kč</s><br>
@@ -95,11 +95,11 @@ Vue.component('cms-order-overview', {
 										</template>
 									</template>
 									<template v-if="item.type === 'product'">
-										<b-button class="btn-sm py-0" style="font-size:10pt" @click="setItemSale(item.id)">Dát slevu</b-button>
+										<b-button class="btn-sm py-0" style="font-size:10pt" @click="setItemSale(item.id)">Set sale</b-button>
 									</template>
 								</td>
 								<td>
-									<span v-if="(item.count * item.price) === 0" class="text-success">ZDARMA</span>
+									<span v-if="(item.count * item.price) === 0" class="text-success">FREE</span>
 									<template v-else>{{ item.count * item.price }}&nbsp;Kč</template>
 								</td>
 								<td class="text-right">
@@ -122,13 +122,13 @@ Vue.component('cms-order-overview', {
 					<div class="row">
 						<div class="col">
 							<b-card :class="{ 'mt-3': true, 'bg-warning': order.notice }">
-								<h5>Poznámka</h5>
+								<h5>Customer notice</h5>
 								<b-form-textarea v-model="order.notice"></b-form-textarea>
 							</b-card>
 						</div>
 						<div class="col">
 							<b-card class="mt-3">
-								<h5>E-maily</h5>
+								<h5>Workflow notification</h5>
 								<b-button variant="secondary" size="sm" @click="sendEmail('new-order')">Přijetí objednávky</b-button>
 								<b-button variant="secondary" size="sm" @click="sendEmail('paid')">Zaplaceno</b-button>
 								<b-button variant="secondary" size="sm" @click="sendEmail('invoice')">Faktura</b-button>
@@ -136,29 +136,29 @@ Vue.component('cms-order-overview', {
 						</div>
 					</div>
 					<div class="mt-3">
-						<b-button variant="primary" @click="save">Uložit</b-button>
+						<b-button variant="primary" @click="save">Save</b-button>
 					</div>
 				</div>
 				<div class="col">
 					<div class="row">
 						<div class="col">
 							<b-card>
-								<h5>Zákazník</h5>
+								<h5>Customer</h5>
 								<table class="table table-sm">
 									<tr>
-										<th>Jméno</th>
-										<td>
-											<a :href="link('Customer:detail', {id: order.customer.id})">
+										<td style="border-top:0"><strong>Name</strong></td>
+										<td style="border-top:0">
+											<a :href="link('Customer:detail', {id: order.customer.id})" target="_blank">
 												{{ order.customer.name }} ({{ order.customer.id }})
 											</a>
 										</td>
 									</tr>
 									<tr>
-										<th>E-mail</th>
+										<td><strong>E-mail</strong></td>
 										<td>{{ order.customer.email }}</td>
 									</tr>
 									<tr>
-										<th>Telefon</th>
+										<td><strong>Phone</strong></td>
 										<td>{{ order.customer.phone }}</td>
 									</tr>
 								</table>
@@ -236,7 +236,7 @@ Vue.component('cms-order-overview', {
 								<div v-if="order.invoices.length === 0" class="alert alert-info">
 									Nemá žádnou fakturu.
 								</div>
-								<table v-else class="table table-sm">
+								<table v-else class="table table-sm cms-table-no-border-top">
 									<tr>
 										<th>Číslo</th>
 										<th>Cena</th>
@@ -259,24 +259,24 @@ Vue.component('cms-order-overview', {
 										<h5>Zásilkovna</h5>
 									</div>
 									<div class="col-4 text-right">
-										<b-button variant="secondary" size="sm" @click="document.getElementById('zasilkovna-open-button').click()">Změnit</b-button>
+										<b-button variant="secondary" size="sm" @click="document.getElementById('zasilkovna-open-button').click()">Change</b-button>
 									</div>
 								</div>
 								<div class="alert alert-warning" v-if="order.deliveryBranch === null">
-									Pobočka nebyla vybrána.
+									The branch has not been selected.
 								</div>
 								<template v-else>
 									<template v-if="order.deliveryBranchError === true">
 										<div class="alert alert-danger">
-											Pozor, zákazník si vybral pobočku, která není dostupná.<br><br>
-											ID pobočky: <b>{{ order.deliveryBranch.id }}</b>
+											Attention: Customer has chosen a branch that is not available.<br><br>
+											Branch ID: <strong>{{ order.deliveryBranch.id }}</strong>
 										</div>
 									</template>
 									<template v-else>
 										<div>
-											Pobočka {{ order.deliveryBranch.id }}<br>
+											Branch {{ order.deliveryBranch.id }}<br>
 											{{ order.deliveryBranch.nameStreet }}<br>
-											<a :href="order.deliveryBranch.url" target="_blank">Více info</a>
+											<a :href="order.deliveryBranch.url" target="_blank">More info</a>
 										</div>
 										<div v-if="order.deliveryBranch.photos.length > 0" class="mt-3">
 											<template v-for="branchImage in order.deliveryBranch.photos">
@@ -288,24 +288,24 @@ Vue.component('cms-order-overview', {
 									</template>
 								</template>
 								<b-card v-if="zasilkovna.id !== ''" class="mt-3">
-									Byla vybrána pobočka <b>{{ zasilkovna.id }}</b>:<br>
+									Selected branch <strong>{{ zasilkovna.id }}</strong>:<br>
 									{{ zasilkovna.name }}<br>
-									<b-button variant="success" class="mt-3" @click="savePacketa()">Uložit pobočku</b-button>
+									<b-button variant="success" class="mt-3" @click="savePacketa()">Save branch</b-button>
 								</b-card>
 							</b-card>
 						</div>
 					</div>
 					<b-card class="mt-3">
-						<h5>Platby</h5>
-						Bankovní převody:
-						<div v-if="order.transactions.length === 0" class="alert alert-info">
-							Žádné nejsou.
-						</div>
-						<table v-else class="table table-sm">
+						<h5>Payment</h5>
+						Bank transfers:
+						<p v-if="order.transactions.length === 0" class="text-secondary">
+							No records.
+						</p>
+						<table v-else class="table table-sm cms-table-no-border-top">
 							<tr>
-								<th>ID</th>
-								<th>Částka</th>
-								<th>Datum</th>
+								<th>#</th>
+								<th>Price</th>
+								<th>Date</th>
 							</tr>
 							<tr v-for="transaction in order.transactions">
 								<td>{{ transaction.id }}</td>
@@ -313,16 +313,16 @@ Vue.component('cms-order-overview', {
 								<td>{{ transaction.date }}</td>
 							</tr>
 						</table>
-						Platby kartou:
-						<div v-if="order.payments.length === 0" class="alert alert-info">
-							Žádné nejsou.
-						</div>
-						<table v-else class="table table-sm">
+						Payments by card:
+						<p v-if="order.payments.length === 0" class="text-secondary">
+							No records.
+						</p>
+						<table v-else class="table table-sm cms-table-no-border-top">
 							<tr>
 								<th>GoPay ID</th>
-								<th>Částka</th>
-								<th>Stav</th>
-								<th>Datum</th>
+								<th>Price</th>
+								<th>Status</th>
+								<th>Date</th>
 							</tr>
 							<tr v-for="payment in order.payments">
 								<td>{{ payment.gopayId }}</td>
@@ -364,7 +364,7 @@ Vue.component('cms-order-overview', {
 				</template>
 			</template>
 			<template v-else>
-				<table class="table table-sm table-hover">
+				<table class="table table-sm table-hover cms-table-no-border-top">
 					<tr>
 						<th>Č.&nbsp;objednávky</th>
 						<th>Č.&nbsp;balíku</th>
@@ -407,7 +407,7 @@ Vue.component('cms-order-overview', {
 		</div>
 		<template v-else>
 			<p>Vyberte položku k přidání do objednávky. Přidání položky způsobí přepočítání ceny celé objednávky.</p>
-			<table class="table table-sm">
+			<table class="table table-sm cms-table-no-border-top">
 				<tr v-for="item in addItemList">
 					<td>
 						<a :href="basePath + '/' + item.slug + '.html'" target="_blank">{{ item.name }}</a>
