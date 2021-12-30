@@ -108,6 +108,8 @@ Vue.component('cms-order-default', {
 					</template>
 				</td>
 				<td>
+					<span v-if="item.customer.premium" v-b-tooltip title="Premium customer.">🌟</span>
+					<span v-if="item.customer.ban" v-b-tooltip title="Customer is banned.">🚫</span>
 					<a :href="link('Customer:detail', {id: item.customer.id})" target="_blank">
 						{{ item.customer.firstName }}
 						{{ item.customer.lastName }}
@@ -119,13 +121,13 @@ Vue.component('cms-order-default', {
 				<td class="p-0">
 					<p v-if="item.items.length === 0" class="text-danger my-1">No items.</p>
 					<table v-else class="w-100" cellspacing="0" cellpadding="0" style="font-size:10pt">
-						<tr v-for="orderItem in item.items">
-							<td class="text-right" width="32">
+						<tr v-for="(orderItem, orderItemId) in item.items">
+							<td class="text-right" width="32" :style="orderItemId === 0 ? 'border-top:0' : ''">
 								<template v-if="orderItem.count === 1">1</template>
 								<span v-else class="badge badge-danger px-1 py-0" style="font-size:11pt">{{ orderItem.count }}</span>
 							</td>
-							<td style="padding:2px 0">{{ orderItem.name }}</td>
-							<td class="text-right">
+							<td :style="'padding:2px 0;' + (orderItemId === 0 ? 'border-top:0' : '')">{{ orderItem.name }}</td>
+							<td class="text-right" :style="orderItemId === 0 ? 'border-top:0' : ''">
 								<template v-if="orderItem.sale > 0">
 									<s class="text-danger">{{ orderItem.price }}&nbsp;{{ item.currency }}</s><br>
 									<b>{{ orderItem.finalPrice }}&nbsp;{{ item.currency }}</b>

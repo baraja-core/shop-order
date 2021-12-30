@@ -109,6 +109,8 @@ final class CmsOrderEndpoint extends BaseEndpoint
 					'firstName' => $order->getCustomer()->getFirstName(),
 					'lastName' => $order->getCustomer()->getLastName(),
 					'phone' => $order->getCustomer()->getPhone(),
+					'premium' => $order->getCustomer()->isPremium(),
+					'ban' => $order->getCustomer()->isBan(),
 				],
 				'delivery' => [
 					'id' => $deliveryItem === null ? null : $deliveryItem->getId(),

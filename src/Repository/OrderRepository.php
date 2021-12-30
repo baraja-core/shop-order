@@ -93,7 +93,7 @@ final class OrderRepository
 				->setParameter('statusCollectionCodes', $collections[$status]['codes']);
 		} else {
 			throw new \InvalidArgumentException(
-				'Status "' . $status . '" is not valid regular status code or collection.',
+				sprintf('Status "%s" is not valid regular status code or collection.', $status),
 			);
 		}
 		if ($dateFrom !== null) {
@@ -137,7 +137,7 @@ final class OrderRepository
 			->createQueryBuilder('o')
 			->select('PARTIAL o.{id, hash, number, price, currency, sale, insertedDate, updatedDate, notice, deliveryPrice}')
 			->addSelect('PARTIAL status.{id, code, label, workflowPosition, color}')
-			->addSelect('PARTIAL customer.{id, email, firstName, lastName, phone}')
+			->addSelect('PARTIAL customer.{id, email, firstName, lastName, phone, premium, ban}')
 			->addSelect('PARTIAL item.{id, count, price, sale}')
 			->addSelect('PARTIAL product.{id, name}')
 			->addSelect('PARTIAL delivery.{id, name, price, color}')
