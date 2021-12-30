@@ -6,12 +6,13 @@ namespace Baraja\Shop\Order\Entity;
 
 
 use Baraja\Doctrine\Identifier\IdentifierUnsigned;
+use Baraja\Shop\Order\Repository\OrderStatusRepository;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Table;
 use Nette\Utils\Strings;
 
-#[Entity]
+#[Entity(repositoryClass: OrderStatusRepository::class)]
 #[Table(name: 'shop__order_status')]
 class OrderStatus implements \Stringable
 {
@@ -76,7 +77,7 @@ class OrderStatus implements \Stringable
 	}
 
 
-	public function __toString()
+	public function __toString(): string
 	{
 		return $this->getCode();
 	}
@@ -132,7 +133,7 @@ class OrderStatus implements \Stringable
 
 	public function setPublicLabel(?string $publicLabel): void
 	{
-		if ($publicLabel !== null && preg_match('/^(?:\d+)\.\s+(.+)$/', $publicLabel, $parser)) {
+		if ($publicLabel !== null && preg_match('/^(?:\d+)\.\s+(.+)$/', $publicLabel, $parser) === 1) {
 			$publicLabel = $parser[1] ?? $publicLabel;
 		}
 		if ($publicLabel !== $this->getPublicLabel()) {
@@ -168,6 +169,9 @@ class OrderStatus implements \Stringable
 	public function setWorkflowPosition(?int $workflowPosition): void
 	{
 		if ($workflowPosition === null) {
+			$workflowPosition = 0;
+		}
+		if ($workflowPosition < 0) {
 			$workflowPosition = 0;
 		}
 		$this->workflowPosition = $workflowPosition;

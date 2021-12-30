@@ -5,24 +5,31 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order;
 
 
-use Baraja\Doctrine\EntityManager;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderStatus;
 use Baraja\Shop\Order\Entity\OrderStatusCollection;
 use Baraja\Shop\Order\Entity\OrderStatusHistory;
+use Baraja\Shop\Order\Repository\OrderStatusRepository;
 use Baraja\Shop\Order\Status\OrderStatusChangedEvent;
 use Baraja\Shop\Order\Status\OrderWorkflow;
+use Doctrine\ORM\EntityManagerInterface;
 
 final class OrderStatusManager
 {
+	private OrderStatusRepository $orderStatusRepository;
+
+
 	/**
 	 * @param OrderStatusChangedEvent[] $onChangeEvents
 	 */
 	public function __construct(
-		private EntityManager $entityManager,
+		private EntityManagerInterface $entityManager,
 		private OrderWorkflow $workflow,
 		private array $onChangeEvents = [],
 	) {
+		/** @var OrderStatusRepository $orderStatusRepository */
+		$orderStatusRepository = $entityManager->getRepository(OrderStatus::class);
+		$this->orderStatusRepository = $orderStatusRepository;
 	}
 
 
@@ -33,12 +40,7 @@ final class OrderStatusManager
 	{
 		static $cache;
 		if ($cache === null) {
-			/** @var OrderStatus[] $cache */
-			$cache = $this->entityManager->getRepository(OrderStatus::class)
-				->createQueryBuilder('status')
-				->orderBy('status.workflowPosition', 'ASC')
-				->getQuery()
-				->getResult();
+			$cache = $this->orderStatusRepository->getAll();
 			if ($cache === []) {
 				$this->initDefault();
 
@@ -59,7 +61,7 @@ final class OrderStatusManager
 			}
 		}
 
-		throw new \InvalidArgumentException('Order status "' . $code . '" does not exist.');
+		throw new \InvalidArgumentException(sprintf('Order status "%s" does not exist.', $code));
 	}
 
 
@@ -172,8 +174,12 @@ final class OrderStatusManager
 
 	public function initDefault(): void
 	{
+		$position = 1;
 		foreach (OrderStatus::COMMON_STATUSES as $code) {
-			$this->entityManager->persist(new OrderStatus($code, str_replace('-', ' ', $code)));
+			$status = new OrderStatus($code, str_replace('-', ' ', $code));
+			$status->setWorkflowPosition($position);
+			$this->entityManager->persist($status);
+			$position++;
 		}
 		$this->entityManager->flush();
 	}

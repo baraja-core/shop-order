@@ -25,29 +25,32 @@ Vue.component('cms-order-default', {
 			<b-spinner small></b-spinner>
 		</div>
 		<b-form v-else inline class="w-100">
-			<div class="w-100">
-				<div class="d-flex flex-column flex-sm-row align-items-sm-center pr-lg-0">
-					<div class="row w-100">
-						<div class="col">
-							<b-form-input size="sm" v-model="filter.query" @input="sync" class="mr-3 w-100" style="max-width:300px" placeholder="Search anywhere..."></b-form-input>
-							<b-form-select size="sm" v-model="filter.status" :options="staticFilter.filterStatuses" @change="sync" style="width:164px"></b-form-select>
-							<b-form-select size="sm" v-model="filter.delivery" :options="staticFilter.filterDeliveries" @change="sync" style="width:128px"></b-form-select>
-							<b-form-select size="sm" v-model="filter.payment" :options="staticFilter.filterPayments" @change="sync" style="width:128px"></b-form-select>
-							<b-form-select size="sm" v-model="filter.orderBy" :options="staticFilter.orderByOptions" @change="sync" style="width:128px"></b-form-select>
-							<b-form-datepicker size="sm" v-model="filter.dateFrom" @input="sync" style="display:inline-block !important"></b-form-datepicker>
-							<b-form-datepicker size="sm" v-model="filter.dateTo" @input="sync" style="display:inline-block !important"></b-form-datepicker>
-						</div>
-						<div class="col-1 text-right">
-							<b-form-select size="sm" v-model="filter.limit" :options="limitOptions" @change="sync"></b-form-select>
-						</div>
-					</div>
-				</div>
-			</div>
+			<table cellpadding="0" cellspacing="0" class="w-100">
+				<tr>
+					<td>
+						<b-form-input size="sm" v-model="filter.query" @input="sync" class="mr-3 w-100" style="max-width:300px" placeholder="Search anywhere..."></b-form-input>
+						<b-form-select size="sm" v-model="filter.status" :options="staticFilter.filterStatuses" @change="sync" style="width:120px"></b-form-select>
+						<b-form-select size="sm" v-model="filter.delivery" :options="staticFilter.filterDeliveries" @change="sync" style="width:128px"></b-form-select>
+						<b-form-select size="sm" v-model="filter.payment" :options="staticFilter.filterPayments" @change="sync" style="width:128px"></b-form-select>
+						<b-form-select size="sm" v-model="filter.orderBy" :options="staticFilter.orderByOptions" @change="sync" style="width:128px"></b-form-select>
+						<b-form-datepicker size="sm" v-model="filter.dateFrom" @input="sync" style="display:inline-block !important"></b-form-datepicker>
+						<b-form-datepicker size="sm" v-model="filter.dateTo" @input="sync" style="display:inline-block !important"></b-form-datepicker>
+					</td>
+					<td class="text-right" style="width:80px">
+						<b-form-select size="sm" v-model="filter.limit" :options="limitOptions" @change="sync" style="width:80px"></b-form-select>
+					</td>
+				</tr>
+			</table>
 		</b-form>
 	</cms-filter>
 	<div v-if="items === null" class="text-center py-5">
 		<b-spinner></b-spinner>
 	</div>
+	<b-card v-else-if="items.length === 0">
+		<p class="text-secondary my-5 text-center">
+			No orders here.
+		</p>
+	</b-card>
 	<b-card v-else>
 		<div class="row">
 			<div class="col">
@@ -250,13 +253,14 @@ Vue.component('cms-order-default', {
 					<b>Regular statuses:</b>
 				</div>
 				<div class="col text-right">
-					<b-button variant="success" v-b-modal.modal-status-manager-new-collection>New collection</b-button>
-					<b-button variant="success" v-b-modal.modal-status-manager-new-status>New status</b-button>
+					<b-button variant="success" size="sm" v-b-modal.modal-status-manager-new-collection>New collection</b-button>
+					<b-button variant="success" size="sm" v-b-modal.modal-status-manager-new-status>New status</b-button>
+					<b-button variant="danger" size="sm" v-b-modal.modal-status-manager-remove>Remove</b-button>
 				</div>
 			</div>
 			<table class="table table-sm cms-table-no-border-top">
 				<tr>
-					<th>ID</th>
+					<th>#</th>
 					<th width="80">Position</th>
 					<th>Name</th>
 					<th>Code</th>
@@ -294,10 +298,17 @@ Vue.component('cms-order-default', {
 					</td>
 				</tr>
 			</table>
+			<div class="text-right mt-3">
+				<b-button variant="primary" @click="saveStatusList">Save</b-button>
+			</div>
+			<hr>
 			<div class="mb-3">
 				<b>Status collections:</b>
 			</div>
-			<table class="table table-sm cms-table-no-border-top">
+			<div v-if="statusCollectionList.length === 0" class="text-secondary">
+				No collections here.
+			</div>
+			<table v-else class="table table-sm cms-table-no-border-top">
 				<tr>
 					<th width="250">Code</th>
 					<th width="250">Label</th>
@@ -317,9 +328,6 @@ Vue.component('cms-order-default', {
 					</td>
 				</tr>
 			</table>
-			<div class="text-right mt-3">
-				<b-button variant="primary" @click="saveStatusList">Save</b-button>
-			</div>
 		</template>
 	</b-modal>
 	<b-modal id="modal-status-manager-new-status" title="New order status" hide-footer>
@@ -355,9 +363,30 @@ Vue.component('cms-order-default', {
 			<b-button type="submit" variant="primary">Create</b-button>
 		</b-form>
 	</b-modal>
+	<b-modal id="modal-status-manager-remove" title="Remove order status or collection" hide-footer>
+		<p>
+			Deleting an order status or collection of statuses is
+			<strong>always a destructive operation</strong>
+			that can corrupt your historical order data, so it is not available to CMS users.
+		</p>
+		<p>
+			If you need to delete a specific status or fundamentally change the data structure,
+			contact your server administrator.
+		</p>
+	</b-modal>
 	<b-modal id="modal-rules" title="Workflow rules" size="xl" @shown="openRulesManager" hide-footer>
 		<div v-if="workflowRulesList === null" class="text-center my-5">
 			<b-spinner></b-spinner>
+		</div>
+		<div v-else-if="workflowRulesList.length === 0">
+			<p>Workflow rules is <strong>super easy and smart automation workflow</strong> for managing your orders.</p>
+			<p>How does it work?</p>
+			<ul>
+				<li>First define automated rules for frequently used order statuses in your e-shop.</li>
+				<li>When an order switches to that status, a scheduled action is automatically triggered.</li>
+				<li>You can also trigger events automatically by the expiration of a set period.</li>
+				<li>Each administrator in your e-shop will save up to 3 hours per day and you will reduce mistakes.</li>
+			</ul>
 		</div>
 		<template v-else>
 			<table class="table table-sm cms-table-no-border-top">
