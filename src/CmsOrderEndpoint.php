@@ -303,16 +303,30 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 		/** @var Delivery[] $deliveryList */
 		$deliveryList = $this->entityManager->getRepository(Delivery::class)->findAll();
-		$deliverySelectbox = [];
+		$deliverySelectbox = [
+			null => '- Select delivery -',
+		];
 		foreach ($deliveryList as $delivery) {
-			$deliverySelectbox[$delivery->getId()] = $delivery->getName() . ' (' . $delivery->getPrice() . ' Kč)';
+			$deliverySelectbox[$delivery->getId()] = sprintf(
+				'%s (%d %s)',
+				(string) $delivery->getName(),
+				$delivery->getPrice(),
+				$order->getCurrency(),
+			);
 		}
 
 		/** @var Payment[] $paymentList */
 		$paymentList = $this->entityManager->getRepository(Payment::class)->findAll();
-		$paymentSelectbox = [];
+		$paymentSelectbox = [
+			null => '- Select payment -',
+		];
 		foreach ($paymentList as $payment) {
-			$paymentSelectbox[$payment->getId()] = $payment->getName() . ' (' . $payment->getPrice() . ' Kč)';
+			$paymentSelectbox[$payment->getId()] = sprintf(
+				'%s (%d %s)',
+				$payment->getName(),
+				$payment->getPrice(),
+				$order->getCurrency(),
+			);
 		}
 
 		$invoices = [];

@@ -45,7 +45,7 @@ Vue.component('cms-order-overview', {
 							<tr>
 								<th width="20">#</th>
 								<th>Label</th>
-								<th width="64">Σ</th>
+								<th width="64">Count</th>
 								<th width="90">U.&nbsp;price</th>
 								<th width="90">Price</th>
 								<th></th>
@@ -104,7 +104,7 @@ Vue.component('cms-order-overview', {
 								</td>
 								<td class="text-right">
 									<template v-if="item.type === 'product'">
-										<b-button variant="danger" size="sm" class="px-1 py-0" @click="removeItem(item.id)">x</b-button>
+										<b-button variant="outline-danger" @click="removeItem(item.id)" size="sm" class="p-0">🗑️</b-button>
 									</template>
 								</td>
 							</tr>
