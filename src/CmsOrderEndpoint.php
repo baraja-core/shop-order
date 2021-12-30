@@ -357,12 +357,19 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'street' => $address->getStreet(),
 				'city' => $address->getCity(),
 				'zip' => $address->getZip(),
-				'country' => $address->getCountry(),
+				'country' => $address->getCountry()->getCode(),
 				'companyName' => $address->getCompanyName(),
 				'ic' => $address->getCin(),
 				'dic' => $address->getTin(),
 			];
 		};
+		$countryList = [];
+		foreach ($this->countryManager->get()->getAll() as $countryItem) {
+			if ($countryItem->isActive() === false) {
+				continue;
+			}
+			$countryList[$countryItem->getCode()] = $countryItem->getName();
+		}
 
 		$this->sendJson(
 			[
@@ -381,6 +388,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				],
 				'deliveryAddress' => $formatAddress($order->getDeliveryAddress()),
 				'invoiceAddress' => $formatAddress($order->getDeliveryAddress()),
+				'countryList' => $this->formatBootstrapSelectArray($countryList),
 				'deliveryList' => $this->formatBootstrapSelectArray($deliverySelectbox),
 				'paymentList' => $this->formatBootstrapSelectArray($paymentSelectbox),
 				'deliveryId' => $deliveryItem === null ? null : $deliveryItem->getId(),
@@ -678,10 +686,10 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$order = $this->getOrderById($id);
 		try {
 			$invoice = $this->invoiceManager->createInvoice($order);
-			$this->flashMessage('Invoice ' . $invoice->getNumber() . ' has been successfully created.', 'success');
+			$this->flashMessage(sprintf('Invoice "%s" has been successfully created.', $invoice->getNumber()), 'success');
 		} catch (\Throwable $e) {
 			Debugger::log($e, ILogger::CRITICAL);
-			$this->flashMessage('Invoice failed to be issued:' . $e->getMessage(), 'error');
+			$this->flashMessage(sprintf('Invoice failed to be issued: %s', $e->getMessage()), 'error');
 		}
 		$this->entityManager->flush();
 		$this->sendOk();
