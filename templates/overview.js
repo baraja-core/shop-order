@@ -21,7 +21,7 @@ Vue.component('cms-order-overview', {
 						<b-form-input v-model="order.price" :class="{ 'alert-success': Math.abs(order.price) <= 0.001 }"></b-form-input>
 					</div>
 					<div class="col-3">
-						<b style="font-size:18pt">Kč</b>
+						<b style="font-size:18pt">{{ order.currency }}</b>
 					</div>
 				</div>
 			</div>
@@ -86,11 +86,11 @@ Vue.component('cms-order-overview', {
 										<span v-if="item.price === 0" class="text-success">FREE</span>
 										<template v-else>
 											<template v-if="item.sale > 0">
-												<s class="text-danger">{{ item.price }}&nbsp;Kč</s><br>
-												<b>{{ item.finalPrice }}&nbsp;Kč</b>
+												<s class="text-danger">{{ item.price }}&nbsp;{{ order.currency }}</s><br>
+												<b>{{ item.finalPrice }}&nbsp;{{ order.currency }}</b>
 											</template>
 											<template v-else>
-												{{ item.price }}&nbsp;Kč
+												{{ item.price }}&nbsp;{{ order.currency }}
 											</template>
 										</template>
 									</template>
@@ -100,7 +100,7 @@ Vue.component('cms-order-overview', {
 								</td>
 								<td>
 									<span v-if="(item.count * item.price) === 0" class="text-success">FREE</span>
-									<template v-else>{{ item.count * item.price }}&nbsp;Kč</template>
+									<template v-else>{{ item.count * item.price }}&nbsp;{{ order.currency }}</template>
 								</td>
 								<td class="text-right">
 									<template v-if="item.type === 'product'">
@@ -110,7 +110,7 @@ Vue.component('cms-order-overview', {
 							</tr>
 						</table>
 						<b-alert v-if="order.sale > 0" :show="true">
-							A discount has been set on the entire order: <b>{{ order.sale }}&nbsp;Kč</b>
+							A discount has been set on the entire order: <b>{{ order.sale }}&nbsp;{{ order.currency }}</b>
 							<div class="mt-3">
 								<b-button size="sm" @click="setOrderSale()">Change the discount amount or cancel</b-button>
 							</div>
@@ -422,7 +422,7 @@ Vue.component('cms-order-overview', {
 							<table class="w-100">
 								<tr v-for="variantItem in item.variants">
 									<td>{{ variantItem.relationHash }}</td>
-									<td>{{ variantItem.price ? variantItem.price + ' Kč' : '---' }}</td>
+									<td>{{ variantItem.price ? variantItem.price + ' ' + order.currency : '---' }}</td>
 									<td class="text-right">
 										<b-button variant="secondary" size="sm" class="btn-sm py-0" @click="addItem(item.id, variantItem.id)">+</b-button>
 									</td>
@@ -430,7 +430,7 @@ Vue.component('cms-order-overview', {
 							</table>
 						</div>
 					</td>
-					<td>{{ item.price }}&nbsp;Kč</td>
+					<td>{{ item.price }}&nbsp;{{ order.currency }}</td>
 					<td class="text-right">
 						<template v-if="item.variants.length === 0">
 							<b-button variant="secondary" size="sm" @click="addItem(item.id)">+</b-button>

@@ -378,6 +378,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'status' => $order->getStatus(),
 				'price' => $order->getPrice(),
 				'sale' => $order->getSale(),
+				'currency' => $order->getCurrency(),
 				'statuses' => $this->formatBootstrapSelectArray($this->orderStatusManager->getKeyValueList()),
 				'notice' => $order->getNotice(),
 				'customer' => [
