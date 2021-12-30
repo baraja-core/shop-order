@@ -14,6 +14,7 @@ use Baraja\Shop\Cart\Entity\Cart;
 use Baraja\Shop\Cart\Entity\OrderNumber;
 use Baraja\Shop\Cart\OrderInfo;
 use Baraja\Shop\Cart\OrderInfoBasic;
+use Baraja\Shop\Currency\CurrencyManagerAccessor;
 use Baraja\Shop\Customer\CustomerManager;
 use Baraja\Shop\Customer\Entity\Customer;
 use Baraja\Shop\Delivery\Entity\Delivery;
@@ -45,6 +46,7 @@ final class OrderGenerator
 		private CustomerManager $customerManager,
 		private User $user,
 		private Emailer $emailer,
+		private CurrencyManagerAccessor $currencyManager,
 		private array $createdOrderEvents = [],
 	) {
 	}
@@ -110,7 +112,7 @@ final class OrderGenerator
 			payment: $selectedPayment,
 			price: $cart->getPrice(),
 			priceWithoutVat: $cart->getPriceWithoutVat(),
-			currency: $this->getDefaultCurrency(),
+			currency: $this->getCurrentContextCurrency(),
 		);
 		$order->setNotice($info->getNotice());
 		if ($order->getCustomer()->getDefaultOrderSale() > 0) {
@@ -201,7 +203,7 @@ final class OrderGenerator
 			payment: $payment,
 			price: 0,
 			priceWithoutVat: 0,
-			currency: $this->getDefaultCurrency(),
+			currency: $this->getCurrentContextCurrency(),
 		);
 		$order->setNotice('Manually created order.');
 
@@ -305,8 +307,8 @@ final class OrderGenerator
 	}
 
 
-	private function getDefaultCurrency(): string
+	private function getCurrentContextCurrency(): string
 	{
-		return 'CZK';
+		return $this->currencyManager->get()->getMainCurrency()->getCode();
 	}
 }
