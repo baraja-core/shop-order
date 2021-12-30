@@ -144,6 +144,13 @@ class Order implements OrderEntity, OrderNumber
 		float $priceWithoutVat,
 		string $currency,
 	) {
+		if ($customer->isBan()) {
+			throw new \InvalidArgumentException(sprintf(
+				'Can not create new order, because customer "%s" (id %d) has been banned.',
+				$customer->getName(),
+				$customer->getId(),
+			));
+		}
 		$this->group = $group;
 		$this->status = $status;
 		$this->customer = $customer;
