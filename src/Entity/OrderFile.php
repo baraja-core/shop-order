@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Entity;
 
 
-use Baraja\Doctrine\Identifier\IdentifierUnsigned;
 use Baraja\Url\Url;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -13,7 +12,10 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'shop__order_file')]
 class OrderFile implements OrderDocument
 {
-	use IdentifierUnsigned;
+	#[ORM\Id]
+	#[ORM\Column(type: 'integer', unique: true, options: ['unsigned' => true])]
+	#[ORM\GeneratedValue]
+	protected int $id;
 
 	#[ORM\ManyToOne(targetEntity: Order::class)]
 	private Order $order;
@@ -42,6 +44,12 @@ class OrderFile implements OrderDocument
 		$this->label = $label;
 		$this->filename = $filename;
 		$this->insertedDate = new \DateTimeImmutable;
+	}
+
+
+	public function getId(): int
+	{
+		return $this->id;
 	}
 
 

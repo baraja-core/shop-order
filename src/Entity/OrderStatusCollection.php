@@ -5,26 +5,26 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Entity;
 
 
-use Baraja\Doctrine\Identifier\IdentifierUnsigned;
-use Doctrine\ORM\Mapping\Column;
-use Doctrine\ORM\Mapping\Entity;
-use Doctrine\ORM\Mapping\Table;
+use Doctrine\ORM\Mapping as ORM;
 use Nette\Utils\Strings;
 
-#[Entity]
-#[Table(name: 'shop__order_status_collection')]
+#[ORM\Entity]
+#[ORM\Table(name: 'shop__order_status_collection')]
 class OrderStatusCollection
 {
-	use IdentifierUnsigned;
+	#[ORM\Id]
+	#[ORM\Column(type: 'integer', unique: true, options: ['unsigned' => true])]
+	#[ORM\GeneratedValue]
+	protected int $id;
 
-	#[Column(type: 'string', length: 48, unique: true)]
+	#[ORM\Column(type: 'string', length: 48, unique: true)]
 	private string $code;
 
-	#[Column(type: 'string', length: 48)]
+	#[ORM\Column(type: 'string', length: 48)]
 	private string $label;
 
 	/** @var array<int, string> */
-	#[Column(type: 'json')]
+	#[ORM\Column(type: 'json')]
 	private array $codes;
 
 
@@ -36,6 +36,12 @@ class OrderStatusCollection
 		$this->setCode($code);
 		$this->setLabel($label);
 		$this->setCodes($codes);
+	}
+
+
+	public function getId(): int
+	{
+		return $this->id;
 	}
 
 

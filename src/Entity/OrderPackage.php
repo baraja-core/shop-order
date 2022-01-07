@@ -5,14 +5,16 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Entity;
 
 
-use Baraja\Doctrine\Identifier\IdentifierUnsigned;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'shop__order_package')]
 class OrderPackage
 {
-	use IdentifierUnsigned;
+	#[ORM\Id]
+	#[ORM\Column(type: 'integer', unique: true, options: ['unsigned' => true])]
+	#[ORM\GeneratedValue]
+	protected int $id;
 
 	#[ORM\ManyToOne(targetEntity: Order::class, inversedBy: 'packages')]
 	private Order $order;
@@ -72,6 +74,12 @@ class OrderPackage
 		$this->shipper = $shipper;
 		$this->carrierId = $carrierId;
 		$this->insertedDate = new \DateTimeImmutable;
+	}
+
+
+	public function getId(): int
+	{
+		return $this->id;
 	}
 
 

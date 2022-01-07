@@ -5,19 +5,14 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Entity;
 
 
-use Baraja\Doctrine\Identifier\IdentifierUnsigned;
+use Doctrine\ORM\Mapping as ORM;
 use Baraja\Shop\Order\Repository\OrderStatusRepository;
-use Doctrine\ORM\Mapping\Column;
-use Doctrine\ORM\Mapping\Entity;
-use Doctrine\ORM\Mapping\Table;
 use Nette\Utils\Strings;
 
-#[Entity(repositoryClass: OrderStatusRepository::class)]
-#[Table(name: 'shop__order_status')]
+#[ORM\Entity(repositoryClass: OrderStatusRepository::class)]
+#[ORM\Table(name: 'shop__order_status')]
 class OrderStatus implements \Stringable
 {
-	use IdentifierUnsigned;
-
 	public const
 		STATUS_NEW = 'new',
 		STATUS_PAID = 'paid',
@@ -47,25 +42,30 @@ class OrderStatus implements \Stringable
 		self::STATUS_DEALER_NON_PAID,
 	];
 
-	#[Column(type: 'string', length: 48, unique: true)]
+	#[ORM\Id]
+	#[ORM\Column(type: 'integer', unique: true, options: ['unsigned' => true])]
+	#[ORM\GeneratedValue]
+	protected int $id;
+
+	#[ORM\Column(type: 'string', length: 48, unique: true)]
 	private string $code;
 
-	#[Column(type: 'string', length: 48)]
+	#[ORM\Column(type: 'string', length: 48)]
 	private string $internalName;
 
-	#[Column(type: 'string', length: 48)]
+	#[ORM\Column(type: 'string', length: 48)]
 	private string $label;
 
-	#[Column(type: 'string', length: 48, nullable: true)]
+	#[ORM\Column(type: 'string', length: 48, nullable: true)]
 	private ?string $publicLabel = null;
 
-	#[Column(type: 'string', length: 128, nullable: true)]
+	#[ORM\Column(type: 'string', length: 128, nullable: true)]
 	private ?string $systemHandle = null;
 
-	#[Column(type: 'integer', nullable: true, options: ['unsigned' => true])]
+	#[ORM\Column(type: 'integer', nullable: true, options: ['unsigned' => true])]
 	private ?int $workflowPosition = null;
 
-	#[Column(type: 'string', length: 7, nullable: true)]
+	#[ORM\Column(type: 'string', length: 7, nullable: true)]
 	private ?string $color = null;
 
 
@@ -74,6 +74,12 @@ class OrderStatus implements \Stringable
 		$this->code = Strings::webalize($code);
 		$this->internalName = Strings::firstUpper($name);
 		$this->label = Strings::firstUpper($name);
+	}
+
+
+	public function getId(): int
+	{
+		return $this->id;
 	}
 
 

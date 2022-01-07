@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Entity;
 
 
-use Baraja\Doctrine\Identifier\IdentifierUnsigned;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\ORM\Mapping\UniqueConstraint;
 
@@ -14,7 +13,10 @@ use Doctrine\ORM\Mapping\UniqueConstraint;
 #[UniqueConstraint(name: 'shop__order_meta_order_key', columns: ['order_id', 'key'])]
 class OrderMeta
 {
-	use IdentifierUnsigned;
+	#[ORM\Id]
+	#[ORM\Column(type: 'integer', unique: true, options: ['unsigned' => true])]
+	#[ORM\GeneratedValue]
+	protected int $id;
 
 	#[ORM\ManyToOne(targetEntity: Order::class, inversedBy: 'metas')]
 	private Order $order;
@@ -31,6 +33,12 @@ class OrderMeta
 		$this->order = $order;
 		$this->key = $key;
 		$this->value = trim($value ?? '') ?: null;
+	}
+
+
+	public function getId(): int
+	{
+		return $this->id;
 	}
 
 

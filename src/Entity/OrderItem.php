@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Entity;
 
 
-use Baraja\Doctrine\Identifier\IdentifierUnsigned;
 use Baraja\Shop\Product\Entity\Product;
 use Baraja\Shop\Product\Entity\ProductVariant;
 use Doctrine\ORM\Mapping as ORM;
@@ -14,7 +13,10 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'shop__order_item')]
 class OrderItem
 {
-	use IdentifierUnsigned;
+	#[ORM\Id]
+	#[ORM\Column(type: 'integer', unique: true, options: ['unsigned' => true])]
+	#[ORM\GeneratedValue]
+	protected int $id;
 
 	#[ORM\ManyToOne(targetEntity: Order::class, inversedBy: 'items')]
 	private Order $order;
@@ -53,6 +55,12 @@ class OrderItem
 		if ($product !== null) {
 			$this->setLabel((string) $product->getName());
 		}
+	}
+
+
+	public function getId(): int
+	{
+		return $this->id;
 	}
 
 

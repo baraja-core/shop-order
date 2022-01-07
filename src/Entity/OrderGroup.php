@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Entity;
 
 
-use Baraja\Doctrine\Identifier\IdentifierUnsigned;
 use Baraja\Localization\TranslateObject;
 use Baraja\Localization\Translation;
 use Doctrine\ORM\Mapping as ORM;
@@ -19,8 +18,12 @@ use Nette\Utils\Strings;
 #[ORM\Table(name: 'shop__order_group')]
 class OrderGroup
 {
-	use IdentifierUnsigned;
 	use TranslateObject;
+
+	#[ORM\Id]
+	#[ORM\Column(type: 'integer', unique: true, options: ['unsigned' => true])]
+	#[ORM\GeneratedValue]
+	protected int $id;
 
 	#[ORM\Column(type: 'translate')]
 	private Translation $name;
@@ -43,6 +46,12 @@ class OrderGroup
 		}
 		$this->setName($name);
 		$this->setCode($code);
+	}
+
+
+	public function getId(): int
+	{
+		return $this->id;
 	}
 
 

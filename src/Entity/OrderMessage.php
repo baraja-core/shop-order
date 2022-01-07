@@ -6,7 +6,6 @@ namespace Baraja\Shop\Order\Entity;
 
 
 use Baraja\Cms\User\Entity\User;
-use Baraja\Doctrine\Identifier\IdentifierUnsigned;
 use Baraja\Shop\Customer\Entity\Customer;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -14,7 +13,10 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'shop__order_message')]
 class OrderMessage
 {
-	use IdentifierUnsigned;
+	#[ORM\Id]
+	#[ORM\Column(type: 'integer', unique: true, options: ['unsigned' => true])]
+	#[ORM\GeneratedValue]
+	protected int $id;
 
 	#[ORM\ManyToOne(targetEntity: Order::class)]
 	private Order $order;
@@ -47,6 +49,12 @@ class OrderMessage
 		} else {
 			$this->userId = $user->getId();
 		}
+	}
+
+
+	public function getId(): int
+	{
+		return $this->id;
 	}
 
 

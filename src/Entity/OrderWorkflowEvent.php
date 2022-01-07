@@ -5,14 +5,16 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Entity;
 
 
-use Baraja\Doctrine\Identifier\IdentifierUnsigned;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'shop__order_workflow_event')]
 class OrderWorkflowEvent
 {
-	use IdentifierUnsigned;
+	#[ORM\Id]
+	#[ORM\Column(type: 'integer', unique: true, options: ['unsigned' => true])]
+	#[ORM\GeneratedValue]
+	protected int $id;
 
 	#[ORM\ManyToOne(targetEntity: OrderStatus::class)]
 	private OrderStatus $status;
@@ -60,6 +62,12 @@ class OrderWorkflowEvent
 		$this->label = $label;
 		$this->insertedDate = new \DateTimeImmutable;
 		$this->activeFrom = new \DateTimeImmutable;
+	}
+
+
+	public function getId(): int
+	{
+		return $this->id;
 	}
 
 
