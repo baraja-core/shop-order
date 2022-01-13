@@ -7,12 +7,12 @@ namespace Baraja\Shop\Order;
 
 use Baraja\Country\Entity\Country;
 use Baraja\Doctrine\EntityManager;
+use Baraja\EcommerceStandard\DTO\CartInterface;
+use Baraja\EcommerceStandard\DTO\OrderInfoInterface;
+use Baraja\EcommerceStandard\DTO\OrderInterface;
 use Baraja\Localization\Localization;
 use Baraja\Shop\Address\Entity\Address;
 use Baraja\Shop\Cart\CartManager;
-use Baraja\Shop\Cart\Entity\Cart;
-use Baraja\Shop\Cart\Entity\OrderNumber;
-use Baraja\Shop\Cart\OrderInfo;
 use Baraja\Shop\Cart\OrderInfoBasic;
 use Baraja\Shop\Currency\CurrencyManagerAccessor;
 use Baraja\Shop\Customer\CustomerManager;
@@ -23,7 +23,6 @@ use Baraja\Shop\Order\Entity\OrderGroup;
 use Baraja\Shop\Order\Entity\OrderItem;
 use Baraja\Shop\Order\Entity\OrderStatus;
 use Baraja\Shop\Payment\Entity\Payment;
-use Baraja\VariableGenerator\Order\DefaultOrderVariableLoader;
 use Baraja\VariableGenerator\Strategy\YearPrefixIncrementStrategy;
 use Baraja\VariableGenerator\VariableGenerator;
 use Doctrine\ORM\NonUniqueResultException;
@@ -52,10 +51,10 @@ final class OrderGenerator
 	}
 
 
-	public function createOrder(OrderInfo $orderInfo, Cart $cart, ?OrderGroup $group = null): OrderNumber
+	public function createOrder(OrderInfoInterface $orderInfo, CartInterface $cart, ?OrderGroup $group = null): OrderInterface
 	{
 		if ($cart->isEmpty()) {
-			throw new \LogicException('Can not create empty order (cart id: "' . $cart->getId() . '").');
+			throw new \LogicException(sprintf('Can not create empty order (cart id: "%d").', $cart->getId()));
 		}
 		$info = $orderInfo->getInfo();
 		$address = $orderInfo->getAddress();
@@ -265,7 +264,7 @@ final class OrderGenerator
 	}
 
 
-	private function processCustomer(OrderInfoBasic $info, Cart $cart): Customer
+	private function processCustomer(OrderInfoBasic $info, CartInterface $cart): Customer
 	{
 		$userExist = false;
 		$customer = $cart->getCustomer();

@@ -98,7 +98,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'price' => $order->getBasePrice(),
 				'sale' => $order->getSale(),
 				'finalPrice' => $order->getPrice(),
-				'currency' => $order->getCurrency(),
+				'currency' => $order->getCurrencyCode(),
 				'notice' => $order->getNotice(),
 				'insertedDate' => $order->getInsertedDate()->format('d.m.y H:i'),
 				'updatedDate' => $order->getUpdatedDate()->format('d.m.y H:i'),
@@ -311,7 +311,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'%s (%d %s)',
 				(string) $delivery->getName(),
 				$delivery->getPrice(),
-				$order->getCurrency(),
+				$order->getCurrencyCode(),
 			);
 		}
 
@@ -325,7 +325,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'%s (%d %s)',
 				$payment->getName(),
 				$payment->getPrice(),
-				$order->getCurrency(),
+				$order->getCurrencyCode(),
 			);
 		}
 
@@ -394,7 +394,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'status' => $order->getStatus(),
 				'price' => $order->getPrice(),
 				'sale' => $order->getSale(),
-				'currency' => $order->getCurrency(),
+				'currency' => $order->getCurrencyCode(),
 				'statuses' => $this->formatBootstrapSelectArray($this->orderStatusManager->getKeyValueList()),
 				'notice' => $order->getNotice(),
 				'customer' => [
@@ -543,7 +543,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		};
 
 		$hydrate($order->getDeliveryAddress(), $deliveryAddress);
-		$hydrate($order->getInvoiceAddress(), $invoiceAddress);
+		$hydrate($order->getPaymentAddress(), $invoiceAddress);
 		$this->flashMessage('The addresses have been successfully saved.', 'success');
 		$this->entityManager->flush();
 
@@ -610,11 +610,11 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$oldPrice = $order->getPrice();
 		$order->setNotice($notice);
 		$order->setDeliveryPrice($deliverPrice);
-		$order->setPrice($price);
+		$order->setBasePrice($price);
 		$this->orderManager->recountPrice($order);
 		$this->entityManager->flush();
 		$this->flashMessage(
-			'Order ' . $order->getNumber() . ' has been saved.'
+			sprintf('Order "%s" has been saved.', $order->getNumber())
 			. (abs($oldPrice - $order->getPrice()) > 0.001 ? ' The price has been recalculated.' : ''),
 			'success'
 		);

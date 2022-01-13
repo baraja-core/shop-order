@@ -68,7 +68,7 @@ final class CheckOrderCommand extends Command
 			$unauthorizedVariables[$order->getNumber()] = $order->getPrice();
 			$orderByVariable[$order->getNumber()] = $order;
 
-			echo $order->getNumber() . ' [' . $order->getPrice() . ' ' . $order->getCurrency() . ']';
+			echo $order->getNumber() . ' [' . $order->getPrice() . ' ' . $order->getCurrencyCode() . ']';
 			echo ' [' . $order->getInsertedDate()->format('Y-m-d H:i:s') . ']';
 			$this->updateStatusByWorkflow($order);
 			echo "\n";

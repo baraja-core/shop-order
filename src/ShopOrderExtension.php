@@ -9,6 +9,7 @@ use Baraja\Doctrine\ORM\DI\OrmAnnotationsExtension;
 use Baraja\Newsletter\NewsletterManager;
 use Baraja\Plugin\Component\VueComponent;
 use Baraja\Plugin\PluginManager;
+use Baraja\Shop\Cart\ShopCartExtension;
 use Baraja\Shop\Order\Application\WebController;
 use Baraja\Shop\Order\Bridge\HeurekaOverenoCreatedOrderEvent;
 use Baraja\Shop\Order\Bridge\RegisterNewsletterCreatedOrderEvent;
@@ -31,6 +32,15 @@ use Tracy\ILogger;
 
 final class ShopOrderExtension extends CompilerExtension
 {
+	/**
+	 * @return string[]
+	 */
+	public static function mustBeDefinedBefore(): array
+	{
+		return [ShopCartExtension::class];
+	}
+
+
 	public function beforeCompile(): void
 	{
 		$builder = $this->getContainerBuilder();

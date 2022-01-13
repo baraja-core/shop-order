@@ -6,9 +6,10 @@ namespace Baraja\Shop\Order;
 
 
 use Baraja\Doctrine\EntityManager;
-use Baraja\Shop\Cart\Entity\Cart;
-use Baraja\Shop\Cart\Entity\OrderNumber;
-use Baraja\Shop\Cart\OrderInfo;
+use Baraja\EcommerceStandard\DTO\CartInterface;
+use Baraja\EcommerceStandard\DTO\OrderInfoInterface;
+use Baraja\EcommerceStandard\DTO\OrderInterface;
+use Baraja\EcommerceStandard\Service\OrderManagerInterface;
 use Baraja\Shop\Delivery\BranchManager;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderFile;
@@ -19,7 +20,7 @@ use Nette\Http\FileUpload;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Strings;
 
-final class OrderManager implements \Baraja\Shop\Cart\OrderManager
+final class OrderManager implements OrderManagerInterface
 {
 	public function __construct(
 		private OrderPaymentClient $paymentClient,
@@ -27,7 +28,6 @@ final class OrderManager implements \Baraja\Shop\Cart\OrderManager
 		private OrderGenerator $orderGenerator,
 		private EntityManager $entityManager,
 		private BranchManager $branchManager,
-		private Emailer $emailer,
 		private string $wwwDir,
 	) {
 		if (!is_dir($wwwDir)) {
@@ -72,7 +72,7 @@ final class OrderManager implements \Baraja\Shop\Cart\OrderManager
 	}
 
 
-	public function isPaid(Order $order): bool
+	public function isPaid(OrderInterface $order): bool
 	{
 		$sum = 0;
 		foreach ($order->getPayments() as $payment) {
@@ -103,7 +103,7 @@ final class OrderManager implements \Baraja\Shop\Cart\OrderManager
 	}
 
 
-	public function createOrder(OrderInfo $orderInfo, Cart $cart): OrderNumber
+	public function createOrder(OrderInfoInterface $orderInfo, CartInterface $cart): OrderInterface
 	{
 		return $this->orderGenerator->createOrder($orderInfo, $cart);
 	}

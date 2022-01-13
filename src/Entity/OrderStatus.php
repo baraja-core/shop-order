@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Entity;
 
 
+use Baraja\EcommerceStandard\DTO\OrderStatusInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Baraja\Shop\Order\Repository\OrderStatusRepository;
 use Nette\Utils\Strings;
 
 #[ORM\Entity(repositoryClass: OrderStatusRepository::class)]
 #[ORM\Table(name: 'shop__order_status')]
-class OrderStatus implements \Stringable
+class OrderStatus implements OrderStatusInterface
 {
 	public const
 		STATUS_NEW = 'new',
@@ -166,7 +167,7 @@ class OrderStatus implements \Stringable
 	}
 
 
-	public function getWorkflowPosition(): ?int
+	public function getWorkflowPosition(): int
 	{
 		return $this->workflowPosition ?? 0;
 	}

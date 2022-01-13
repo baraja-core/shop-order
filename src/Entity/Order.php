@@ -5,31 +5,37 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Entity;
 
 
-use Baraja\Doctrine\Identifier\IdentifierUnsigned;
+use Baraja\EcommerceStandard\DTO\AddressInterface;
+use Baraja\EcommerceStandard\DTO\CurrencyInterface;
+use Baraja\EcommerceStandard\DTO\CustomerInterface;
+use Baraja\EcommerceStandard\DTO\OrderInterface;
+use Baraja\EcommerceStandard\DTO\OrderItemInterface;
 use Baraja\Shop\Address\Entity\Address;
-use Baraja\Shop\Cart\Entity\OrderNumber;
 use Baraja\Shop\Customer\Entity\Customer;
 use Baraja\Shop\Delivery\Entity\Delivery;
+use Baraja\Shop\Entity\Currency\Currency;
 use Baraja\Shop\Payment\Entity\Payment;
 use Baraja\VariableGenerator\Order\OrderEntity;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Doctrine\ORM\Mapping\Index;
 use Nette\Utils\Random;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'shop__order')]
 #[ORM\UniqueConstraint(name: 'order__number_group', columns: ['number', 'group_id'])]
-#[Index(columns: ['number'], name: 'order__number')]
-#[Index(columns: ['status_id'], name: 'order__status')]
-#[Index(columns: ['inserted_date'], name: 'order__inserted_date')]
-#[Index(columns: ['inserted_date', 'status_id', 'id'], name: 'order__feed')]
-class Order implements OrderEntity, OrderNumber
+#[ORM\Index(columns: ['number'], name: 'order__number')]
+#[ORM\Index(columns: ['status_id'], name: 'order__status')]
+#[ORM\Index(columns: ['inserted_date'], name: 'order__inserted_date')]
+#[ORM\Index(columns: ['inserted_date', 'status_id', 'id'], name: 'order__feed')]
+class Order implements OrderInterface, OrderEntity
 {
-	use IdentifierUnsigned;
-
 	public const FREE_DELIVERY_LIMIT = 1_000;
+
+	#[ORM\Id]
+	#[ORM\Column(type: 'integer', unique: true, options: ['unsigned' => true])]
+	#[ORM\GeneratedValue]
+	protected int $id;
 
 	#[ORM\ManyToOne(targetEntity: OrderGroup::class)]
 	private OrderGroup $group;
@@ -41,7 +47,7 @@ class Order implements OrderEntity, OrderNumber
 	private Address $deliveryAddress;
 
 	#[ORM\ManyToOne(targetEntity: Address::class)]
-	private Address $invoiceAddress;
+	private Address $paymentAddress;
 
 	#[ORM\Column(type: 'string', length: 24)]
 	private string $number;
@@ -67,8 +73,8 @@ class Order implements OrderEntity, OrderNumber
 	#[ORM\Column(type: 'float', options: ['unsigned' => true])]
 	private float $price;
 
-	#[ORM\Column(type: 'string', length: 3)]
-	private string $currency;
+	#[ORM\ManyToOne(targetEntity: Currency::class)]
+	private Currency $currency;
 
 	#[ORM\Column(type: 'float', options: ['unsigned' => true])]
 	private float $priceWithoutVat;
@@ -155,7 +161,7 @@ class Order implements OrderEntity, OrderNumber
 		$this->status = $status;
 		$this->customer = $customer;
 		$this->deliveryAddress = $deliveryAddress;
-		$this->invoiceAddress = $invoiceAddress ?? $deliveryAddress;
+		$this->paymentAddress = $invoiceAddress ?? $deliveryAddress;
 		$this->number = $number;
 		$this->locale = $locale;
 		$this->delivery = $delivery;
@@ -165,7 +171,7 @@ class Order implements OrderEntity, OrderNumber
 		$this->deliveryPrice = $price > self::FREE_DELIVERY_LIMIT || $delivery === null
 			? 0
 			: $delivery->getPrice();
-		$this->setCurrency($currency);
+		$this->setCurrencyCode($currency);
 		$this->hash = Random::generate(32);
 		$this->insertedDate = new \DateTimeImmutable;
 		$this->updatedDate = new \DateTime;
@@ -174,6 +180,12 @@ class Order implements OrderEntity, OrderNumber
 		$this->transactions = new ArrayCollection;
 		$this->payments = new ArrayCollection;
 		$this->metas = new ArrayCollection;
+	}
+
+
+	public function getId(): int
+	{
+		return $this->id;
 	}
 
 
@@ -186,6 +198,26 @@ class Order implements OrderEntity, OrderNumber
 	public function setPaid(bool $paid): void
 	{
 		$this->paid = $paid;
+	}
+
+
+	public function getInvoiceNumber(): ?string
+	{
+		// TODO: Implement getInvoiceNumber() method.
+		return null;
+	}
+
+
+	public function getPackageNumber(): ?string
+	{
+		// TODO: Implement getPackageNumber() method.
+		return null;
+	}
+
+
+	public function getCurrency(): CurrencyInterface
+	{
+		return $this->currency;
 	}
 
 
@@ -220,21 +252,21 @@ class Order implements OrderEntity, OrderNumber
 	}
 
 
-	public function getCustomer(): Customer
+	public function getCustomer(): CustomerInterface
 	{
 		return $this->customer;
 	}
 
 
-	public function getDeliveryAddress(): Address
+	public function getDeliveryAddress(): AddressInterface
 	{
 		return $this->deliveryAddress;
 	}
 
 
-	public function getInvoiceAddress(): Address
+	public function getPaymentAddress(): AddressInterface
 	{
-		return $this->invoiceAddress;
+		return $this->paymentAddress;
 	}
 
 
@@ -317,9 +349,22 @@ class Order implements OrderEntity, OrderNumber
 	}
 
 
+	public function getVatValue(): float
+	{
+		$vat = 0;
+		foreach ($this->getItems() as $item) {
+			$itemPrice = $item->getFinalPrice();
+			$itemVat = $item->getVat();
+			$vat += $itemPrice - $itemPrice * ($itemVat / 100);
+		}
+
+		return $vat;
+	}
+
+
 	public function getPriceWithoutVat(): float
 	{
-		return $this->getPrice() * .79;
+		return $this->getPrice() - $this->getVatValue();
 	}
 
 
@@ -334,7 +379,7 @@ class Order implements OrderEntity, OrderNumber
 	}
 
 
-	public function setPrice(float $price): void
+	public function setBasePrice(float $price): void
 	{
 		if ($price !== $this->price) {
 			$this->setUpdated();
@@ -343,18 +388,14 @@ class Order implements OrderEntity, OrderNumber
 	}
 
 
-	public function getCurrency(): string
+	public function getCurrencyCode(): string
 	{
-		return $this->currency;
+		return $this->currency->getCode();
 	}
 
 
-	public function setCurrency(string $currency): void
+	public function setCurrencyCode(CurrencyInterface $currency): void
 	{
-		$currency = strtoupper($currency);
-		if (preg_match('/^[A-Z]{3}$/', $currency) !== 1) {
-			throw new \InvalidArgumentException('Currency "' . $currency . '" does not match valid format.');
-		}
 		$this->currency = $currency;
 	}
 
@@ -446,19 +487,17 @@ class Order implements OrderEntity, OrderNumber
 
 
 	/**
-	 * @return OrderItem[]|Collection
+	 * @return array<int, OrderItemInterface>
 	 */
-	public function getItems()
+	public function getItems(): array
 	{
-		return $this->items;
+		return $this->items->toArray();
 	}
 
 
-	public function addItem(OrderItem $item): self
+	public function addItem(OrderItemInterface $item): void
 	{
 		$this->items[] = $item;
-
-		return $this;
 	}
 
 
@@ -477,7 +516,7 @@ class Order implements OrderEntity, OrderNumber
 	/**
 	 * @return OrderPackage[]|Collection
 	 */
-	public function getPackages()
+	public function getPackages(): Collection
 	{
 		return $this->packages;
 	}
@@ -486,7 +525,7 @@ class Order implements OrderEntity, OrderNumber
 	/**
 	 * @return OrderBankPayment[]|Collection
 	 */
-	public function getTransactions()
+	public function getTransactions(): Collection
 	{
 		return $this->transactions;
 	}
@@ -495,7 +534,7 @@ class Order implements OrderEntity, OrderNumber
 	/**
 	 * @return OrderOnlinePayment[]|Collection
 	 */
-	public function getPayments()
+	public function getPayments(): Collection
 	{
 		return $this->payments;
 	}
