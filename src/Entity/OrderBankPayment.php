@@ -7,10 +7,8 @@ namespace Baraja\Shop\Order\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 
-/**
- * @ORM\Entity()
- * @ORM\Table(name="shop__transaction")
- */
+#[ORM\Entity]
+#[ORM\Table(name: 'shop__transaction')]
 class OrderBankPayment implements TransactionEntity
 {
 	#[ORM\Id]
@@ -18,67 +16,65 @@ class OrderBankPayment implements TransactionEntity
 	#[ORM\GeneratedValue]
 	protected int $id;
 
-	/** @ORM\ManyToOne(targetEntity="Order", inversedBy="transactions") */
+	#[ORM\ManyToOne(targetEntity: Order::class, inversedBy: 'transactions')]
 	private ?Order $order = null;
 
-	/**
-	 * ID of bank transaction
-	 * @ORM\Column(type="bigint", unique=true)
-	 */
+	/** ID of bank transaction. */
+	#[ORM\Column(type: 'bigint', unique: true)]
 	private int $bankTransactionId;
 
-	/** @ORM\Column(type="datetime") */
+	#[ORM\Column(type: 'datetime')]
 	private \DateTimeInterface $date;
 
-	/** @ORM\Column(type="decimal") */
+	#[ORM\Column(type: 'decimal')]
 	private float $price;
 
-	/** @ORM\Column(type="string", length=3) */
+	#[ORM\Column(type: 'string', length: 3)]
 	private string $currency;
 
-	/** @ORM\Column(type="string", nullable=true) */
+	#[ORM\Column(type: 'string', nullable: true)]
 	private ?string $toAccount;
 
-	/** @ORM\Column(type="string", nullable=true) */
+	#[ORM\Column(type: 'string', nullable: true)]
 	private ?string $toAccountName;
 
-	/** @ORM\Column(type="bigint", nullable=true) */
+	#[ORM\Column(type: 'bigint', nullable: true)]
 	private ?int $toBankCode;
 
-	/** @ORM\Column(type="string", nullable=true) */
+	#[ORM\Column(type: 'string', nullable: true)]
 	private ?string $toBankName;
 
-	/** @ORM\Column(type="bigint", nullable=true) */
+	#[ORM\Column(type: 'bigint', nullable: true)]
 	private ?int $constantSymbol;
 
-	/** @ORM\Column(type="bigint", nullable=true) */
+	#[ORM\Column(type: 'bigint', nullable: true)]
 	private ?int $variableSymbol;
 
-	/** @ORM\Column(type="bigint", nullable=true) */
+	#[ORM\Column(type: 'bigint', nullable: true)]
 	private ?int $specificSymbol;
 
-	/** @ORM\Column(type="text", nullable=true) */
+	#[ORM\Column(type: 'text', nullable: true)]
 	private ?string $userNotice;
 
-	/** @ORM\Column(type="text", nullable=true) */
+	#[ORM\Column(type: 'text', nullable: true)]
 	private ?string $toMessage;
 
-	/** @ORM\Column(type="string", nullable=true) */
+	#[ORM\Column(type: 'string', nullable: true)]
 	private ?string $type;
 
-	/** @ORM\Column(type="string", nullable=true) */
+	#[ORM\Column(type: 'string', nullable: true)]
 	private ?string $sender;
 
-	/** @ORM\Column(type="text", nullable=true) */
+	#[ORM\Column(type: 'text', nullable: true)]
 	private ?string $message;
 
-	/** @ORM\Column(type="text", nullable=true) */
+	#[ORM\Column(type: 'text', nullable: true)]
 	private ?string $comment;
 
-	/** @ORM\Column(type="string", nullable=true) */
+	#[ORM\Column(type: 'string', nullable: true)]
 	private ?string $bic;
 
-	/** @ORM\Column(type="bigint", nullable=true) */
+	#[ORM\Column(type: 'bigint', nullable: true)]
 	private ?int $idTransaction;
 
 
