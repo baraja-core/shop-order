@@ -22,6 +22,7 @@ use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderGroup;
 use Baraja\Shop\Order\Entity\OrderItem;
 use Baraja\Shop\Order\Entity\OrderStatus;
+use Baraja\Shop\Order\Status\OrderWorkflow;
 use Baraja\Shop\Payment\Entity\Payment;
 use Baraja\VariableGenerator\Strategy\YearPrefixIncrementStrategy;
 use Baraja\VariableGenerator\VariableGenerator;
@@ -46,13 +47,17 @@ final class OrderGenerator
 		private User $user,
 		private Emailer $emailer,
 		private CurrencyManagerAccessor $currencyManager,
+		private OrderWorkflow $workflow,
 		private array $createdOrderEvents = [],
 	) {
 	}
 
 
-	public function createOrder(OrderInfoInterface $orderInfo, CartInterface $cart, ?OrderGroup $group = null): OrderInterface
-	{
+	public function createOrder(
+		OrderInfoInterface $orderInfo,
+		CartInterface $cart,
+		?OrderGroup $group = null,
+	): OrderInterface {
 		if ($cart->isEmpty()) {
 			throw new \LogicException(sprintf('Can not create empty order (cart id: "%d").', $cart->getId()));
 		}
@@ -142,11 +147,8 @@ final class OrderGenerator
 		$this->cartManager->removeCart($cart);
 		$this->entityManager->flush();
 
-		try {
-			$this->emailer->sendNewOrder($order);
-		} catch (\Throwable $e) {
-			Debugger::log($e, ILogger::CRITICAL);
-		}
+		$this->workflow->run($order);
+
 		foreach ($this->createdOrderEvents as $createdOrderEvent) {
 			$createdOrderEvent->process($order);
 		}

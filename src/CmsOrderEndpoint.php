@@ -736,24 +736,13 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	}
 
 
-	public function postSendEmail(int $id, string $mail): void
+	public function postSendEmail(int $id, int $statusId): void
 	{
-		$order = $this->getOrderById($id);
-		if ($mail === 'new-order') {
-			$this->emailer->sendNewOrder($order);
-		}
-		if ($mail === 'paid') {
-			$this->emailer->sendOrderPaid($order);
-		}
-		if ($mail === 'invoice') {
-			foreach ($this->documentManager->getDocuments((int) $order->getId()) as $document) {
-				if ($document->hasTag('invoice')) {
-					$this->emailer->sendOrderInvoice($document);
-				}
-			}
-		}
-
-		$this->flashMessage('E-mail "' . $mail . '" has been sent.', 'success');
+		$this->notification->sendEmail(
+			order: $this->getOrderById($id),
+			status: $this->orderStatusManager->getStatusById($statusId),
+		);
+		$this->flashMessage('Notification e-mail has been sent.', 'success');
 		$this->sendOk();
 	}
 
@@ -986,7 +975,6 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'priority' => $event->getPriority(),
 				'active' => $event->isActive(),
 				'automaticInterval' => $event->getAutomaticInterval(),
-				'emailTemplate' => $event->getEmailTemplate(),
 				'insertedDate' => $event->getInsertedDate(),
 				'activeFrom' => $event->getActiveFrom(),
 				'activeTo' => $event->getActiveTo(),

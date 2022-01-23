@@ -28,9 +28,6 @@ class OrderWorkflowEvent
 	#[ORM\Column(type: 'integer', nullable: true, options: ['unsigned' => true])]
 	private ?int $automaticInterval = null;
 
-	#[ORM\Column(type: 'string', length: 64, nullable: true)]
-	private ?string $emailTemplate = null;
-
 	#[ORM\Column(type: 'boolean')]
 	private bool $active = false;
 
@@ -42,6 +39,9 @@ class OrderWorkflowEvent
 
 	#[ORM\Column(name: 'stop_if_match', type: 'boolean')]
 	private bool $stopWorkflowIfMatch = false;
+
+	#[ORM\Column(name: 'send_notification', type: 'boolean')]
+	private bool $sendNotification = false;
 
 	#[ORM\Column(type: 'datetime')]
 	private \DateTimeInterface $insertedDate;
@@ -122,18 +122,6 @@ class OrderWorkflowEvent
 	}
 
 
-	public function getEmailTemplate(): ?string
-	{
-		return $this->emailTemplate;
-	}
-
-
-	public function setEmailTemplate(?string $emailTemplate): void
-	{
-		$this->emailTemplate = $emailTemplate;
-	}
-
-
 	public function isActive(): bool
 	{
 		return $this->active;
@@ -179,6 +167,18 @@ class OrderWorkflowEvent
 	public function setStopWorkflowIfMatch(bool $stopWorkflowIfMatch): void
 	{
 		$this->stopWorkflowIfMatch = $stopWorkflowIfMatch;
+	}
+
+
+	public function isSendNotification(): bool
+	{
+		return $this->sendNotification;
+	}
+
+
+	public function setSendNotification(bool $sendNotification): void
+	{
+		$this->sendNotification = $sendNotification;
 	}
 
 

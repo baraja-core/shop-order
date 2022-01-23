@@ -31,18 +31,11 @@ final class OrderWorkflow
 		$status = $order->getStatus()->getCode();
 		$this->processByStatus($order);
 		if ($status === OrderStatus::STATUS_PAID) {
-			$this->emailer->sendOrderPaid($order);
 			try {
 				$this->getInvoiceManager()->createInvoice($order);
 			} catch (\Throwable $e) {
 				Debugger::log($e, ILogger::CRITICAL);
 			}
-		} elseif ($status === OrderStatus::STATUS_PREPARING) {
-			$this->emailer->sendOrderPreparing($order);
-		} elseif ($status === OrderStatus::STATUS_PREPARED) {
-			$this->emailer->sendOrderPrepared($order);
-		} elseif ($status === OrderStatus::STATUS_SENT) {
-			$this->emailer->sendOrderSent($order);
 		} elseif ($status === OrderStatus::STATUS_DONE) {
 			if (PHP_SAPI !== 'cli' && $this->getInvoiceManager()->isInvoice($order) === false) {
 				try {
@@ -51,8 +44,6 @@ final class OrderWorkflow
 					Debugger::log($e, ILogger::CRITICAL);
 				}
 			}
-		} elseif ($status === OrderStatus::STATUS_STORNO) {
-			$this->emailer->sendOrderStorno($order);
 		}
 		$this->notification->sendEmail($order);
 		$this->notification->sendSms($order);
@@ -145,9 +136,8 @@ final class OrderWorkflow
 			$order->setStatus($newStatus);
 			$action = true;
 		}
-		$emailTemplate = $event->getEmailTemplate();
-		if ($emailTemplate !== null) {
-			$this->emailer->sendTemplate($order, $emailTemplate);
+		if ($event->isSendNotification()) {
+			// TODO: Send status notification
 			$action = true;
 		}
 		if ($event->isMarkAsPinged()) {

@@ -436,12 +436,6 @@ Vue.component('cms-order-default', {
 							<li v-if="rule.automaticInterval !== null">
 								Automatic interval <code>{{ rule.automaticInterval }}</code>
 							</li>
-							<li v-if="rule.emailTemplate !== null">
-								Send e-mail with template <code>{{ rule.emailTemplate }}</code>
-							</li>
-							<li v-if="rule.emailTemplate !== null">
-								Send e-mail with template <code>{{ rule.emailTemplate }}</code>
-							</li>
 							<li>
 								Inserted date: <code>{{ rule.insertedDate }}</code>,<br>
 								Active from: <code>{{ rule.activeFrom }}</code>,<br>
