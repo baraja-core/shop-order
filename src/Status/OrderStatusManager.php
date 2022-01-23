@@ -52,6 +52,18 @@ final class OrderStatusManager
 	}
 
 
+	public function getStatusById(int $id): OrderStatus
+	{
+		foreach ($this->getAllStatuses() as $status) {
+			if ($status->getId() === $id) {
+				return $status;
+			}
+		}
+
+		throw new \InvalidArgumentException(sprintf('Order status "%d" does not exist.', $id));
+	}
+
+
 	public function getStatusByCode(string $code): OrderStatus
 	{
 		$code = strtolower($code);

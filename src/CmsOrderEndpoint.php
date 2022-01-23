@@ -7,6 +7,7 @@ namespace Baraja\Shop\Order;
 
 use Baraja\Country\CountryManagerAccessor;
 use Baraja\Doctrine\EntityManager;
+use Baraja\Localization\Localization;
 use Baraja\Search\Search;
 use Baraja\Shop\Address\Entity\Address;
 use Baraja\Shop\Currency\CurrencyManagerAccessor;
@@ -20,6 +21,7 @@ use Baraja\Shop\Order\Document\OrderDocumentManager;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderItem;
 use Baraja\Shop\Order\Entity\OrderOnlinePayment;
+use Baraja\Shop\Order\Notification\OrderNotification;
 use Baraja\Shop\Order\Repository\OrderRepository;
 use Baraja\Shop\Order\Status\OrderWorkflow;
 use Baraja\Shop\Payment\Entity\Payment;
@@ -50,6 +52,8 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		private OrderRepository $orderRepository,
 		private OrderWorkflow $workflow,
 		private CurrencyManagerAccessor $currencyManager,
+		private OrderNotification $notification,
+		private Localization $localization,
 		private ?InvoiceManagerInterface $invoiceManager = null,
 	) {
 	}
@@ -64,6 +68,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		?string $orderBy = null,
 		?string $dateFrom = null,
 		?string $dateTo = null,
+		?string $currency = null,
 		int $limit = 128,
 		int $page = 1,
 	): void {
@@ -75,12 +80,13 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			orderBy: $orderBy,
 			dateFrom: $dateFrom,
 			dateTo: $dateTo,
+			currency: $currency,
 			group: $group,
 			limit: $limit,
 			page: $page,
 		);
 
-		$sum = 0;
+		$sum = [];
 		$return = [];
 		/** @var Order $order */
 		foreach ($feed['orders'] as $order) {
@@ -95,9 +101,10 @@ final class CmsOrderEndpoint extends BaseEndpoint
 					'color' => $order->getStatus()->getColor(),
 					'label' => $order->getStatus()->getName(),
 				],
+				'paid' => $order->isPaid(),
 				'price' => $order->getBasePrice(),
 				'sale' => $order->getSale(),
-				'finalPrice' => $order->getPrice(),
+				'finalPrice' => $order->getPrice()->render(true),
 				'currency' => $order->getCurrencyCode(),
 				'notice' => $order->getNotice(),
 				'insertedDate' => $order->getInsertedDate()->format('d.m.y H:i'),
@@ -164,14 +171,16 @@ final class CmsOrderEndpoint extends BaseEndpoint
 					$order->getPayments()
 				),
 			];
-			$sum += $order->getPrice();
+
+			$price = $order->getPrice();
+			$priceCurrency = $price->getCurrency()->getCode();
+			$sum[$priceCurrency] = bcadd($sum[$priceCurrency] ?? '0', $price->getValue(), 4);
 		}
 
 		$this->sendJson(
 			[
 				'items' => $return,
 				'sum' => $sum,
-				'sumCurrency' => $this->currencyManager->get()->getMainCurrency()->getCode(),
 				'paginator' => (new Paginator)
 					->setItemCount($feed['count'])
 					->setItemsPerPage($limit)
@@ -799,9 +808,18 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 	public function actionStatusList(): void
 	{
+		$locale = $this->localization->getLocale();
+		$notificationReadyToSend = $this->notification->getAvailableNotificationReadyToSend($locale);
+		$notificationTypes = $this->notification->getAvailableTypes();
+
 		$statuses = [];
 		$selectList = [];
 		foreach ($this->orderStatusManager->getAllStatuses() as $status) {
+			$notifications = [];
+			foreach ($notificationTypes as $notificationType) {
+				$key = sprintf('%s-%s-%s', $locale, $status->getCode(), $notificationType);
+				$notifications[$notificationType] = isset($notificationReadyToSend[$key]);
+			}
 			$statuses[] = [
 				'id' => $status->getId(),
 				'name' => $status->getName(),
@@ -812,6 +830,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'position' => $status->getWorkflowPosition(),
 				'code' => $status->getCode(),
 				'color' => $status->getColor(),
+				'notification' => $notifications,
 			];
 			$selectList[$status->getCode()] = $status->getName();
 		}
@@ -844,8 +863,16 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 
 	/**
-	 * @param array<int, array{id: int, code: string, internalName: string, label: string, publicLabel: string,
-	 *     systemHandle: string|null, position: int, color: string}> $statusList
+	 * @param array<int, array{
+	 *     id: int,
+	 *     code: string,
+	 *     internalName: string,
+	 *     label: string,
+	 *     publicLabel: string,
+	 *     systemHandle: string|null,
+	 *     position: int,
+	 *     color: string
+	 * }> $statusList
 	 */
 	public function postSaveStatusList(array $statusList): void
 	{
@@ -860,6 +887,38 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		}
 		$this->entityManager->flush();
 		$this->flashMessage('Status list has been updated.', self::FLASH_MESSAGE_SUCCESS);
+		$this->sendOk();
+	}
+
+
+	public function actionNotificationDetail(int $statusId, string $type, ?string $locale = null): void
+	{
+		$status = $this->orderStatusManager->getStatusById($statusId);
+		$locale ??= $this->localization->getLocale();
+		$this->sendJson(
+			$this->notification->getNotificationData($status, $locale, $type),
+		);
+	}
+
+
+	public function postSaveNotification(
+		int $statusId,
+		string $type,
+		string $subject,
+		string $content,
+		bool $active,
+		?string $locale = null,
+	): void {
+		$status = $this->orderStatusManager->getStatusById($statusId);
+		$locale ??= $this->localization->getLocale();
+		$this->notification->setNotification(
+			status: $status,
+			locale: $locale,
+			type: $type,
+			subject: $subject,
+			content: $content,
+			active: $active,
+		);
 		$this->sendOk();
 	}
 

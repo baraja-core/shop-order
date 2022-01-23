@@ -10,11 +10,14 @@ use Baraja\EcommerceStandard\DTO\CurrencyInterface;
 use Baraja\EcommerceStandard\DTO\CustomerInterface;
 use Baraja\EcommerceStandard\DTO\OrderInterface;
 use Baraja\EcommerceStandard\DTO\OrderItemInterface;
+use Baraja\EcommerceStandard\DTO\PriceInterface;
+use Baraja\Localization\Localization;
 use Baraja\Shop\Address\Entity\Address;
 use Baraja\Shop\Customer\Entity\Customer;
 use Baraja\Shop\Delivery\Entity\Delivery;
 use Baraja\Shop\Entity\Currency\Currency;
 use Baraja\Shop\Payment\Entity\Payment;
+use Baraja\Shop\Price\Price;
 use Baraja\VariableGenerator\Order\OrderEntity;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -30,6 +33,7 @@ use Nette\Utils\Random;
 #[ORM\Index(columns: ['inserted_date', 'status_id', 'id'], name: 'order__feed')]
 class Order implements OrderInterface, OrderEntity
 {
+	/** @deprecated since 2022-01-23, use configuration */
 	public const FREE_DELIVERY_LIMIT = 1_000;
 
 	#[ORM\Id]
@@ -70,20 +74,24 @@ class Order implements OrderInterface, OrderEntity
 	#[ORM\ManyToOne(targetEntity: Payment::class)]
 	private ?Payment $payment;
 
-	#[ORM\Column(type: 'float', options: ['unsigned' => true])]
-	private float $price;
+	/** @var numeric-string */
+	#[ORM\Column(type: 'decimal', precision: 15, scale: 4, options: ['unsigned' => true])]
+	private string $price;
 
 	#[ORM\ManyToOne(targetEntity: Currency::class)]
-	private Currency $currency;
+	private CurrencyInterface $currency;
 
-	#[ORM\Column(type: 'float', options: ['unsigned' => true])]
-	private float $priceWithoutVat;
+	/** @var numeric-string */
+	#[ORM\Column(type: 'decimal', precision: 15, scale: 4, options: ['unsigned' => true])]
+	private string $priceWithoutVat;
 
-	#[ORM\Column(type: 'float', options: ['unsigned' => true])]
-	private float $sale = 0;
+	/** @var numeric-string */
+	#[ORM\Column(type: 'decimal', precision: 15, scale: 4, options: ['unsigned' => true])]
+	private string $sale = '0';
 
-	#[ORM\Column(type: 'integer', nullable: true, options: ['unsigned' => true])]
-	private ?int $deliveryPrice;
+	/** @var numeric-string|null */
+	#[ORM\Column(type: 'decimal', precision: 15, scale: 4, options: ['unsigned' => true])]
+	private ?string $deliveryPrice;
 
 	#[ORM\Column(type: 'integer', nullable: true, options: ['unsigned' => true])]
 	private ?int $deliveryBranchId = null;
@@ -135,7 +143,15 @@ class Order implements OrderInterface, OrderEntity
 	#[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderMeta::class)]
 	private Collection $metas;
 
+	/** @var OrderFile[]|Collection */
+	#[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderFile::class)]
+	private Collection $files;
 
+
+	/**
+	 * @param numeric-string $price
+	 * @param numeric-string $priceWithoutVat
+	 */
 	public function __construct(
 		OrderGroup $group,
 		OrderStatus $status,
@@ -146,9 +162,9 @@ class Order implements OrderInterface, OrderEntity
 		string $locale,
 		?Delivery $delivery,
 		?Payment $payment,
-		float $price,
-		float $priceWithoutVat,
-		string $currency,
+		string $price,
+		string $priceWithoutVat,
+		CurrencyInterface $currency,
 	) {
 		if ($customer->isBan()) {
 			throw new \InvalidArgumentException(sprintf(
@@ -163,15 +179,13 @@ class Order implements OrderInterface, OrderEntity
 		$this->deliveryAddress = $deliveryAddress;
 		$this->paymentAddress = $invoiceAddress ?? $deliveryAddress;
 		$this->number = $number;
-		$this->locale = $locale;
+		$this->locale = Localization::normalize($locale);
 		$this->delivery = $delivery;
 		$this->payment = $payment;
 		$this->price = $price;
 		$this->priceWithoutVat = $priceWithoutVat;
-		$this->deliveryPrice = $price > self::FREE_DELIVERY_LIMIT || $delivery === null
-			? 0
-			: $delivery->getPrice();
-		$this->setCurrencyCode($currency);
+		$this->deliveryPrice = $delivery !== null ? $delivery->getPrice() : '0';
+		$this->setCurrency($currency);
 		$this->hash = Random::generate(32);
 		$this->insertedDate = new \DateTimeImmutable;
 		$this->updatedDate = new \DateTime;
@@ -180,6 +194,7 @@ class Order implements OrderInterface, OrderEntity
 		$this->transactions = new ArrayCollection;
 		$this->payments = new ArrayCollection;
 		$this->metas = new ArrayCollection;
+		$this->files = new ArrayCollection;
 	}
 
 
@@ -203,7 +218,12 @@ class Order implements OrderInterface, OrderEntity
 
 	public function getInvoiceNumber(): ?string
 	{
-		// TODO: Implement getInvoiceNumber() method.
+		foreach ($this->getFiles() as $file) {
+			if ($file->hasTag('invoice')) {
+				return $file->getNumber();
+			}
+		}
+
 		return null;
 	}
 
@@ -221,28 +241,29 @@ class Order implements OrderInterface, OrderEntity
 	}
 
 
-	public function getDeliveryPrice(): int
+	public function getDeliveryPrice(): Price
 	{
 		if ($this->deliveryPrice === null) {
-			if ($this->getPrice() > self::FREE_DELIVERY_LIMIT) { // free delivery
-				$return = 0;
-			} elseif ($this->delivery !== null) {
+			if ($this->delivery !== null) {
 				$return = $this->delivery->getPrice();
 			} else {
-				$return = 0;
+				$return = '0';
 			}
 			$this->deliveryPrice = $return;
 		} else {
 			$return = $this->deliveryPrice;
 		}
 
-		return $return;
+		return new Price($return, $this->currency);
 	}
 
 
-	public function setDeliveryPrice(int $deliveryPrice): void
+	/**
+	 * @param numeric-string $deliveryPrice
+	 */
+	public function setDeliveryPrice(string $deliveryPrice): void
 	{
-		$this->deliveryPrice = $deliveryPrice;
+		$this->deliveryPrice = Price::normalize($deliveryPrice);
 	}
 
 
@@ -285,7 +306,7 @@ class Order implements OrderInterface, OrderEntity
 	public function getStatus(): OrderStatus
 	{
 		if ($this->status === null) {
-			throw new \RuntimeException('Order status does not exist.');
+			throw new \LogicException('Order status does not exist.');
 		}
 
 		return $this->status;
@@ -343,47 +364,50 @@ class Order implements OrderInterface, OrderEntity
 	}
 
 
-	public function getBasePrice(): float
+	public function getBasePrice(): PriceInterface
 	{
-		return $this->price;
+		return new Price($this->price, $this->currency);
 	}
 
 
-	public function getVatValue(): float
+	public function getVatValue(): PriceInterface
 	{
-		$vat = 0;
+		$vat = '0';
 		foreach ($this->getItems() as $item) {
-			$itemPrice = $item->getFinalPrice();
-			$itemVat = $item->getVat();
-			$vat += $itemPrice - $itemPrice * ($itemVat / 100);
+			$itemPrice = $item->getFinalPrice()->getValue();
+			$itemVat = $item->getVat()->getValue();
+			$itemValue = bcsub($itemPrice, bcmul($itemPrice, bcdiv($itemVat, '100', 2), 2), 2);
+			$vat = bcadd($vat, $itemValue, 2);
 		}
 
-		return $vat;
+		return new Price($vat, $this->currency);
 	}
 
 
-	public function getPriceWithoutVat(): float
+	public function getPriceWithoutVat(): PriceInterface
 	{
-		return $this->getPrice() - $this->getVatValue();
+		return $this->getPrice()->minus($this->getVatValue());
 	}
 
 
-	public function getPrice(): float
+	public function getPrice(): PriceInterface
 	{
-		$return = $this->price - $this->getSale();
-		if ($return < 0) {
-			$return = 0;
+		$price = new Price($this->price, $this->currency);
+		$return = $price->minus($this->getSale());
+		if ($return->isSmallerThan('0')) {
+			$return = '0';
 		}
 
-		return $return;
+		return new Price($return, $this->currency);
 	}
 
 
-	public function setBasePrice(float $price): void
+	public function setBasePrice(PriceInterface $price): void
 	{
-		if ($price !== $this->price) {
+		$value = Price::normalize($price->getValue());
+		if ($value !== Price::normalize($this->price)) {
 			$this->setUpdated();
-			$this->price = $price;
+			$this->price = $value;
 		}
 	}
 
@@ -394,39 +418,40 @@ class Order implements OrderInterface, OrderEntity
 	}
 
 
-	public function setCurrencyCode(CurrencyInterface $currency): void
+	public function setCurrency(CurrencyInterface $currency): void
 	{
 		$this->currency = $currency;
 	}
 
 
-	public function getSale(): float
+	public function getSale(): PriceInterface
 	{
-		return $this->sale;
+		return new Price($this->sale, $this->currency);
 	}
 
 
-	public function setSale(float $sale): void
+	public function setSale(PriceInterface $sale): void
 	{
-		if ($sale < 0) {
-			return;
+		$value = Price::normalize($sale->getValue());
+		if ($sale->isSmallerThan('0')) {
+			$value = '0';
 		}
-		if ($sale !== $this->sale) {
+		if ($value !== Price::normalize($this->sale)) {
 			$this->setUpdated();
-			$this->sale = $sale;
+			$this->sale = $value;
 		}
 	}
 
 
 	public function recountPrice(): void
 	{
-		$sum = 0;
+		$sum = '0';
 		foreach ($this->items as $item) {
-			$sum += $item->getFinalPrice() * $item->getCount();
+			$sum = bcadd($sum, bcmul($item->getFinalPrice()->getValue(), (string) $item->getCount(), 2), 2);
 		}
-		$sum += $this->getDeliveryPrice();
+		$sum = bcadd($sum, $this->getDeliveryPrice()->getValue(), 2);
 		if ($this->payment !== null) {
-			$sum += $this->payment->getPrice();
+			$sum = bcadd($sum, $this->payment->getPrice(), 2);
 		}
 
 		$this->price = $sum;
@@ -458,7 +483,7 @@ class Order implements OrderInterface, OrderEntity
 
 
 	/**
-	 * @return string[]
+	 * @return array<string, string>
 	 */
 	public function getMetaData(): array
 	{
@@ -546,6 +571,24 @@ class Order implements OrderInterface, OrderEntity
 	}
 
 
+	/**
+	 * @return OrderMeta[]|Collection
+	 */
+	public function getMetas(): Collection
+	{
+		return $this->metas;
+	}
+
+
+	/**
+	 * @return OrderFile[]|Collection
+	 */
+	public function getFiles(): Collection
+	{
+		return $this->files;
+	}
+
+
 	public function getNotice(): ?string
 	{
 		return $this->notice;
@@ -562,7 +605,7 @@ class Order implements OrderInterface, OrderEntity
 	public function addNotice(string $notice): void
 	{
 		$haystack = trim((string) $this->notice);
-		$haystack = ($haystack !== '' ? "\n" : '') . $notice;
+		$haystack = ($haystack !== '' ? $haystack . "\n" : '') . $notice;
 		$this->setNotice($haystack);
 	}
 

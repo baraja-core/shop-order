@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Entity;
 
 
+use Baraja\EcommerceStandard\DTO\CurrencyInterface;
 use Baraja\EcommerceStandard\DTO\ManufacturerInterface;
 use Baraja\EcommerceStandard\DTO\OrderInterface;
 use Baraja\EcommerceStandard\DTO\OrderItemInterface;
+use Baraja\EcommerceStandard\DTO\PriceInterface;
 use Baraja\EcommerceStandard\DTO\ProductInterface;
 use Baraja\EcommerceStandard\DTO\ProductVariantInterface;
 use Baraja\EcommerceStandard\Service\VatResolver;
+use Baraja\Shop\Price\Price;
 use Baraja\Shop\Product\Entity\Product;
 use Baraja\Shop\Product\Entity\ProductVariant;
 use Doctrine\ORM\Mapping as ORM;
@@ -42,24 +45,31 @@ class OrderItem implements OrderItemInterface
 	#[ORM\Column(type: 'string', length: 5, nullable: true)]
 	private ?string $unit = null;
 
-	#[ORM\Column(type: 'float', options: ['unsigned' => true])]
-	private float $price;
+	/** @var numeric-string */
+	#[ORM\Column(type: 'decimal', precision: 15, scale: 4, options: ['unsigned' => true])]
+	private string $price;
 
-	#[ORM\Column(type: 'float', options: ['unsigned' => true])]
-	private float $vat;
+	/** @var numeric-string */
+	#[ORM\Column(type: 'decimal', precision: 15, scale: 4, options: ['unsigned' => true])]
+	private string $vat;
 
-	#[ORM\Column(type: 'float', options: ['unsigned' => true])]
-	private float $sale = 0;
+	/** @var numeric-string */
+	#[ORM\Column(type: 'decimal', precision: 15, scale: 4, options: ['unsigned' => true])]
+	private string $sale = '0';
 
 
+	/**
+	 * @param numeric-string $price
+	 * @param numeric-string|null $vat
+	 */
 	public function __construct(
 		Order $order,
 		?Product $product,
 		?ProductVariant $variant,
 		int $count,
-		float $price,
+		string $price,
 		?string $unit = null,
-		?float $vat = null,
+		?string $vat = null,
 	) {
 		if ($product === null && $variant !== null) {
 			$product = $variant->getProduct();
@@ -173,7 +183,7 @@ class OrderItem implements OrderItemInterface
 	}
 
 
-	public function getAmount(): float|int
+	public function getAmount(): float
 	{
 		return $this->getCount();
 	}
@@ -229,42 +239,42 @@ class OrderItem implements OrderItemInterface
 	}
 
 
-	public function getPrice(): float
+	public function getPrice(): PriceInterface
 	{
-		return $this->price;
+		return new Price($this->price, $this->getCurrency());
 	}
 
 
-	public function getFinalPrice(): float
+	public function getFinalPrice(): PriceInterface
 	{
-		return $this->getPrice() - $this->getSale();
+		return $this->getPrice()->minus($this->getSale());
 	}
 
 
-	public function getSale(): float
+	public function getSale(): PriceInterface
 	{
-		return $this->sale;
+		return new Price($this->sale, $this->getCurrency());
 	}
 
 
-	public function setSale(float $sale): void
+	public function setSale(PriceInterface $sale): void
 	{
-		if ($sale < 0) {
+		if ($sale->isSmallerThan('0')) {
 			return;
 		}
-		$this->sale = $sale;
+		$this->sale = $sale->getValue();
 	}
 
 
-	public function getVat(): float
+	public function getVat(): PriceInterface
 	{
-		return $this->vat;
+		return new Price($this->vat, $this->getCurrency());
 	}
 
 
-	public function setVat(float|int $vat): void
+	public function setVat(PriceInterface $vat): void
 	{
-		$this->vat = (float) $vat;
+		$this->vat = $vat->getValue();
 	}
 
 
@@ -275,5 +285,11 @@ class OrderItem implements OrderItemInterface
 		}
 
 		return null;
+	}
+
+
+	private function getCurrency(): CurrencyInterface
+	{
+		return $this->getOrder()->getCurrency();
 	}
 }

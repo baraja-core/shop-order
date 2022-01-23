@@ -11,6 +11,7 @@ use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderStatus;
 use Baraja\Shop\Order\Entity\OrderWorkflowEvent;
 use Baraja\Shop\Order\InvoiceManagerInterface;
+use Baraja\Shop\Order\Notification\OrderNotification;
 use Tracy\Debugger;
 use Tracy\ILogger;
 
@@ -19,6 +20,7 @@ final class OrderWorkflow
 	public function __construct(
 		private EntityManager $entityManager,
 		private Emailer $emailer,
+		private OrderNotification $notification,
 		private ?InvoiceManagerInterface $invoiceManager = null,
 	) {
 	}
@@ -52,6 +54,8 @@ final class OrderWorkflow
 		} elseif ($status === OrderStatus::STATUS_STORNO) {
 			$this->emailer->sendOrderStorno($order);
 		}
+		$this->notification->sendEmail($order);
+		$this->notification->sendSms($order);
 	}
 
 

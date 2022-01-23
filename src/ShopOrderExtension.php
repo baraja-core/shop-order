@@ -17,6 +17,7 @@ use Baraja\Shop\Order\Command\CheckOrderCommand;
 use Baraja\Shop\Order\Delivery\OrderCarrierManager;
 use Baraja\Shop\Order\Delivery\OrderDeliveryManager;
 use Baraja\Shop\Order\Document\OrderDocumentManager;
+use Baraja\Shop\Order\Notification\OrderNotification;
 use Baraja\Shop\Order\Payment\OrderPaymentClient;
 use Baraja\Shop\Order\Repository\OrderRepository;
 use Baraja\Shop\Order\Status\OrderWorkflow;
@@ -76,6 +77,9 @@ final class ShopOrderExtension extends CompilerExtension
 
 		$builder->addDefinition($this->prefix('workflow'))
 			->setFactory(OrderWorkflow::class);
+
+		$builder->addDefinition($this->prefix('notification'))
+			->setFactory(OrderNotification::class);
 
 		$builder->addDefinition($this->prefix('checkOrderCommand'))
 			->setFactory(CheckOrderCommand::class);

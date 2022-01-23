@@ -34,6 +34,7 @@ final class OrderRepository
 		?string $orderBy = null,
 		?string $dateFrom = null,
 		?string $dateTo = null,
+		?string $currency = null,
 		?string $group = null,
 		int $limit = 128,
 		int $page = 1,
@@ -112,6 +113,11 @@ final class OrderRepository
 			$orderCandidateSelection->andWhere('o.payment = :payment')
 				->setParameter('payment', $payment);
 		}
+		if ($currency !== null) {
+			$orderCandidateSelection->leftJoin('o.currency', 'currency')
+				->andWhere('currency.code = :currencyCode')
+				->setParameter('currencyCode', $currency);
+		}
 		$orderCandidateSelection->andWhere('orderGroup.code = :groupCode')
 			->setParameter(
 				'groupCode',
@@ -135,10 +141,11 @@ final class OrderRepository
 		/** @var Order[] $orders */
 		$orders = $this->entityManager->getRepository(Order::class)
 			->createQueryBuilder('o')
-			->select('PARTIAL o.{id, hash, number, price, currency, sale, insertedDate, updatedDate, notice, deliveryPrice}')
+			->select('PARTIAL o.{id, hash, number, paid, price, currency, sale, insertedDate, updatedDate, notice, deliveryPrice}')
 			->addSelect('PARTIAL status.{id, code, label, workflowPosition, color}')
 			->addSelect('PARTIAL customer.{id, email, firstName, lastName, phone, premium, ban}')
 			->addSelect('PARTIAL item.{id, count, price, sale, label}')
+			->addSelect('PARTIAL currency.{id, code, symbol}')
 			->addSelect('PARTIAL product.{id, name}')
 			->addSelect('PARTIAL delivery.{id, name, price, color}')
 			->addSelect('PARTIAL payment.{id, name, price, color}')
@@ -148,6 +155,7 @@ final class OrderRepository
 			->leftJoin('o.status', 'status')
 			->leftJoin('o.customer', 'customer')
 			->leftJoin('o.items', 'item')
+			->leftJoin('o.currency', 'currency')
 			->leftJoin('o.delivery', 'delivery')
 			->leftJoin('o.payment', 'payment')
 			->leftJoin('item.product', 'product')

@@ -55,7 +55,8 @@ Vue.component('cms-order-default', {
 		<div class="row">
 			<div class="col">
 				Count: <b>{{ paginator.itemCount }}</b>
-				| Sum of&nbsp;view: <b>{{ sum }}&nbsp;{{ sumCurrency }}</b>
+				| Sum of&nbsp;view:
+				<span v-for="(sumValue, sumCurrency) in sum" class="badge badge-light">{{ sumValue }} {{ sumCurrency }}</span>
 			</div>
 			<div class="col-sm-2 text-right">
 				<b-button @click="sendPackets()" variant="secondary" size="sm" v-b-tooltip.hover title="Clicking the button will establish shipments with the carrier for all orders displayed. This action cannot be reverted.">
@@ -83,7 +84,7 @@ Vue.component('cms-order-default', {
 				<th>Items</th>
 				<th>Delivery</th>
 				<th>Payment</th>
-				<th>Documents</th>
+				<th>Files</th>
 			</tr>
 			<tr v-for="item in items">
 				<td>
@@ -91,21 +92,25 @@ Vue.component('cms-order-default', {
 				</td>
 				<td>
 					<a :href="link('CmsOrder:detail', {id: item.id})">{{ item.number }}</a><br>
-					<span class="badge badge-secondary" v-b-tooltip.hover title="Inserted date">{{ item.insertedDate }}</span><br>
-					<span class="badge badge-secondary" v-b-tooltip.hover title="Last updated date">{{ item.updatedDate }}</span>
+					<span class="badge badge-secondary" v-b-tooltip.hover title="Last updated date">{{ item.updatedDate }}</span><br>
+					<span class="badge badge-light" v-b-tooltip.hover title="Inserted date">{{ item.insertedDate }}</span>
 				</td>
 				<td :class="{ 'table-primary': item.status.code === 'new', 'table-success': item.status.code === 'paid' }">
 					<b-form-select v-model="item.status.code" :options="staticFilter.statuses" size="sm" @change="changeStatus(item.id, item.status.code)" style="margin-bottom:5px;height:8px"></b-form-select>
 					<span class="badge badge-secondary" :style="'background:' + item.status.color">{{ item.status.label }}</span>
 				</td>
-				<td class="text-center">
-					<template v-if="item.sale > 0">
-						<s class="text-danger">{{ item.price }}&nbsp;{{ item.currency }}</s><br>
-						<b>{{ item.finalPrice }}&nbsp;{{ item.currency }}</b>
-					</template>
-					<template v-else>
-						{{ item.price }}&nbsp;{{ item.currency }}
-					</template>
+				<td :class="item.paid === false ? 'table-warning' : ''">
+					<span v-if="item.paid" class="badge badge-success">PAID</span>
+					<span v-else class="badge badge-warning">NOT PAID!</span>
+					<div class="text-center mt-2">
+						<template v-if="item.sale > 0">
+							<s class="text-danger">{{ item.price }}</s><br>
+							<b>{{ item.finalPrice }}</b>
+						</template>
+						<template v-else>
+							{{ item.price }}
+						</template>
+					</div>
 				</td>
 				<td>
 					<span v-if="item.customer.premium" v-b-tooltip title="Premium customer.">🌟</span>
@@ -129,11 +134,11 @@ Vue.component('cms-order-default', {
 							<td :style="'padding:2px 0;' + (orderItemId === 0 ? 'border-top:0' : '')">{{ orderItem.name }}</td>
 							<td class="text-right" :style="orderItemId === 0 ? 'border-top:0' : ''">
 								<template v-if="orderItem.sale > 0">
-									<s class="text-danger">{{ orderItem.price }}&nbsp;{{ item.currency }}</s><br>
-									<b>{{ orderItem.finalPrice }}&nbsp;{{ item.currency }}</b>
+									<s class="text-danger">{{ orderItem.price }}</s><br>
+									<b>{{ orderItem.finalPrice }}</b>
 								</template>
 								<template v-else>
-									{{ orderItem.price }}&nbsp;{{ item.currency }}
+									{{ orderItem.price }}
 								</template>
 							</td>
 						</tr>
@@ -146,7 +151,7 @@ Vue.component('cms-order-default', {
 					<template v-if="item.delivery.name">
 						<span class="badge badge-secondary" :style="'background:' + item.delivery.color">{{ item.delivery.name }}</span>
 						<br>
-					</template>{{ item.delivery.price }}&nbsp;{{ item.currency }}
+					</template>{{ item.delivery.price }}
 					<div v-if="item.package">
 						<span class="badge badge-success">PACKAGE READY</span>
 					</div>
@@ -156,7 +161,7 @@ Vue.component('cms-order-default', {
 						<span class="badge badge-secondary" :style="'background:' + item.payment.color">{{ item.payment.name }}</span>
 						<br>
 					</template>
-					{{ item.payment.price }}&nbsp;{{ item.currency }}
+					{{ item.payment.price }}
 				</td>
 				<td>
 					<div v-for="document in item.documents">
@@ -277,6 +282,7 @@ Vue.component('cms-order-default', {
 					<th>Public label</th>
 					<th>Color</th>
 					<th>Handler</th>
+					<th>Notification</th>
 				</tr>
 				<tr v-for="statusItem in statusList">
 					<td>{{ statusItem.id }}</td>
@@ -303,6 +309,18 @@ Vue.component('cms-order-default', {
 					</td>
 					<td>
 						<b-form-input v-model="statusItem.systemHandle" size="sm"></b-form-input>
+					</td>
+					<td class="text-center">
+						<div v-if="statusItem.notification.length === 0" class="text-secondary small">No&nbsp;providers.</div>
+						<template v-else>
+							<template v-for="(notificationActive, notificationType) in statusItem.notification">
+								<b-button @click="openStatusNotification(statusItem.id, notificationType)" size="sm" :variant="notificationActive ? 'success' : 'light'" class="px-0 py-0">
+									<template v-if="notificationType === 'sms'">📱</template>
+									<template v-else-if="notificationType === 'email'">📧</template>
+									<template v-else>{{ notificationType }}</template>
+								</b-button>
+							</template>
+						</template>
 					</td>
 				</tr>
 			</table>
@@ -446,6 +464,49 @@ Vue.component('cms-order-default', {
 			</table>
 		</template>
 	</b-modal>
+	<b-modal id="modal-status-notification" title="Order notification" size="xl" hide-footer>
+		<div v-if="activeNotification.exist === null" class="text-center my-5">
+			<b-spinner></b-spinner>
+		</div>
+		<template v-else>
+			<b-alert :show="activeNotification.exist === false" variant="warning">
+				This notification has not yet been saved and does not exist.
+				Please write the content of the notification template and save it.
+				Once created and activated, the notification will start sending out automatically.
+			</b-alert>
+			<b-form-input v-model="activeNotification.subject" placeholder="Subject"></b-form-input>
+			<div class="row my-3">
+				<div class="col">
+					<b-form-textarea v-model="activeNotification.content" placeholder="Template..." rows="20"></b-form-textarea>
+					<div class="small">
+						To this editor, enter a generic notification template that will be rendered for each order.
+						Inside the template, you can use variables in format <code>{<!-- -->{ variable }}</code>.
+						See the documentation for a list of available variables.
+					</div>
+				</div>
+				<div class="col-4">
+					<b>Documentation:</b>
+					<table class="w-100">
+						<tr v-for="documentationItem in activeNotification.documentation">
+							<td valign="top" class="pr-3"><code>{{ documentationItem.name }}</code></td>
+							<td valign="top" class="small">{{ documentationItem.documentation }}</td>
+						</tr>
+					</table>
+				</div>
+			</div>
+			<div class="row mt-3">
+				<div class="col">
+					<b-button variant="primary" @click="saveNotification">Save template</b-button>
+				</div>
+				<div class="col">
+					<b-form-checkbox v-model="activeNotification.active" :value="true" :unchecked-value="false">Is active?</b-form-checkbox>
+				</div>
+				<div class="col text-right">
+					{{ activeNotification.insertedDate }}
+				</div>
+			</div>
+		</template>
+	</b-modal>
 </div>`,
 	data() {
 		return {
@@ -453,7 +514,6 @@ Vue.component('cms-order-default', {
 			customerList: null,
 			customerListSearch: '',
 			sum: 0,
-			sumCurrency: '?',
 			paginator: {
 				itemsPerPage: 0,
 				page: 1,
@@ -510,6 +570,15 @@ Vue.component('cms-order-default', {
 			newGroupForm: {
 				name: '',
 				code: ''
+			},
+			activeNotification: {
+				exist: null,
+				statusId: null,
+				type: null,
+				subject: null,
+				content: null,
+				active: false,
+				insertedDate: null
 			}
 		}
 	},
@@ -536,7 +605,6 @@ Vue.component('cms-order-default', {
 				.then(req => {
 					this.items = req.data.items;
 					this.sum = req.data.sum;
-					this.sumCurrency = req.data.sumCurrency;
 					this.paginator = req.data.paginator;
 				});
 		},
@@ -616,6 +684,28 @@ Vue.component('cms-order-default', {
 				.then(req => {
 					this.workflowRulesList = req.data.events;
 				});
+		},
+		openStatusNotification(statusId, type) {
+			this.$bvModal.show('modal-status-notification');
+			this.activeNotification.exist = null;
+			axiosApi.get('cms-order/notification-detail?statusId=' + statusId + '&type=' + type)
+				.then(req => {
+					this.activeNotification = req.data;
+				});
+		},
+		saveNotification() {
+			axiosApi.post('cms-order/save-notification', {
+				statusId: this.activeNotification.statusId,
+				type: this.activeNotification.type,
+				subject: this.activeNotification.subject,
+				content: this.activeNotification.content,
+				active: this.activeNotification.active
+			}).then(() => {
+				this.statusList = null;
+				this.sync();
+				this.openStatusManager();
+				this.$bvModal.hide('modal-status-notification');
+			});
 		},
 		createOrder(customerId) {
 			axiosApi.post('cms-order/create-empty-order', {
