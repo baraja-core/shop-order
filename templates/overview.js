@@ -139,9 +139,14 @@ Vue.component('cms-order-overview', {
 						<div class="col">
 							<b-card class="mt-3">
 								<h5>Workflow notification</h5>
-								<b-button variant="secondary" size="sm" @click="sendEmail('new-order')">Order accepted</b-button>
-								<b-button variant="secondary" size="sm" @click="sendEmail('paid')">Paid</b-button>
-								<b-button variant="secondary" size="sm" @click="sendEmail('invoice')">Invoice</b-button>
+								<template v-for="notificationItem in order.notifications">
+									<b-button variant="secondary" size="sm" @click="sendEmail(notificationItem.id)">
+										{{ notificationItem.label }}
+										<template v-if="notificationItem.type === 'sms'">📱</template>
+										<template v-else-if="notificationItem.type === 'email'">📧</template>
+										<template v-else>({{ notificationItem.type }})</template>
+									</b-button>
+								</template>
 							</b-card>
 						</div>
 					</div>
@@ -203,7 +208,7 @@ Vue.component('cms-order-overview', {
 												<small>City:</small>
 												<b-form-input v-model="address.city" size="sm"></b-form-input>
 											</div>
-											<div class="col-4 p-0">
+											<div class="col-4 pl-0">
 												<small>ZIP:</small>
 												<b-form-input v-model="address.zip" size="sm"></b-form-input>
 											</div>
@@ -247,25 +252,8 @@ Vue.component('cms-order-overview', {
 										<b-button variant="secondary" size="sm" @click="createInvoice">Create</b-button>
 									</div>
 								</div>
-								<p v-if="order.invoices.length === 0" class="text-secondary">
-									No invoice.
-								</p>
-								<table v-else class="table table-sm cms-table-no-border-top">
-									<tr>
-										<th>No.</th>
-										<th>Price</th>
-										<th>Paid?</th>
-										<th>Date</th>
-									</tr>
-									<tr v-for="invoice in order.invoices">
-										<td>
-											<a :href="invoice.url" target="_blank">{{ invoice.number }}</a>
-										</td>
-										<td>{{ invoice.price }}</td>
-										<td>{{ invoice.paid ? 'ano' : 'ne' }}</td>
-										<td>{{ invoice.date }}</td>
-									</tr>
-								</table>
+								<p v-if="order.invoiceNumber === null" class="text-secondary">No&nbsp;invoice.</p>
+								<p v-else>{{ order.invoiceNumber }}</p>
 							</b-card>
 							<b-card class="mt-3">
 								<table class="w-100 mb-1">
@@ -604,10 +592,10 @@ Vue.component('cms-order-overview', {
 				this.sync();
 			});
 		},
-		sendEmail(mail) {
+		sendEmail(notificationId) {
 			axiosApi.post('cms-order/send-email', {
 				id: this.id,
-				mail: mail
+				notificationId: notificationId
 			}).then(() => {
 			});
 		},

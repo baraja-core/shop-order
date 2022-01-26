@@ -5,172 +5,67 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Repository;
 
 
-use Baraja\Doctrine\EntityManager;
-use Baraja\Search\Search;
-use Baraja\Shop\Order\Entity\Order;
-use Baraja\Shop\Order\Entity\OrderStatus;
-use Baraja\Shop\Order\OrderGroupManager;
-use Baraja\Shop\Order\OrderStatusManager;
+use Doctrine\ORM\EntityRepository;
 
-final class OrderRepository
+final class OrderRepository extends EntityRepository
 {
-	public function __construct(
-		private EntityManager $entityManager,
-		private OrderStatusManager $statusManager,
-		private OrderGroupManager $orderGroupManager,
-		private Search $search,
-	) {
+	/**
+	 * @return array{
+	 *     order: array{id: int, number: string, hash: string, locale: string, group: array{id: int, name: string}},
+	 *     before: array{id: int, number: string}|null,
+	 *     after: array{id: int, number: string}|null
+	 * }
+	 * @throws \InvalidArgumentException
+	 */
+	public function getSimplePluginInfo(int $id): array
+	{
+		/** @var array{0?: array{id: int, number: string, hash: string, locale: string, group: array{id: int, name: string}}} $orderResult */
+		$orderResult = $this->createQueryBuilder('o')
+			->select('PARTIAL o.{id, number, hash, locale}, PARTIAL group.{id, name}')
+			->join('o.group', 'group')
+			->where('o.id = :id')
+			->setParameter('id', $id)
+			->setMaxResults(1)
+			->getQuery()
+			->getArrayResult();
+
+		$order = $orderResult[0] ?? null;
+		if ($order === null) {
+			throw new \InvalidArgumentException(sprintf('Order "%d" does not exist.', $id));
+		}
+		$groupId = $order['group']['id'] ?? null;
+
+		return [
+			'order' => $order,
+			'before' => $this->getNextOrder($id, $groupId, 'DESC'),
+			'after' => $this->getNextOrder($id, $groupId, 'ASC'),
+		];
 	}
 
 
 	/**
-	 * @return array{orders: array<int, Order>, count: int}
+	 * @return array{id: int, number: string}|null
 	 */
-	public function getFeed(
-		?string $query = null,
-		?string $status = null,
-		?int $delivery = null,
-		?int $payment = null,
-		?string $orderBy = null,
-		?string $dateFrom = null,
-		?string $dateTo = null,
-		?string $currency = null,
-		?string $group = null,
-		int $limit = 128,
-		int $page = 1,
-	): array {
-		$orderCandidateSelection = $this->entityManager->getRepository(Order::class)
-			->createQueryBuilder('o')
-			->select('PARTIAL o.{id}')
-			->leftJoin('o.status', 'status')
-			->leftJoin('o.group', 'orderGroup');
+	public function getNextOrder(int $id, ?int $groupId = null, string $direction): ?array
+	{
+		$qb = $this->createQueryBuilder('o')
+			->select('PARTIAL o.{id, number}')
+			->andWhere(sprintf('o.id %s :id', $direction !== 'ASC' ? '<' : '>'))
+			->setParameter('id', $id);
 
-		if ($orderBy !== null) {
-			if ($orderBy === 'old') {
-				$orderCandidateSelection->orderBy('o.updatedDate', 'ASC');
-			} elseif ($orderBy === 'number') {
-				$orderCandidateSelection->orderBy('o.number', 'ASC');
-			} elseif ($orderBy === 'number-desc') {
-				$orderCandidateSelection->orderBy('o.number', 'DESC');
-			}
-		} else {
-			$orderCandidateSelection->orderBy('o.number', 'DESC');
+		if ($groupId !== null) {
+			$qb
+				->andWhere('o.group = :groupId')
+				->setParameter('groupId', $groupId);
 		}
-		if ($query !== null && trim($query) !== '') {
-			$orderCandidateSelection->andWhere('o.id IN (:searchIds)')
-				->setParameter(
-					'searchIds',
-					$this->search->search(
-						$query,
-						[
-							Order::class => [
-								'number',
-								'notice',
-								'customer.email',
-								'customer.firstName',
-								'customer.lastName',
-							],
-						],
-						useAnalytics: false
-					)
-						->getIds()
-				);
-		}
-		if ($status === null) { // find all
-			$orderCandidateSelection->andWhere('status.code != :statusDone')
-				->andWhere('status.code != :statusStorno')
-				->andWhere('status.code != :statusTest')
-				->setParameter('statusDone', OrderStatus::STATUS_DONE)
-				->setParameter('statusStorno', OrderStatus::STATUS_STORNO)
-				->setParameter('statusTest', OrderStatus::STATUS_TEST);
-		} elseif ($this->statusManager->isRegularStatus($status)) {
-			$orderCandidateSelection->andWhere('status.code = :status')
-				->setParameter('status', $status);
-		} elseif ($this->statusManager->isCollection($status)) {
-			$collections = $this->statusManager->getCollections();
-			assert(isset($collections[$status]['codes']));
-			$orderCandidateSelection
-				->andWhere('status.code IN (:statusCollectionCodes)')
-				->setParameter('statusCollectionCodes', $collections[$status]['codes']);
-		} else {
-			throw new \InvalidArgumentException(
-				sprintf('Status "%s" is not valid regular status code or collection.', $status),
-			);
-		}
-		if ($dateFrom !== null) {
-			$orderCandidateSelection->andWhere('o.insertedDate >= :dateFrom')
-				->setParameter('dateFrom', $dateFrom . ' 00:00:00');
-		}
-		if ($dateTo !== null) {
-			$orderCandidateSelection->andWhere('o.insertedDate <= :dateTo')
-				->setParameter('dateTo', $dateTo . ' 23:59:59');
-		}
-		if ($delivery !== null) {
-			$orderCandidateSelection->andWhere('o.delivery = :delivery')
-				->setParameter('delivery', $delivery);
-		}
-		if ($payment !== null) {
-			$orderCandidateSelection->andWhere('o.payment = :payment')
-				->setParameter('payment', $payment);
-		}
-		if ($currency !== null) {
-			$orderCandidateSelection->leftJoin('o.currency', 'currency')
-				->andWhere('currency.code = :currencyCode')
-				->setParameter('currencyCode', $currency);
-		}
-		$orderCandidateSelection->andWhere('orderGroup.code = :groupCode')
-			->setParameter(
-				'groupCode',
-				$group ?? $this->orderGroupManager->getDefaultGroup()->getCode()
-			);
 
-		$count = (int) (clone $orderCandidateSelection)
-			->orderBy('o.id', 'DESC')
-			->select('COUNT(o.id)')
-			->getQuery()
-			->getSingleScalarResult();
-
-		$orderCandidates = $orderCandidateSelection
-			->setMaxResults($limit)
-			->setFirstResult($limit * ($page - 1))
+		/** @var array{0?: array{id: int, number: string}} $result */
+		$return = $qb
+			->orderBy('o.id', $direction)
+			->setMaxResults(1)
 			->getQuery()
 			->getArrayResult();
 
-		$candidateIds = array_map(static fn(array $order): int => (int) $order['id'], $orderCandidates);
-
-		/** @var Order[] $orders */
-		$orders = $this->entityManager->getRepository(Order::class)
-			->createQueryBuilder('o')
-			->select('PARTIAL o.{id, hash, number, paid, price, currency, sale, insertedDate, updatedDate, notice, deliveryPrice}')
-			->addSelect('PARTIAL status.{id, code, label, workflowPosition, color}')
-			->addSelect('PARTIAL customer.{id, email, firstName, lastName, phone, premium, ban}')
-			->addSelect('PARTIAL item.{id, count, price, sale, label}')
-			->addSelect('PARTIAL currency.{id, code, symbol}')
-			->addSelect('PARTIAL product.{id, name}')
-			->addSelect('PARTIAL delivery.{id, name, price, color}')
-			->addSelect('PARTIAL payment.{id, name, price, color}')
-			->addSelect('productVariant')
-			->addSelect('PARTIAL paymentReal.{id}')
-			->addSelect('PARTIAL package.{id}')
-			->leftJoin('o.status', 'status')
-			->leftJoin('o.customer', 'customer')
-			->leftJoin('o.items', 'item')
-			->leftJoin('o.currency', 'currency')
-			->leftJoin('o.delivery', 'delivery')
-			->leftJoin('o.payment', 'payment')
-			->leftJoin('item.product', 'product')
-			->leftJoin('item.variant', 'productVariant')
-			->leftJoin('o.payments', 'paymentReal')
-			->leftJoin('o.packages', 'package')
-			->where('o.id IN (:ids)')
-			->setParameter('ids', $candidateIds)
-			->orderBy('o.number', 'DESC')
-			->getQuery()
-			->getResult();
-
-		return [
-			'orders' => $orders,
-			'count' => $count,
-		];
+		return $return[0] ?? null;
 	}
 }

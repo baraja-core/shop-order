@@ -275,13 +275,13 @@ Vue.component('cms-order-default', {
 				<tr>
 					<th>#</th>
 					<th width="80">Position</th>
-					<th>Name</th>
-					<th>Code</th>
+					<th>Name /&nbsp;Code</th>
 					<th>Internal name</th>
 					<th>Label</th>
 					<th>Public label</th>
 					<th>Color</th>
 					<th>Handler</th>
+					<th>Redirect&nbsp;to</th>
 					<th>Notification</th>
 				</tr>
 				<tr v-for="statusItem in statusList">
@@ -290,9 +290,7 @@ Vue.component('cms-order-default', {
 						<b-form-input type="number" v-model="statusItem.position" size="sm"></b-form-input>
 					</td>
 					<td>
-						<span class="badge badge-secondary" :style="'background:' + statusItem.color">{{ statusItem.name }}</span>
-					</td>
-					<td>
+						<span class="badge badge-secondary" :style="'background:' + statusItem.color">{{ statusItem.name }}</span><br>
 						<code>{{ statusItem.code }}</code>
 					</td>
 					<td>
@@ -309,6 +307,9 @@ Vue.component('cms-order-default', {
 					</td>
 					<td>
 						<b-form-input v-model="statusItem.systemHandle" size="sm"></b-form-input>
+					</td>
+					<td>
+						<b-form-select v-model="statusItem.redirectTo" :options="statusItem.redirectOptions" size="sm"></b-form-select>
 					</td>
 					<td class="text-center">
 						<div v-if="statusItem.notification.length === 0" class="text-secondary small">No&nbsp;providers.</div>
@@ -479,9 +480,8 @@ Vue.component('cms-order-default', {
 					</div>
 				</div>
 				<div class="col-4">
-					<b>Documentation:</b>
 					<table class="w-100">
-						<tr v-for="documentationItem in activeNotification.documentation">
+						<tr v-for="documentationItem in activeNotification.documentation" style="border-bottom:1px solid #eee">
 							<td valign="top" class="pr-3"><code>{{ documentationItem.name }}</code></td>
 							<td valign="top" class="small">{{ documentationItem.documentation }}</td>
 						</tr>

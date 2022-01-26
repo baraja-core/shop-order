@@ -51,14 +51,14 @@ final class GoPayGatewayBridge implements Gateway
 							'email' => $order->getCustomer()->getEmail(),
 						],
 					],
-					'amount' => $order->getPrice(),
+					'amount' => $order->getPrice()->getValue(),
 					'currency' => $this->currencyManager->getMainCurrency()->getCode(),
 					'order_number' => $order->getNumber(),
 					'order_description' => 'Objednávka ' . $order->getNumber(),
 					'items' => [
 						[
 							'name' => 'Objednávka ' . $order->getNumber(),
-							'amount' => $order->getPrice(),
+							'amount' => $order->getPrice()->getValue(),
 						],
 					],
 					'callback' => [
@@ -175,12 +175,12 @@ final class GoPayGatewayBridge implements Gateway
 				redirect: WebController::getLinkGenerator()->default($order),
 			);
 		}
+		// order failed
 		if ($statusChanged === true) {
 			try {
-				$this->emailer->sendOrderFailMail($payment);
-			} catch (\Throwable $e) {
-				Debugger::log($e);
-
+				$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_PAYMENT_FAILED);
+			} catch (\InvalidArgumentException) {
+				// status payment failed does not exist
 				return new GatewayResponse(
 					redirect: null,
 					errorMessage: 'Odeslání e-mailu se stavem objednávky selhalo.'

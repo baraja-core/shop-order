@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Entity;
 
 
-use Doctrine\ORM\Mapping\Entity;
-use Doctrine\ORM\Mapping\Table;
+use Baraja\Shop\Order\Repository\OrderStatusHistoryRepository;
 use Doctrine\ORM\Mapping as ORM;
 
-#[Entity]
-#[Table(name: 'shop__order_status_history')]
+#[ORM\Entity(repositoryClass: OrderStatusHistoryRepository::class)]
+#[ORM\Table(name: 'shop__order_status_history')]
 class OrderStatusHistory
 {
 	#[ORM\Id]
@@ -24,7 +23,7 @@ class OrderStatusHistory
 	#[ORM\ManyToOne(targetEntity: OrderStatus::class)]
 	private OrderStatus $status;
 
-	#[ORM\Column(type: 'datetime')]
+	#[ORM\Column(type: 'datetime_immutable')]
 	private \DateTimeImmutable $insertedDate;
 
 

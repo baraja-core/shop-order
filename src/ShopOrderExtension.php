@@ -18,8 +18,10 @@ use Baraja\Shop\Order\Delivery\OrderCarrierManager;
 use Baraja\Shop\Order\Delivery\OrderDeliveryManager;
 use Baraja\Shop\Order\Document\OrderDocumentManager;
 use Baraja\Shop\Order\Notification\OrderNotification;
+use Baraja\Shop\Order\Notification\OrderNotificationDataFactory;
+use Baraja\Shop\Order\Notification\OrderNotificationDataFactoryAccessor;
 use Baraja\Shop\Order\Payment\OrderPaymentClient;
-use Baraja\Shop\Order\Repository\OrderRepository;
+use Baraja\Shop\Order\Repository\OrderFeedRepository;
 use Baraja\Shop\Order\Status\OrderWorkflow;
 use Baraja\Url\Url;
 use Contributte\GopayInline\Client;
@@ -58,7 +60,7 @@ final class ShopOrderExtension extends CompilerExtension
 			->setFactory(OrderGroupManager::class);
 
 		$builder->addDefinition($this->prefix('orderRepository'))
-			->setFactory(OrderRepository::class);
+			->setFactory(OrderFeedRepository::class);
 
 		$builder->addDefinition($this->prefix('orderGenerator'))
 			->setFactory(OrderGenerator::class);
@@ -80,6 +82,12 @@ final class ShopOrderExtension extends CompilerExtension
 
 		$builder->addDefinition($this->prefix('notification'))
 			->setFactory(OrderNotification::class);
+
+		$builder->addDefinition($this->prefix('orderNotificationDataFactory'))
+			->setFactory(OrderNotificationDataFactory::class);
+
+		$builder->addAccessorDefinition($this->prefix('orderNotificationDataFactoryAccessor'))
+			->setImplement(OrderNotificationDataFactoryAccessor::class);
 
 		$builder->addDefinition($this->prefix('checkOrderCommand'))
 			->setFactory(CheckOrderCommand::class);
@@ -149,6 +157,17 @@ final class ShopOrderExtension extends CompilerExtension
 			'source' => __DIR__ . '/../templates/document.js',
 			'position' => 70,
 			'tab' => 'Documents',
+			'params' => ['id'],
+		]]);
+		$pluginManager->addSetup('?->addComponent(?)', ['@self', [
+			'key' => 'orderHistory',
+			'name' => 'cms-order-history',
+			'implements' => CmsOrderPlugin::class,
+			'componentClass' => VueComponent::class,
+			'view' => 'detail',
+			'source' => __DIR__ . '/../templates/history.js',
+			'position' => 40,
+			'tab' => 'History',
 			'params' => ['id'],
 		]]);
 		$pluginManager->addSetup('?->addComponent(?)', ['@self', [

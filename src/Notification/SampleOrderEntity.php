@@ -8,15 +8,20 @@ namespace Baraja\Shop\Order\Notification;
 use Baraja\EcommerceStandard\DTO\AddressInterface;
 use Baraja\EcommerceStandard\DTO\CurrencyInterface;
 use Baraja\EcommerceStandard\DTO\CustomerInterface;
+use Baraja\EcommerceStandard\DTO\DeliveryInterface;
 use Baraja\EcommerceStandard\DTO\OrderInterface;
 use Baraja\EcommerceStandard\DTO\OrderItemInterface;
 use Baraja\EcommerceStandard\DTO\OrderStatusInterface;
+use Baraja\EcommerceStandard\DTO\PaymentInterface;
 use Baraja\EcommerceStandard\DTO\PriceInterface;
+use Baraja\Shop\Entity\Currency\Currency;
+use Baraja\Shop\Order\Entity\OrderStatus;
 
 final class SampleOrderEntity implements OrderInterface
 {
 	public function getId(): int
 	{
+		return 123;
 	}
 
 
@@ -28,26 +33,31 @@ final class SampleOrderEntity implements OrderInterface
 
 	public function getStatus(): OrderStatusInterface
 	{
+		return new OrderStatus('new', 'New');
 	}
 
 
 	public function getLocale(): string
 	{
+		return 'en';
 	}
 
 
 	public function getInvoiceNumber(): ?string
 	{
+		return date('y') . '0123456';
 	}
 
 
 	public function getHash(): string
 	{
+		return md5($this->getNumber());
 	}
 
 
 	public function isPaid(): bool
 	{
+		return false;
 	}
 
 
@@ -63,6 +73,7 @@ final class SampleOrderEntity implements OrderInterface
 
 	public function getItems(): array
 	{
+		return [];
 	}
 
 
@@ -108,6 +119,7 @@ final class SampleOrderEntity implements OrderInterface
 
 	public function getCurrency(): CurrencyInterface
 	{
+		return new Currency('USD', '$');
 	}
 
 
@@ -118,6 +130,7 @@ final class SampleOrderEntity implements OrderInterface
 
 	public function getCurrencyCode(): string
 	{
+		return $this->getCurrency()->getCode();
 	}
 
 
@@ -133,15 +146,36 @@ final class SampleOrderEntity implements OrderInterface
 
 	public function getPackageNumber(): ?string
 	{
+		return 'ABC123456789';
 	}
 
 
 	public function getInsertedDate(): \DateTimeInterface
 	{
+		return new \DateTimeImmutable('now - 30 minutes');
 	}
 
 
 	public function getUpdatedDate(): \DateTimeInterface
 	{
+		return new \DateTimeImmutable;
+	}
+
+
+	public function getDelivery(): ?DeliveryInterface
+	{
+		return null;
+	}
+
+
+	public function getPayment(): ?PaymentInterface
+	{
+		return null;
+	}
+
+
+	public function getNotice(): ?string
+	{
+		return 'My notice.';
 	}
 }

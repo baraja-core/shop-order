@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order;
 
 
+use Baraja\EcommerceStandard\DTO\OrderInterface;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderStatus;
 use Baraja\Shop\Order\Entity\OrderStatusCollection;
 use Baraja\Shop\Order\Entity\OrderStatusHistory;
+use Baraja\Shop\Order\Repository\OrderStatusHistoryRepository;
 use Baraja\Shop\Order\Repository\OrderStatusRepository;
 use Baraja\Shop\Order\Status\OrderStatusChangedEvent;
 use Baraja\Shop\Order\Status\OrderWorkflow;
@@ -17,6 +19,8 @@ use Doctrine\ORM\EntityManagerInterface;
 final class OrderStatusManager
 {
 	private OrderStatusRepository $orderStatusRepository;
+
+	private OrderStatusHistoryRepository $orderStatusHistoryRepository;
 
 
 	/**
@@ -27,9 +31,12 @@ final class OrderStatusManager
 		private OrderWorkflow $workflow,
 		private array $onChangeEvents = [],
 	) {
-		/** @var OrderStatusRepository $orderStatusRepository */
 		$orderStatusRepository = $entityManager->getRepository(OrderStatus::class);
+		$orderStatusHistoryRepository = $entityManager->getRepository(OrderStatusHistory::class);
+		assert($orderStatusRepository instanceof OrderStatusRepository);
+		assert($orderStatusHistoryRepository instanceof OrderStatusHistoryRepository);
 		$this->orderStatusRepository = $orderStatusRepository;
+		$this->orderStatusHistoryRepository = $orderStatusHistoryRepository;
 	}
 
 
@@ -147,7 +154,15 @@ final class OrderStatusManager
 		}
 
 		$this->entityManager->persist(new OrderStatusHistory($order, $status));
-		$order->setStatus($status);
+
+		$redirect = $status->getRedirectTo();
+		if ($redirect !== null) {
+			$this->entityManager->persist(new OrderStatusHistory($order, $redirect));
+			$order->setStatus($redirect);
+		} else {
+			$order->setStatus($status);
+		}
+
 		$this->workflow->run($order);
 		foreach ($this->onChangeEvents as $changedEvent) {
 			$changedEvent->process($order, $oldStatus, $status);
@@ -181,6 +196,15 @@ final class OrderStatusManager
 		$this->entityManager->flush();
 
 		return $collection;
+	}
+
+
+	/**
+	 * @return array<int, OrderStatusHistory>
+	 */
+	public function getHistory(OrderInterface $order): array
+	{
+		return $this->orderStatusHistoryRepository->getHistory($order->getId());
 	}
 
 

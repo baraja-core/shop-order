@@ -7,6 +7,7 @@ namespace Baraja\Shop\Order;
 
 use Baraja\Country\CountryManagerAccessor;
 use Baraja\Doctrine\EntityManager;
+use Baraja\EcommerceStandard\DTO\AddressInterface;
 use Baraja\Localization\Localization;
 use Baraja\Search\Search;
 use Baraja\Shop\Address\Entity\Address;
@@ -16,15 +17,18 @@ use Baraja\Shop\Customer\Entity\Customer;
 use Baraja\Shop\Delivery\BranchManager;
 use Baraja\Shop\Delivery\Entity\BranchInterface;
 use Baraja\Shop\Delivery\Entity\Delivery;
+use Baraja\Shop\Delivery\Repository\DeliveryRepository;
 use Baraja\Shop\Order\Delivery\OrderDeliveryManager;
 use Baraja\Shop\Order\Document\OrderDocumentManager;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderItem;
 use Baraja\Shop\Order\Entity\OrderOnlinePayment;
 use Baraja\Shop\Order\Notification\OrderNotification;
-use Baraja\Shop\Order\Repository\OrderRepository;
+use Baraja\Shop\Order\Repository\OrderFeedRepository;
 use Baraja\Shop\Order\Status\OrderWorkflow;
 use Baraja\Shop\Payment\Entity\Payment;
+use Baraja\Shop\Payment\Repository\PaymentRepository;
+use Baraja\Shop\Price\Price;
 use Baraja\Shop\Product\Entity\Product;
 use Baraja\Shop\Product\Entity\ProductVariant;
 use Baraja\StructuredApi\BaseEndpoint;
@@ -36,6 +40,11 @@ use Tracy\ILogger;
 
 final class CmsOrderEndpoint extends BaseEndpoint
 {
+	private DeliveryRepository $deliveryRepository;
+
+	private PaymentRepository $paymentRepository;
+
+
 	public function __construct(
 		private EntityManager $entityManager,
 		private OrderManager $orderManager,
@@ -49,13 +58,19 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		private CountryManagerAccessor $countryManager,
 		private OrderDocumentManager $documentManager,
 		private Search $search,
-		private OrderRepository $orderRepository,
+		private OrderFeedRepository $orderFeedRepository,
 		private OrderWorkflow $workflow,
 		private CurrencyManagerAccessor $currencyManager,
 		private OrderNotification $notification,
 		private Localization $localization,
 		private ?InvoiceManagerInterface $invoiceManager = null,
 	) {
+		$deliveryRepository = $entityManager->getRepository(Delivery::class);
+		$paymentRepository = $entityManager->getRepository(Payment::class);
+		assert($deliveryRepository instanceof DeliveryRepository);
+		assert($paymentRepository instanceof PaymentRepository);
+		$this->deliveryRepository = $deliveryRepository;
+		$this->paymentRepository = $paymentRepository;
 	}
 
 
@@ -72,7 +87,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		int $limit = 128,
 		int $page = 1,
 	): void {
-		$feed = $this->orderRepository->getFeed(
+		$feed = $this->orderFeedRepository->getFeed(
 			query: $query,
 			status: $status,
 			delivery: $delivery,
@@ -192,15 +207,19 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 	public function actionFilter(): void
 	{
-		/** @var Delivery[] $deliveries */
-		$deliveries = $this->entityManager->getRepository(Delivery::class)->findAll();
-
-		/** @var Payment[] $payments */
-		$payments = $this->entityManager->getRepository(Payment::class)->findAll();
-
 		$groups = [];
 		foreach ($this->orderGroupManager->getGroups() as $groupItem) {
 			$groups[$groupItem->getCode()] = (string) $groupItem->getName();
+		}
+
+		$payments = [];
+		foreach ($this->paymentRepository->findAll() as $payment) {
+			$payments[$payment->getId()] = $payment->getName();
+		}
+
+		$deliveries = [];
+		foreach ($this->deliveryRepository->findAll() as $delivery) {
+			$deliveries[$delivery->getId()] = (string) $delivery->getName();
 		}
 
 		$this->sendJson(
@@ -213,32 +232,10 @@ final class CmsOrderEndpoint extends BaseEndpoint
 					[null => '- status -'] + $this->orderStatusManager->getKeyValueList(true)
 				),
 				'filterPayments' => $this->formatBootstrapSelectArray(
-					[null => '- payment -'] + (static function (array $payments): array
-					{
-						$return = [];
-						/** @var Payment $payment */
-						foreach ($payments as $payment) {
-							$return[$payment->getId()] = $payment->getName();
-						}
-
-						return $return;
-					})(
-						$payments
-					)
+					[null => '- payment -'] + $payments
 				),
 				'filterDeliveries' => $this->formatBootstrapSelectArray(
-					[null => '- delivery -'] + (static function (array $deliveries): array
-					{
-						$return = [];
-						/** @var Delivery $delivery */
-						foreach ($deliveries as $delivery) {
-							$return[$delivery->getId()] = (string) $delivery->getName();
-						}
-
-						return $return;
-					})(
-						$deliveries
-					)
+					[null => '- delivery -'] + $deliveries
 				),
 				'orderByOptions' => $this->formatBootstrapSelectArray(
 					[
@@ -283,9 +280,9 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'variantId' => $item->getVariant() === null ? null : $item->getVariant()->getId(),
 				'name' => $item->getLabel(),
 				'count' => $item->getCount(),
-				'price' => $item->getPrice(),
-				'sale' => $item->getSale(),
-				'finalPrice' => $item->getFinalPrice(),
+				'price' => $item->getPrice()->getValue(),
+				'sale' => $item->getSale()->getValue(),
+				'finalPrice' => $item->getFinalPrice()->getValue(),
 				'type' => 'product',
 			];
 		}
@@ -296,7 +293,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				? 'Unknown delivery'
 				: 'Delivery ' . $deliveryItem->getName(),
 			'count' => 1,
-			'price' => $order->getDeliveryPrice(),
+			'price' => $order->getDeliveryPrice()->getValue(),
 			'type' => 'delivery',
 		];
 		$paymentItem = $order->getPayment();
@@ -306,16 +303,14 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				? 'Unknown payment'
 				: 'Payment ' . $paymentItem->getName(),
 			'count' => 1,
-			'price' => $paymentItem === null ? 0 : $paymentItem->getPrice(),
+			'price' => $order->getPaymentPrice()->getValue(),
 			'type' => 'payment',
 		];
 
-		/** @var Delivery[] $deliveryList */
-		$deliveryList = $this->entityManager->getRepository(Delivery::class)->findAll();
 		$deliverySelectbox = [
 			null => '- Select delivery -',
 		];
-		foreach ($deliveryList as $delivery) {
+		foreach ($this->deliveryRepository->findAll() as $delivery) {
 			$deliverySelectbox[$delivery->getId()] = sprintf(
 				'%s (%d %s)',
 				(string) $delivery->getName(),
@@ -324,12 +319,10 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			);
 		}
 
-		/** @var Payment[] $paymentList */
-		$paymentList = $this->entityManager->getRepository(Payment::class)->findAll();
 		$paymentSelectbox = [
 			null => '- Select payment -',
 		];
-		foreach ($paymentList as $payment) {
+		foreach ($this->paymentRepository->findAll() as $payment) {
 			$paymentSelectbox[$payment->getId()] = sprintf(
 				'%s (%d %s)',
 				$payment->getName(),
@@ -337,23 +330,6 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				$order->getCurrencyCode(),
 			);
 		}
-
-		$invoices = [];
-		/*foreach ($order->getInvoices() as $invoice) {
-			$invoices[] = [
-				'id' => $invoice->getId(),
-				'number' => $invoice->getNumber(),
-				'price' => $invoice->getPrice(),
-				'paid' => $invoice->isPaid(),
-				'date' => $invoice->getInsertedDate(),
-				'url' => $this->link(
-					'Front:Invoice:default', [
-						'number' => $invoice->getNumber(),
-						'hash' => $order->getHash(),
-					]
-				),
-			];
-		}*/
 
 		$packages = [];
 		foreach ($order->getPackages() as $package) {
@@ -374,7 +350,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			$branch = $this->branchManager->getBranchById($deliveryItem, $branchId);
 		}
 
-		$formatAddress = static function (Address $address): array
+		$formatAddress = static function (AddressInterface $address): array
 		{
 			return [
 				'firstName' => $address->getFirstName(),
@@ -400,6 +376,8 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			[
 				'id' => $id,
 				'number' => $order->getNumber(),
+				'invoiceNumber' => $order->getInvoiceNumber(),
+				'locale' => $order->getLocale(),
 				'status' => $order->getStatus(),
 				'price' => $order->getPrice(),
 				'sale' => $order->getSale(),
@@ -433,9 +411,9 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'items' => $items,
 				'transactions' => $transactions,
 				'payments' => $payments,
-				'invoices' => $invoices,
 				'package' => $packages ?: null,
 				'packageHandoverUrl' => $order->getHandoverUrl(),
+				'notifications' => $this->notification->getActiveStatusTypes($order->getLocale()),
 			]
 		);
 	}
@@ -707,7 +685,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	}
 
 
-	public function postAddVirtualItem(int $orderId, string $name, int $price): void
+	public function postAddVirtualItem(int $orderId, string $name, string $price): void
 	{
 		$order = $this->getOrderById($orderId);
 		$item = new OrderItem($order, null, null, 1, $price);
@@ -736,33 +714,33 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	}
 
 
-	public function postSendEmail(int $id, int $statusId): void
+	public function postSendEmail(int $id, int $notificationId): void
 	{
-		$this->notification->sendEmail(
+		$this->notification->sendNotification(
 			order: $this->getOrderById($id),
-			status: $this->orderStatusManager->getStatusById($statusId),
+			notification: $notificationId,
 		);
-		$this->flashMessage('Notification e-mail has been sent.', 'success');
+		$this->flashMessage('Notification has been queued for sending.', 'success');
 		$this->sendOk();
 	}
 
 
-	public function postSetOrderSale(int $id, float $sale): void
+	public function postSetOrderSale(int $id, string $sale): void
 	{
 		$order = $this->getOrderById($id);
-		$order->setSale($sale);
+		$order->setSale(new Price($sale, $order->getCurrency()));
 		$this->entityManager->flush();
 		$this->flashMessage('The sale has been set.', 'success');
 		$this->sendOk();
 	}
 
 
-	public function postSetItemSale(int $id, int $itemId, float $sale): void
+	public function postSetItemSale(int $id, int $itemId, string $sale): void
 	{
 		$order = $this->getOrderById($id);
 		foreach ($order->getItems() as $item) {
 			if ($item->getId() === $itemId) {
-				$item->setSale($sale);
+				$item->setSale(new Price($sale, $order->getCurrency()));
 				$this->flashMessage('The sale has been set.', 'success');
 				break;
 			}
@@ -801,14 +779,23 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$notificationReadyToSend = $this->notification->getAvailableNotificationReadyToSend($locale);
 		$notificationTypes = $this->notification->getAvailableTypes();
 
+		$statusList = $this->orderStatusManager->getAllStatuses();
+
 		$statuses = [];
 		$selectList = [];
-		foreach ($this->orderStatusManager->getAllStatuses() as $status) {
+		foreach ($statusList as $status) {
 			$notifications = [];
 			foreach ($notificationTypes as $notificationType) {
 				$key = sprintf('%s-%s-%s', $locale, $status->getCode(), $notificationType);
 				$notifications[$notificationType] = isset($notificationReadyToSend[$key]);
 			}
+			$redirectOptions = [];
+			foreach ($statusList as $redirectOption) {
+				if ($redirectOption->getId() !== $status->getId()) {
+					$redirectOptions[$redirectOption->getId()] = $redirectOption->getName();
+				}
+			}
+			$redirectTo = $status->getRedirectTo();
 			$statuses[] = [
 				'id' => $status->getId(),
 				'name' => $status->getName(),
@@ -819,6 +806,8 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'position' => $status->getWorkflowPosition(),
 				'code' => $status->getCode(),
 				'color' => $status->getColor(),
+				'redirectTo' => $redirectTo !== null ? $redirectTo->getId() : null,
+				'redirectOptions' => $this->formatBootstrapSelectArray([null => '- no -'] + $redirectOptions),
 				'notification' => $notifications,
 			];
 			$selectList[$status->getCode()] = $status->getName();
@@ -860,7 +849,8 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	 *     publicLabel: string,
 	 *     systemHandle: string|null,
 	 *     position: int,
-	 *     color: string
+	 *     color: string,
+	 *     redirectTo: int|null
 	 * }> $statusList
 	 */
 	public function postSaveStatusList(array $statusList): void
@@ -873,6 +863,11 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			$status->setSystemHandle($item['systemHandle']);
 			$status->setWorkflowPosition((int) $item['position']);
 			$status->setColor($item['color']);
+			$status->setRedirectTo(
+				$item['redirectTo'] !== null
+					? $this->orderStatusManager->getStatusById($item['redirectTo'])
+					: null
+			);
 		}
 		$this->entityManager->flush();
 		$this->flashMessage('Status list has been updated.', self::FLASH_MESSAGE_SUCCESS);
@@ -957,6 +952,40 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$this->sendJson(
 			[
 				'items' => $documents,
+			]
+		);
+	}
+
+
+	public function actionHistory(int $id): void
+	{
+		$order = $this->getOrderById($id);
+
+		$statuses = [];
+		foreach ($this->orderStatusManager->getHistory($order) as $statusHistory) {
+			$statuses[] = [
+				'id' => $statusHistory->getId(),
+				'status' => $statusHistory->getStatus()->getLabel(),
+				'insertedDate' => $statusHistory->getInsertedDate(),
+			];
+		}
+
+		$notifications = [];
+		foreach ($this->notification->getHistory($order) as $notificationHistory) {
+			$notifications[] = [
+				'id' => $notificationHistory->getId(),
+				'label' => $notificationHistory->getNotification()->getStatus()->getLabel(),
+				'type' => $notificationHistory->getNotification()->getType(),
+				'subject' => $notificationHistory->getSubject(),
+				'content' => $notificationHistory->getPlaintextContent(),
+				'insertedDate' => $notificationHistory->getInsertedDate(),
+			];
+		}
+
+		$this->sendJson(
+			[
+				'statusList' => $statuses,
+				'notificationList' => $notifications,
 			]
 		);
 	}

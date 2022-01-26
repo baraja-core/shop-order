@@ -1,0 +1,49 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @var string $content
+ * @var string|null $logoUrl
+ * @var string|null $customFooter
+ */
+
+?>
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta charset="utf-8">
+	<style>
+      .content * {
+          font-family: Arial
+      }
+	</style>
+</head>
+<body>
+<div class="content" style="background-color:white;max-width:800px;margin:32px auto 0;padding:0 8px">
+	<?php
+	if ($logoUrl !== null) {
+		echo '<div style="margin-bottom:24px;padding-bottom:8px;border-bottom:1px solid #ddd">';
+		echo '<img src="' . $logoUrl . '">';
+		echo '</div>';
+	}
+	echo $content;
+	if ($customFooter !== null) {
+		echo '<div style="margin-top:24px;padding-bottom:8px;border-top:1px solid #ddd">';
+		echo $customFooter;
+		echo '</div>';
+	}
+	?>
+
+	<div style="margin-top:24px;text-align:center">
+		<div style="max-width:500px;margin:12px auto">
+			<i>
+				Tuto zprávu zasíláme na základě Vašeho získaného souhlasu.
+				V případě jakéhokoli dotazu se na nás neváhejte kdykoli obrátit odpovědí na tento e-mail.
+			</i>
+		</div>
+	</div>
+</div>
+</body>
+</html>

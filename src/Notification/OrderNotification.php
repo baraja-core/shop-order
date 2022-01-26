@@ -9,8 +9,11 @@ use Baraja\EcommerceStandard\DTO\OrderInterface;
 use Baraja\EcommerceStandard\DTO\OrderStatusInterface;
 use Baraja\EcommerceStandard\Service\OrderNotificationEmailProviderInterface;
 use Baraja\EcommerceStandard\Service\OrderNotificationSmsProviderInterface;
+use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderNotification as NotificationEntity;
+use Baraja\Shop\Order\Entity\OrderNotificationHistory;
 use Baraja\Shop\Order\Entity\OrderStatus;
+use Baraja\Shop\Order\Repository\OrderNotificationHistoryRepository;
 use Baraja\Shop\Order\Repository\OrderNotificationRepository;
 use Baraja\SimpleTemplate\Engine;
 use Baraja\SimpleTemplate\InvalidTemplateIntegrityException;
@@ -20,17 +23,23 @@ final class OrderNotification
 {
 	private OrderNotificationRepository $notificationRepository;
 
+	private OrderNotificationHistoryRepository $notificationHistoryRepository;
+
 	private ?Engine $engine = null;
 
 
 	public function __construct(
 		private EntityManagerInterface $entityManager,
+		private OrderNotificationDataFactoryAccessor $notificationDataFactory,
 		private ?OrderNotificationEmailProviderInterface $emailProvider = null,
 		private ?OrderNotificationSmsProviderInterface $smsProvider = null,
 	) {
 		$notificationRepository = $entityManager->getRepository(NotificationEntity::class);
+		$notificationHistoryRepository = $entityManager->getRepository(OrderNotificationHistory::class);
 		assert($notificationRepository instanceof OrderNotificationRepository);
+		assert($notificationHistoryRepository instanceof OrderNotificationHistoryRepository);
 		$this->notificationRepository = $notificationRepository;
+		$this->notificationHistoryRepository = $notificationHistoryRepository;
 	}
 
 
@@ -48,6 +57,28 @@ final class OrderNotification
 		}
 
 		return $return;
+	}
+
+
+	/**
+	 * @return array<int, array{id: int, type: string, status: string, label: string}>
+	 */
+	public function getActiveStatusTypes(string $locale): array
+	{
+		return $this->notificationRepository->getActiveStatusTypes($locale);
+	}
+
+
+	public function sendNotification(OrderInterface $order, NotificationEntity|int $notification): void
+	{
+		if (is_int($notification)) {
+			$notification = $this->notificationRepository->getById($notification);
+		}
+		if ($notification->getType() === NotificationEntity::TYPE_EMAIL) {
+			$this->sendEmail($order, $notification->getStatus());
+		} elseif ($notification->getType() === NotificationEntity::TYPE_SMS) {
+			$this->sendSms($order, $notification->getStatus());
+		}
 	}
 
 
@@ -70,6 +101,7 @@ final class OrderNotification
 			$subject = sprintf('Order %s', $order->getNumber());
 		}
 		$this->emailProvider->send($order, $subject, $content);
+		$this->logSent($order, notification: $template, subject: $subject, content: $content);
 	}
 
 
@@ -88,6 +120,7 @@ final class OrderNotification
 			return;
 		}
 		$this->smsProvider->send($order, $content);
+		$this->logSent($order, notification: $template, content: $content);
 	}
 
 
@@ -189,9 +222,7 @@ final class OrderNotification
 	 */
 	public function validateTemplate(string $template): void
 	{
-		$order = new SampleOrderEntity;
-		$data = new OrderNotificationData($order);
-		$this->getTemplateEngine()->validateTemplate($template, $data);
+		$this->getTemplateEngine()->validateTemplate($template, $this->notificationDataFactory->get()->create());
 	}
 
 
@@ -205,6 +236,15 @@ final class OrderNotification
 	}
 
 
+	/**
+	 * @return array<int, OrderNotificationHistory>
+	 */
+	public function getHistory(OrderInterface $order): array
+	{
+		return $this->notificationHistoryRepository->getHistory($order->getId());
+	}
+
+
 	private function renderTemplate(string $content, OrderInterface $order): string
 	{
 		if ($content === '') {
@@ -213,7 +253,7 @@ final class OrderNotification
 
 		return $this->getTemplateEngine()->renderTemplate(
 			template: $content,
-			data: new OrderNotificationData($order),
+			data: $this->notificationDataFactory->get()->create($order),
 		);
 	}
 
@@ -223,8 +263,7 @@ final class OrderNotification
 	 */
 	private function getDocumentation(): array
 	{
-		$order = new SampleOrderEntity;
-		$data = new OrderNotificationData($order);
+		$data = $this->notificationDataFactory->get()->create();
 
 		$return = [];
 		foreach ($this->getTemplateEngine()->parseAvailableVariables($data) as $variable) {
@@ -235,5 +274,20 @@ final class OrderNotification
 		}
 
 		return $return;
+	}
+
+
+	private function logSent(
+		OrderInterface $order,
+		NotificationEntity $notification,
+		?string $subject = null,
+		?string $content = null,
+	): void {
+		assert($order instanceof Order);
+		$n = new OrderNotificationHistory($order, $notification);
+		$n->setSubject($subject);
+		$n->setContent($content);
+		$this->entityManager->persist($n);
+		$this->entityManager->flush();
 	}
 }

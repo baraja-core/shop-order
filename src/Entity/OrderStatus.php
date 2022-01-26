@@ -6,8 +6,8 @@ namespace Baraja\Shop\Order\Entity;
 
 
 use Baraja\EcommerceStandard\DTO\OrderStatusInterface;
-use Doctrine\ORM\Mapping as ORM;
 use Baraja\Shop\Order\Repository\OrderStatusRepository;
+use Doctrine\ORM\Mapping as ORM;
 use Nette\Utils\Strings;
 
 #[ORM\Entity(repositoryClass: OrderStatusRepository::class)]
@@ -22,6 +22,8 @@ class OrderStatus implements OrderStatusInterface
 		STATUS_DONE = 'done',
 		STATUS_PREPARED = 'prepared',
 		STATUS_STORNO = 'storno',
+		STATUS_PAYMENT_PING = 'payment-ping',
+		STATUS_PAYMENT_FAILED = 'payment-failed',
 		STATUS_TEST = 'test',
 		STATUS_RETURNED = 'returned',
 		STATUS_MISSING_ITEM = 'missing-item',
@@ -36,6 +38,8 @@ class OrderStatus implements OrderStatusInterface
 		self::STATUS_DONE,
 		self::STATUS_PREPARED,
 		self::STATUS_STORNO,
+		self::STATUS_PAYMENT_PING,
+		self::STATUS_PAYMENT_FAILED,
 		self::STATUS_TEST,
 		self::STATUS_RETURNED,
 		self::STATUS_MISSING_ITEM,
@@ -65,6 +69,16 @@ class OrderStatus implements OrderStatusInterface
 
 	#[ORM\Column(type: 'integer', nullable: true, options: ['unsigned' => true])]
 	private ?int $workflowPosition = null;
+
+	/**
+	 * Internal smart logic.
+	 * Some order states can only serve as a virtual state used by third-party logic.
+	 * For example, the payment gateway will set the status to "payment failed" in case of a failure,
+	 * which will trigger internal workflow rules, but at the same time the order
+	 * will be immediately switched to the correct state.
+	 */
+	#[ORM\ManyToOne(targetEntity: self::class)]
+	private ?self $redirectTo = null;
 
 	#[ORM\Column(type: 'string', length: 7, nullable: true)]
 	private ?string $color = null;
@@ -182,6 +196,28 @@ class OrderStatus implements OrderStatusInterface
 			$workflowPosition = 0;
 		}
 		$this->workflowPosition = $workflowPosition;
+	}
+
+
+	public function getRedirectTo(): ?self
+	{
+		return $this->redirectTo;
+	}
+
+
+	public function setRedirectTo(?self $redirectTo): void
+	{
+		if ($redirectTo !== null) {
+			$id = $this->getId();
+			$parent = $redirectTo;
+			do {
+				if ($parent->getId() === $id) {
+					throw new \InvalidArgumentException('Please never create circular redirect.');
+				}
+				$parent = $parent->getRedirectTo();
+			} while ($parent !== null);
+		}
+		$this->redirectTo = $redirectTo;
 	}
 
 

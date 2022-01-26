@@ -78,7 +78,7 @@ class OrderItem implements OrderItemInterface
 		$this->product = $product;
 		$this->variant = $variant;
 		$this->count = $count;
-		$this->price = $price;
+		$this->price = Price::normalize($price);
 		$this->setUnit($unit);
 		if ($product !== null) {
 			$this->setLabel((string) $product->getName());

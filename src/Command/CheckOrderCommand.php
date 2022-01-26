@@ -9,7 +9,6 @@ use Baraja\BankTransferAuthorizator\Authorizator;
 use Baraja\Doctrine\EntityManager;
 use Baraja\Doctrine\EntityManagerException;
 use Baraja\FioPaymentAuthorizator\Transaction;
-use Baraja\Shop\Order\Emailer;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderStatus;
 use Baraja\Shop\Order\OrderStatusManager;
@@ -29,7 +28,6 @@ final class CheckOrderCommand extends Command
 	public function __construct(
 		private EntityManager $entityManager,
 		private OrderStatusManager $orderStatusManager,
-		private Emailer $emailer,
 		private OrderPaymentManager $tm,
 		private OrderPaymentClient $orderPaymentClient,
 		private OrderWorkflow $workflow,
@@ -112,7 +110,11 @@ final class CheckOrderCommand extends Command
 			&& $now - $order->getInsertedDate()->getTimestamp() > $this->workflow->getIntervalForPingOrder()
 		) {
 			echo ' (ping mail)';
-			$this->emailer->sendOrderPingMail($order);
+			try {
+				$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_PAYMENT_PING);
+			} catch (\InvalidArgumentException) {
+				// status ping is not implemented
+			}
 			$order->setPinged(true);
 		}
 	}

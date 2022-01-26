@@ -10,13 +10,20 @@ use Baraja\Doctrine\EntityManager;
 use Baraja\Plugin\BasePlugin;
 use Baraja\Plugin\SimpleComponent\Button;
 use Baraja\Shop\Order\Entity\Order;
+use Baraja\Shop\Order\Repository\OrderRepository;
 use Baraja\Url\Url;
 
 final class CmsOrderPlugin extends BasePlugin implements SearchablePlugin
 {
+	private OrderRepository $orderRepository;
+
+
 	public function __construct(
 		private EntityManager $entityManager,
 	) {
+		$orderRepository = $entityManager->getRepository(Order::class);
+		assert($orderRepository instanceof OrderRepository);
+		$this->orderRepository = $orderRepository;
 	}
 
 
@@ -41,32 +48,24 @@ final class CmsOrderPlugin extends BasePlugin implements SearchablePlugin
 	public function actionDetail(int $id): void
 	{
 		if ($id < 1) {
-			$results = [];
-		} else {
-			/** @var array<int, array{id: int, number: string, hash: string}> $results */
-			$results = $this->entityManager->getRepository(Order::class)
-				->createQueryBuilder('o')
-				->select('PARTIAL o.{id, number, hash}')
-				->where('o.id IN (:ids)')
-				->setParameter('ids', [$id, $id - 1, $id + 1])
-				->getQuery()
-				->getArrayResult();
+			$this->error(sprintf('Order %d does not exist.', $id));
 		}
-
-		$order = $this->filterById($results, $id);
-		if ($order === null) {
-			$this->error('Order "' . $id . '" does not exist.');
+		try {
+			$result = $this->orderRepository->getSimplePluginInfo($id);
+		} catch (\InvalidArgumentException $e) {
+			$this->error($e->getMessage());
 		}
-		$this->setTitle('(' . $order['number'] . ')');
+		$this->setTitle(sprintf('%s %s (%s)',
+			(string) $result['order']['group']['name'],
+			$result['order']['locale'],
+			$result['order']['number'],
+		));
 
-		$last = $this->getButtonById($results, $id - 1, 'Last');
-		if ($last !== null) {
-			$this->addButton($last);
+		if ($result['before'] !== null) {
+			$this->addButtonByOrder($result['before'], 'Last');
 		}
-
-		$next = $this->getButtonById($results, $id + 1, 'Next');
-		if ($next !== null) {
-			$this->addButton($next);
+		if ($result['after'] !== null) {
+			$this->addButtonByOrder($result['after'], 'Next');
 		}
 
 		$this->addButton(
@@ -74,7 +73,7 @@ final class CmsOrderPlugin extends BasePlugin implements SearchablePlugin
 				variant: Button::VARIANT_SECONDARY,
 				label: 'Print',
 				action: Button::ACTION_LINK_TARGET,
-				target: Url::get()->getBaseUrl() . '/order/print?hash=' . $order['hash'],
+				target: Url::get()->getBaseUrl() . '/order/print?hash=' . $result['order']['hash'],
 			)
 		);
 	}
@@ -90,46 +89,17 @@ final class CmsOrderPlugin extends BasePlugin implements SearchablePlugin
 
 
 	/**
-	 * @param array<int, array{id: int, number: string, hash: string}> $results
-	 * @return array{id: int, number: string, hash: string}|null
+	 * @param array{id: int, number: string} $order
 	 */
-	private function filterById(array $results, int $id): ?array
+	private function addButtonByOrder(array $order, string $label): ?Button
 	{
-		if ($id < 1) {
-			return null;
-		}
-		foreach ($results as $result) {
-			if ($result['id'] === $id) {
-				return $result;
-			}
-		}
-
-		return null;
-	}
-
-
-	/**
-	 * @param array<int, array{id: int, number: string, hash: string}> $results
-	 */
-	private function getButtonById(array $results, int $id, string $label): ?Button
-	{
-		$order = $this->filterById($results, $id);
-		if ($order !== null) {
-			$link = $this->link(
-				'CmsOrder:detail',
-				[
-					'id' => $order['id'],
-				]
-			);
-
-			return new Button(
-				variant: Button::VARIANT_INFO,
-				label: $label . ' (' . $order['number'] . ')',
-				action: Button::ACTION_LINK,
-				target: $link,
-			);
-		}
-
-		return null;
+		return new Button(
+			variant: Button::VARIANT_INFO,
+			label: sprintf('%s (%s)', $label, $order['number']),
+			action: Button::ACTION_LINK,
+			target: $this->link('CmsOrder:detail', [
+				'id' => $order['id'],
+			]),
+		);
 	}
 }

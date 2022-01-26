@@ -48,6 +48,22 @@ final class OrderNotificationRepository extends EntityRepository
 	}
 
 
+	public function getById(int $id): OrderNotification
+	{
+		$return = $this->createQueryBuilder('n')
+			->select('n, status')
+			->join('n.status', 'status')
+			->where('n.id = :id')
+			->setParameter('id', $id)
+			->setMaxResults(1)
+			->getQuery()
+			->getSingleResult();
+		assert($return instanceof OrderNotification);
+
+		return $return;
+	}
+
+
 	/**
 	 * @param array<int, string> $types
 	 * @return array<string, OrderNotification>
@@ -76,6 +92,36 @@ final class OrderNotificationRepository extends EntityRepository
 				$notification->getType(),
 			);
 			$return[$key] = $notification;
+		}
+
+		return $return;
+	}
+
+
+	/**
+	 * @return array<int, array{id: int, type: string, status: string, label: string}>
+	 */
+	public function getActiveStatusTypes(string $locale): array
+	{
+		/** @var array<int, OrderNotification> $result */
+		$result = $this->createQueryBuilder('n')
+			->select('n, status')
+			->join('n.status', 'status')
+			->andWhere('n.active = TRUE')
+			->andWhere('n.locale = :locale')
+			->setParameter('locale', $locale)
+			->orderBy('status.workflowPosition', 'DESC')
+			->getQuery()
+			->getResult();
+
+		$return = [];
+		foreach ($result as $notification) {
+			$return[] = [
+				'id' => $notification->getId(),
+				'type' => $notification->getType(),
+				'status' => $notification->getStatus()->getCode(),
+				'label' => $notification->getStatus()->getLabel(),
+			];
 		}
 
 		return $return;

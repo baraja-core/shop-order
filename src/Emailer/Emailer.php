@@ -5,32 +5,19 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order;
 
 
-use Baraja\DynamicConfiguration\Configuration;
 use Baraja\EcommerceStandard\DTO\OrderInterface;
 use Baraja\EcommerceStandard\Service\OrderNotificationEmailProviderInterface;
 use Baraja\Emailer\EmailerAccessor;
-use Baraja\Shop\Order\Entity\Order;
-use Baraja\Shop\Order\Entity\OrderOnlinePayment;
 use Baraja\Shop\ShopInfo;
-use Baraja\Url\Url;
 use Doctrine\ORM\EntityManagerInterface;
-use Latte\Engine;
-use Latte\Runtime\FilterInfo;
-use Nette\Application\LinkGenerator;
-use Nette\Localization\Translator;
-use Nette\Mail\Mailer;
 use Nette\Mail\Message;
 
 final class Emailer implements OrderNotificationEmailProviderInterface
 {
 	public function __construct(
-		private Mailer $mailer,
 		private EmailerAccessor $emailer,
 		private ShopInfo $shopInfo,
-		private Configuration $configuration,
-		private LinkGenerator $linkGenerator,
 		private EntityManagerInterface $entityManager,
-		private ?Translator $translator = null
 	) {
 	}
 
@@ -38,70 +25,20 @@ final class Emailer implements OrderNotificationEmailProviderInterface
 	public function send(OrderInterface $order, string $subject, string $content): void
 	{
 		$customer = $order->getCustomer();
-		if ($customer === null) {
+		$customerEmail = $customer !== null ? $customer->getEmail() : null;
+		if ($customerEmail === null) {
 			return;
 		}
 
 		$message = (new Message)
 			->setFrom($this->getFrom())
 			->setSubject($subject)
-			->addTo($customer->getEmail())
-			->setHtmlBody($content);
+			->addTo($customerEmail)
+			->setHtmlBody($this->renderTemplate($content));
 
-		$email = $this->emailer->get()->send($message);
-		$email->setTag(sprintf('order-%s', $order->getNumber()));
+		$email = $this->emailer->get()->insertMessageToQueue($message);
+		$email->setTag(sprintf('order-%s-%d', $order->getNumber(), $order->getId()));
 		$this->entityManager->flush();
-	}
-
-
-	public function sendOrderPingMail(Order $order): void
-	{
-		$this->mailer->send(
-			(new Message)
-				->setFrom($this->getFrom())
-				->setSubject(
-					'Upomínka nezaplacené objednávky ' . $order->getNumber()
-					. ' z obchodu ' . $this->shopInfo->getShopName()
-				)
-				->addTo($order->getCustomer()->getEmail())
-				->setHtmlBody(
-					$this->getEngine()
-						->renderToString(
-							__DIR__ . '/templates/orderPing.latte',
-							array_merge(
-								$this->getDefaultParameters(),
-								[
-									'order' => $order,
-									'orderDetailLink' => $this->internalLink('/objednavka/' . $order->getHash()),
-								],
-							)
-						)
-				)
-		);
-	}
-
-
-	public function sendOrderFailMail(OrderOnlinePayment $payment): void
-	{
-		$this->mailer->send(
-			(new Message)
-				->setFrom($this->getFrom())
-				->setSubject('Platba objednávky ' . $payment->getOrder()->getNumber() . ' selhala')
-				->addTo($payment->getOrder()->getCustomer()->getEmail())
-				->setHtmlBody(
-					$this->getEngine()
-						->renderToString(
-							__DIR__ . '/templates/orderFailGopay.latte', array_merge(
-								$this->getDefaultParameters(), [
-									'order' => $payment->getOrder(),
-									'orderDetailLink' => $this->internalLink(
-										'/objednavka/' . $payment->getOrder()->getHash()
-									),
-								]
-							)
-						)
-				)
-		);
 	}
 
 
@@ -116,42 +53,29 @@ final class Emailer implements OrderNotificationEmailProviderInterface
 	}
 
 
-	private function internalLink(string $path): string
-	{
-		return Url::get()->getBaseUrl() . '/' . $path;
-	}
-
-
 	/**
-	 * @param array<string, mixed> $params
+	 * Use default layout template and include content block.
 	 */
-	private function link(string $dest, array $params = []): string
+	private function renderTemplate(string $content): string
 	{
-		return $this->linkGenerator->link((($dest[0] ?? '') === ':' ? $dest : 'Front:' . $dest), $params);
-	}
+		ob_start(static function (){});
 
-
-	/**
-	 * @return array<string, mixed>
-	 */
-	private function getDefaultParameters(): array
-	{
-		return [
-			'customFooter' => $this->configuration->get('email-footer', 'clever'),
+		$args = [
+			'content' => $content,
+			'logoUrl' => $this->shopInfo->getLogoUrl(),
+			'customFooter' => $this->shopInfo->getCustomEmailFooter(),
 		];
-	}
 
+		/** @phpstan-ignore-next-line */
+		extract($args, EXTR_OVERWRITE);
 
-	private function getEngine(): Engine
-	{
-		$engine = new Engine;
-		if ($this->translator !== null) {
-			$engine->addFilter(
-				'translate',
-				fn(FilterInfo $fi, ...$args): string => $this->translator->translate(...$args),
-			);
+		try {
+			require __DIR__ . '/layout.phtml';
+
+			return (string) ob_get_clean();
+		} catch (\Throwable $e) {
+			ob_end_clean();
+			throw new \RuntimeException($e->getMessage(), 500, $e);
 		}
-
-		return $engine;
 	}
 }

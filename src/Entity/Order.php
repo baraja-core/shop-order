@@ -16,6 +16,7 @@ use Baraja\Shop\Address\Entity\Address;
 use Baraja\Shop\Customer\Entity\Customer;
 use Baraja\Shop\Delivery\Entity\Delivery;
 use Baraja\Shop\Entity\Currency\Currency;
+use Baraja\Shop\Order\Repository\OrderRepository;
 use Baraja\Shop\Payment\Entity\Payment;
 use Baraja\Shop\Price\Price;
 use Baraja\VariableGenerator\Order\OrderEntity;
@@ -24,9 +25,10 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Nette\Utils\Random;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: OrderRepository::class)]
 #[ORM\Table(name: 'shop__order')]
 #[ORM\UniqueConstraint(name: 'order__number_group', columns: ['number', 'group_id'])]
+#[ORM\UniqueConstraint(name: 'order__id_group', columns: ['id', 'group_id'])]
 #[ORM\Index(columns: ['number'], name: 'order__number')]
 #[ORM\Index(columns: ['status_id'], name: 'order__status')]
 #[ORM\Index(columns: ['inserted_date'], name: 'order__inserted_date')]
@@ -91,7 +93,11 @@ class Order implements OrderInterface, OrderEntity
 
 	/** @var numeric-string|null */
 	#[ORM\Column(type: 'decimal', precision: 15, scale: 4, options: ['unsigned' => true])]
-	private ?string $deliveryPrice;
+	private ?string $deliveryPrice = null;
+
+	/** @var numeric-string|null */
+	#[ORM\Column(type: 'decimal', precision: 15, scale: 4, options: ['unsigned' => true])]
+	private ?string $paymentPrice = null;
 
 	#[ORM\Column(type: 'integer', nullable: true, options: ['unsigned' => true])]
 	private ?int $deliveryBranchId = null;
@@ -264,6 +270,32 @@ class Order implements OrderInterface, OrderEntity
 	public function setDeliveryPrice(string $deliveryPrice): void
 	{
 		$this->deliveryPrice = Price::normalize($deliveryPrice);
+	}
+
+
+	public function getPaymentPrice(): Price
+	{
+		if ($this->paymentPrice === null) {
+			if ($this->payment !== null) {
+				$return = $this->payment->getPrice();
+			} else {
+				$return = '0';
+			}
+			$this->paymentPrice = $return;
+		} else {
+			$return = $this->paymentPrice;
+		}
+
+		return new Price($return, $this->currency);
+	}
+
+
+	/**
+	 * @param numeric-string $paymentPrice
+	 */
+	public function setPaymentPrice(string $paymentPrice): void
+	{
+		$this->paymentPrice = Price::normalize($paymentPrice);
 	}
 
 
