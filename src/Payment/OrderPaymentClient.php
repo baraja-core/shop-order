@@ -7,27 +7,26 @@ namespace Baraja\Shop\Order\Payment;
 
 use Baraja\BankTransferAuthorizator\MultiAuthorizator;
 use Baraja\Doctrine\EntityManager;
+use Baraja\EcommerceStandard\Service\OrderPaymentGatewayInterface;
 use Baraja\FioPaymentAuthorizator\FioPaymentAuthorizator;
 use Baraja\Shop\Delivery\Entity\Delivery;
 use Baraja\Shop\Order\Application\WebController;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\OrderManager;
-use Baraja\Shop\Order\Payment\Gateway\Gateway;
 use Nette\Caching\Storage;
 
 final class OrderPaymentClient
 {
-	/** @var OrderPaymentProvider[] */
-	private array $providers = [];
-
-	private ?OrderPaymentProvider $fallbackProvider = null;
-
 	private OrderManager $orderManager;
 
 
+	/**
+	 * @param OrderPaymentGatewayInterface[] $providers
+	 */
 	public function __construct(
 		private EntityManager $entityManager,
 		private Storage $storage,
+		private array $providers = [],
 	) {
 	}
 
@@ -55,32 +54,25 @@ final class OrderPaymentClient
 	public function processPayment(Order $order): void
 	{
 		if ($this->orderManager->isPaid($order)) {
+			echo 'Order has been paid.';
 			return;
 		}
 
 		$provider = $this->getBestCompatibleProvider($order);
-		if ($provider instanceof Gateway) {
-			$response = $provider->pay($order);
-			$redirect = $response->getRedirect();
-			$errorMessage = $response->getErrorMessage();
-			if ($redirect !== null) {
-				WebController::redirect($redirect);
-			}
-			if ($errorMessage !== null) {
-				echo $errorMessage;
-				die;
-			}
-		} else {
-			throw new \LogicException(
-				'Order can not be paid, '
-				. 'because provider "' . $provider::class . '" is not gateway.',
-			);
+		$response = $provider->pay($order);
+		$redirect = $response->getRedirect();
+		$errorMessage = $response->getErrorMessage();
+		if ($redirect !== null) {
+			WebController::redirect($redirect);
 		}
-		throw new \LogicException('Order can not be paid, because no provider exist.');
+		if ($errorMessage !== null) {
+			echo htmlspecialchars($errorMessage);
+			die;
+		}
 	}
 
 
-	public function getBestCompatibleProvider(Order $order): OrderPaymentProvider
+	public function getBestCompatibleProvider(Order $order): OrderPaymentGatewayInterface
 	{
 		$payment = $order->getPayment();
 		if ($payment === null) {
@@ -92,14 +84,8 @@ final class OrderPaymentClient
 				return $provider;
 			}
 		}
-		if ($this->fallbackProvider === null) {
-			throw new \InvalidArgumentException(
-				'Order can not be paid, because no compatible provider exist. '
-				. 'Did you set fallback provider?',
-			);
-		}
 
-		return $this->fallbackProvider;
+		throw new \InvalidArgumentException('Order can not be paid, because no compatible provider exist.');
 	}
 
 
@@ -120,7 +106,7 @@ final class OrderPaymentClient
 	}
 
 
-	public function addPaymentProvider(OrderPaymentProvider $provider): void
+	public function addPaymentProvider(OrderPaymentGatewayInterface $provider): void
 	{
 		$this->providers[] = $provider;
 	}

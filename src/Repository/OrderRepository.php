@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Repository;
 
 
+use Baraja\Shop\Order\Entity\Order;
 use Doctrine\ORM\EntityRepository;
+use Doctrine\ORM\NonUniqueResultException;
+use Doctrine\ORM\NoResultException;
 
 final class OrderRepository extends EntityRepository
 {
@@ -67,5 +70,22 @@ final class OrderRepository extends EntityRepository
 			->getArrayResult();
 
 		return $return[0] ?? null;
+	}
+
+
+	/**
+	 * @throws NoResultException|NonUniqueResultException
+	 */
+	public function getByHash(string $hash): Order
+	{
+		$return = $this->createQueryBuilder('o')
+			->where('o.hash = :hash')
+			->setParameter('hash', $hash)
+			->setMaxResults(1)
+			->getQuery()
+			->getSingleResult();
+		assert($return instanceof Order);
+
+		return $return;
 	}
 }

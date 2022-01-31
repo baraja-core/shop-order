@@ -5,40 +5,66 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order;
 
 
-use Baraja\Doctrine\EntityManager;
 use Baraja\DynamicConfiguration\Configuration;
-use Baraja\Shop\Currency\CurrencyManager;
+use Baraja\EcommerceStandard\DTO\OrderInterface;
+use Baraja\EcommerceStandard\Service\OrderPaymentGatewayInterface;
 use Baraja\Shop\Order\Application\WebController;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderOnlinePayment;
 use Baraja\Shop\Order\Entity\OrderStatus;
-use Baraja\Shop\Order\Payment\Gateway\Gateway;
 use Baraja\Shop\Order\Payment\Gateway\GatewayResponse;
+use Baraja\Shop\Order\Repository\OrderOnlinePaymentRepository;
+use Baraja\Shop\Order\Repository\OrderRepository;
 use Contributte\GopayInline\Api\Entity\PaymentFactory;
 use Contributte\GopayInline\Api\Lists\PaymentInstrument;
 use Contributte\GopayInline\Api\Lists\PaymentState;
 use Contributte\GopayInline\Client;
 use Contributte\GopayInline\Config;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
 use Psr\Log\LoggerInterface;
-use Tracy\Debugger;
 
-final class GoPayGatewayBridge implements Gateway
+final class GoPayGatewayBridge implements OrderPaymentGatewayInterface
 {
+	private OrderRepository $orderRepository;
+
+	private OrderOnlinePaymentRepository $orderOnlinePaymentRepository;
+
+	private ?Client $client = null;
+
+
 	public function __construct(
 		private OrderStatusManager $orderStatusManager,
-		private EntityManager $entityManager,
+		private EntityManagerInterface $entityManager,
 		private Configuration $configuration,
-		private Emailer $emailer,
-		private CurrencyManager $currencyManager,
 		private ?LoggerInterface $logger = null,
 	) {
+		$orderRepository = $entityManager->getRepository(Order::class);
+		$orderOnlinePaymentRepository = $entityManager->getRepository(OrderOnlinePayment::class);
+		assert($orderRepository instanceof OrderRepository);
+		assert($orderOnlinePaymentRepository instanceof OrderOnlinePaymentRepository);
+		$this->orderRepository = $orderRepository;
+		$this->orderOnlinePaymentRepository = $orderOnlinePaymentRepository;
 	}
 
 
-	public function pay(Order $order): GatewayResponse
+	public function pay(OrderInterface $order): GatewayResponse
 	{
+		$customer = $order->getCustomer();
+		if ($customer === null) {
+			throw new \InvalidArgumentException(sprintf('Customer for order %s is mandatory.', $order->getNumber()));
+		}
+		$linkGenerator = WebController::getLinkGenerator();
+
+		$items = [];
+		foreach ($order->getItems() as $orderItem) {
+			$items[] = [
+				'name' => $orderItem->getLabel(),
+				'amount' => (float) $orderItem->getFinalPrice()->getValue(),
+			];
+		}
+
 		$response = $this->getClient()->payments->createPayment(
 			PaymentFactory::create(
 				[
@@ -46,32 +72,19 @@ final class GoPayGatewayBridge implements Gateway
 						'default_payment_instrument' => PaymentInstrument::PAYMENT_CARD,
 						'allowed_payment_instruments' => [PaymentInstrument::PAYMENT_CARD],
 						'contact' => [
-							'first_name' => $order->getCustomer()->getFirstName(),
-							'last_name' => $order->getCustomer()->getLastName(),
-							'email' => $order->getCustomer()->getEmail(),
+							'first_name' => $customer->getFirstName(),
+							'last_name' => $customer->getLastName(),
+							'email' => $customer->getEmail(),
 						],
 					],
-					'amount' => $order->getPrice()->getValue(),
-					'currency' => $this->currencyManager->getMainCurrency()->getCode(),
+					'amount' => (float) $order->getPrice()->getValue(),
+					'currency' => $order->getCurrency()->getCode(),
 					'order_number' => $order->getNumber(),
-					'order_description' => 'Objednávka ' . $order->getNumber(),
-					'items' => [
-						[
-							'name' => 'Objednávka ' . $order->getNumber(),
-							'amount' => $order->getPrice()->getValue(),
-						],
-					],
+					'order_description' => (string) $order->getNotice(),
+					'items' => $items,
 					'callback' => [
-						'return_url' => WebController::getLinkGenerator()->paymentHandle(
-							order: $order,
-							handler: 'checkPayment',
-							params: ['hash' => $order->getHash()],
-						),
-						'notify_url' => WebController::getLinkGenerator()->paymentHandle(
-							order: $order,
-							handler: 'notify',
-							params: ['orderId' => $order->getHash()],
-						),
+						'return_url' => $linkGenerator->paymentHandle(order: $order, handler: 'checkPayment'),
+						'notify_url' => $linkGenerator->paymentHandle(order: $order, handler: 'notify'),
 					],
 					'lang' => strtoupper($order->getLocale()),
 				]
@@ -95,7 +108,7 @@ final class GoPayGatewayBridge implements Gateway
 		}
 
 		return new GatewayResponse(
-			WebController::getLinkGenerator()->default($order),
+			$linkGenerator->default($order),
 			'An error occurred during payment processing.',
 		);
 	}
@@ -107,48 +120,28 @@ final class GoPayGatewayBridge implements Gateway
 	}
 
 
-	public function getPaymentStatus(Order $order): string
+	public function getPaymentStatus(OrderInterface $order): string
 	{
-		return 'new';
+		return OrderStatus::STATUS_NEW;
 	}
 
 
 	public function handleCheckPayment(string $hash, ?int $id = null): GatewayResponse
 	{
-		/** @var Order $order */
-		$order = $this->entityManager->getRepository(Order::class)
-			->createQueryBuilder('o')
-			->where('o.hash = :hash')
-			->setParameter('hash', $hash)
-			->getQuery()
-			->getSingleResult();
-
+		$linkGenerator = WebController::getLinkGenerator();
+		$order = $this->orderRepository->getByHash($hash);
 		try {
-			/** @var OrderOnlinePayment $payment */
-			$payment = $this->entityManager->getRepository(OrderOnlinePayment::class)
-				->createQueryBuilder('payment')
-				->leftJoin('payment.order', 'o')
-				->where('payment.gopayId = :gopayId')
-				->andWhere('o.hash = :orderHash')
-				->setParameters(
-					[
-						'gopayId' => $id,
-						'orderHash' => $hash,
-					]
-				)
-				->setMaxResults(1)
-				->getQuery()
-				->getSingleResult();
+			$payment = $this->orderOnlinePaymentRepository->getByGoPayIdAndHash($hash, $id);
 		} catch (NoResultException | NonUniqueResultException) {
 			return new GatewayResponse(
-				redirect: WebController::getLinkGenerator()->default($order),
-				errorMessage: 'Chyba při zpracování objednávky.'
+				redirect: $linkGenerator->default($order),
+				errorMessage: 'Order processing error.'
 			);
 		}
 		if ($payment->getOrder()->getStatus()->getCode() === OrderStatus::STATUS_PAID) {
 			return new GatewayResponse(
-				redirect: WebController::getLinkGenerator()->default($order),
-				errorMessage: 'Objednávka již byla zaplacena.'
+				redirect: $linkGenerator->default($order),
+				errorMessage: 'The order has already been paid for.'
 			);
 		}
 
@@ -160,38 +153,21 @@ final class GoPayGatewayBridge implements Gateway
 		$this->entityManager->flush();
 
 		if ($status === PaymentState::PAID) {
-			try {
-				$this->orderStatusManager->setStatus($payment->getOrder(), OrderStatus::STATUS_PAID);
-			} catch (\Throwable $e) {
-				Debugger::log($e);
-
-				return new GatewayResponse(
-					redirect: WebController::getLinkGenerator()->default($order),
-					errorMessage: 'Odeslání e-mailu se stavem objednávky selhalo.'
-				);
-			}
+			$order->setPaid(true);
+			$this->orderStatusManager->setStatus($payment->getOrder(), OrderStatus::STATUS_PAID);
 
 			return new GatewayResponse(
-				redirect: WebController::getLinkGenerator()->default($order),
+				redirect: $linkGenerator->default($order),
 			);
 		}
-		// order failed
 		if ($statusChanged === true) {
-			try {
-				$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_PAYMENT_FAILED);
-			} catch (\InvalidArgumentException) {
-				// status payment failed does not exist
-				return new GatewayResponse(
-					redirect: null,
-					errorMessage: 'Odeslání e-mailu se stavem objednávky selhalo.'
-				);
-			}
+			$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_PAYMENT_FAILED);
 		}
 
 		return new GatewayResponse(
-			redirect: WebController::getLinkGenerator()->default($order),
+			redirect: $linkGenerator->default($order),
 			errorMessage:
-			'Při zpracování platby došlo k chybě. Prosím, pokuste se objednávku znovu zaplatit. Podrobnosti jsme Vám poslali také na e-mail.'
+			'An error occurred during the payment processing. Please try to pay the order again. We have also sent you the details by email.'
 		);
 	}
 
@@ -204,16 +180,20 @@ final class GoPayGatewayBridge implements Gateway
 
 	private function getClient(): Client
 	{
-		/** @var array{go-id: string, client-id: string, client-secret: string} $config */
-		$config = $this->configuration->getMultipleMandatory(['go-id', 'client-id', 'client-secret'], 'gopay');
+		if ($this->client === null) {
+			/** @var array{go-id: string, client-id: string, client-secret: string, environment: string} $config */
+			$config = $this->configuration->getMultipleMandatory(['go-id', 'client-id', 'client-secret', 'environment'], 'gopay');
 
-		return new Client(
-			new Config(
-				(float) $config['go-id'],
-				$config['client-id'],
-				$config['client-secret'],
-				Config::PROD,
-			)
-		);
+			$this->client = new Client(
+				new Config(
+					(float) $config['go-id'],
+					$config['client-id'],
+					$config['client-secret'],
+					$config['environment'],
+				)
+			);
+		}
+
+		return $this->client;
 	}
 }

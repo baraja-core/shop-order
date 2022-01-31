@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Entity;
 
 
+use Baraja\EcommerceStandard\DTO\OrderInterface;
+use Baraja\Shop\Order\Repository\OrderOnlinePaymentRepository;
+use Baraja\Shop\Price\Price;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: OrderOnlinePaymentRepository::class)]
 #[ORM\Table(name: 'shop__order_payment')]
 class OrderOnlinePayment implements OrderPaymentEntity
 {
@@ -17,26 +20,30 @@ class OrderOnlinePayment implements OrderPaymentEntity
 	protected int $id;
 
 	#[ORM\ManyToOne(targetEntity: Order::class, inversedBy: 'payments')]
-	private Order $order;
+	private OrderInterface $order;
 
 	#[ORM\Column(type: 'string', length: 64)]
 	private string $gatewayId;
 
-	#[ORM\Column(type: 'float', options: ['unsigned' => true])]
-	private float $price;
+	/** @var numeric-string */
+	#[ORM\Column(type: 'decimal', precision: 15, scale: 4, options: ['unsigned' => true])]
+	private string $price;
 
 	#[ORM\Column(type: 'string', length: 64, nullable: true)]
 	private ?string $status = null;
 
-	#[ORM\Column(type: 'datetime')]
+	#[ORM\Column(type: 'datetime_immutable')]
 	private \DateTimeInterface $insertedDate;
 
 
-	public function __construct(Order $order, string $gatewayId, ?float $price = null)
+	/**
+	 * @param numeric-string|null $price
+	 */
+	public function __construct(OrderInterface $order, string $gatewayId, ?string $price = null)
 	{
 		$this->order = $order;
 		$this->gatewayId = $gatewayId;
-		$this->price = $price ?? $order->getPrice();
+		$this->price = Price::normalize($price ?? $order->getPrice()->getValue());
 		$this->insertedDate = new \DateTimeImmutable;
 	}
 
@@ -47,7 +54,7 @@ class OrderOnlinePayment implements OrderPaymentEntity
 	}
 
 
-	public function getOrder(): Order
+	public function getOrder(): OrderInterface
 	{
 		return $this->order;
 	}
@@ -59,9 +66,12 @@ class OrderOnlinePayment implements OrderPaymentEntity
 	}
 
 
-	public function getPrice(): float
+	/**
+	 * @return numeric-string
+	 */
+	public function getPrice(): string
 	{
-		return $this->price;
+		return Price::normalize($this->price);
 	}
 
 

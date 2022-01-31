@@ -12,7 +12,9 @@ use Baraja\EcommerceStandard\DTO\OrderInterface;
 use Baraja\EcommerceStandard\Service\OrderManagerInterface;
 use Baraja\Shop\Delivery\BranchManager;
 use Baraja\Shop\Order\Entity\Order;
+use Baraja\Shop\Order\Entity\OrderBankPayment;
 use Baraja\Shop\Order\Entity\OrderFile;
+use Baraja\Shop\Order\Entity\OrderOnlinePayment;
 use Baraja\Shop\Order\Payment\OrderPaymentClient;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
@@ -72,19 +74,25 @@ final class OrderManager implements OrderManagerInterface
 	}
 
 
+	/**
+	 * Securely verify that the order has actually been paid for.
+	 */
 	public function isPaid(OrderInterface $order): bool
 	{
-		$sum = 0;
+		$sum = '0';
 		foreach ($order->getPayments() as $payment) {
+			assert($payment instanceof OrderOnlinePayment);
 			if ($payment->getStatus() === 'PAID') {
-				$sum += $payment->getPrice();
+				$sum = bcadd($sum, $payment->getPrice());
 			}
 		}
 		foreach ($order->getTransactions() as $transaction) {
-			$sum += $transaction->getPrice();
+			assert($transaction instanceof OrderBankPayment);
+			$sum = bcadd($sum, $transaction->getPrice());
 		}
+		$orderPrice = $order->getBasePrice();
 
-		return $order->getBasePrice() <= $sum;
+		return $orderPrice->isEqualTo($sum) || $orderPrice->isSmallerThan($sum);
 	}
 
 

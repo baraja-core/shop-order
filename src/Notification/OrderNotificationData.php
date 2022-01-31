@@ -7,11 +7,11 @@ namespace Baraja\Shop\Order\Notification;
 
 use Baraja\DynamicConfiguration\Configuration;
 use Baraja\EcommerceStandard\DTO\OrderInterface;
+use Baraja\Shop\Order\Application\LinkGenerator;
 use Baraja\Shop\Price\Price;
 use Baraja\Shop\ShopInfo;
 use Baraja\SimpleTemplate\DTO\HTML;
 use Baraja\SimpleTemplate\TemplateData;
-use Baraja\Url\Url;
 
 final class OrderNotificationData implements TemplateData
 {
@@ -112,6 +112,6 @@ final class OrderNotificationData implements TemplateData
 
 	public function getDetailLink(): string
 	{
-		return sprintf('%s/order/%s', Url::get()->getBaseUrl(), $this->order->getHash());
+		return (new LinkGenerator)->default($this->order);
 	}
 }

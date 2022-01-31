@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Entity;
 
 
+use Baraja\Shop\Price\Price;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
@@ -26,8 +27,9 @@ class OrderBankPayment implements TransactionEntity
 	#[ORM\Column(type: 'datetime')]
 	private \DateTimeInterface $date;
 
-	#[ORM\Column(type: 'decimal')]
-	private float $price;
+	/** @var numeric-string */
+	#[ORM\Column(type: 'decimal', precision: 15, scale: 4, options: ['unsigned' => true])]
+	private string $price;
 
 	#[ORM\Column(type: 'string', length: 3)]
 	private string $currency;
@@ -78,10 +80,13 @@ class OrderBankPayment implements TransactionEntity
 	private ?int $idTransaction;
 
 
+	/**
+	 * @param numeric-string $price
+	 */
 	public function __construct(
 		int $bankTransactionId,
 		\DateTimeInterface $date,
-		float $price,
+		string $price,
 		string $currency,
 		?string $toAccount,
 		?string $toAccountName,
@@ -101,7 +106,7 @@ class OrderBankPayment implements TransactionEntity
 	) {
 		$this->bankTransactionId = $bankTransactionId;
 		$this->date = $date;
-		$this->price = $price;
+		$this->price = Price::normalize($price);
 		$this->currency = $currency;
 		$this->toAccount = $toAccount;
 		$this->toAccountName = $toAccountName;
@@ -172,15 +177,21 @@ class OrderBankPayment implements TransactionEntity
 	}
 
 
-	public function getPrice(): float
+	/**
+	 * @return  numeric-string
+	 */
+	public function getPrice(): string
 	{
-		return $this->price;
+		return Price::normalize($this->price);
 	}
 
 
-	public function setPrice(float $price): void
+	/**
+	 * @param numeric-string $price
+	 */
+	public function setPrice(string $price): void
 	{
-		$this->price = $price;
+		$this->price = Price::normalize($price);
 	}
 
 

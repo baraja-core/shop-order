@@ -140,7 +140,7 @@ Vue.component('cms-order-overview', {
 							<b-card class="mt-3">
 								<h5>Workflow notification</h5>
 								<template v-for="notificationItem in order.notifications">
-									<b-button variant="secondary" size="sm" @click="sendEmail(notificationItem.id)">
+									<b-button variant="secondary" size="sm" class="mr-1 mb-1" @click="sendEmail(notificationItem.id)">
 										{{ notificationItem.label }}
 										<template v-if="notificationItem.type === 'sms'">📱</template>
 										<template v-else-if="notificationItem.type === 'email'">📧</template>

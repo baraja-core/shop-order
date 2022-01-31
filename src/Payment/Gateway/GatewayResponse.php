@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Payment\Gateway;
 
 
-final class GatewayResponse
+use Baraja\EcommerceStandard\DTO\OrderGatewayResponseInterface;
+
+final class GatewayResponse implements OrderGatewayResponseInterface
 {
 	public function __construct(
 		private ?string $redirect = null,

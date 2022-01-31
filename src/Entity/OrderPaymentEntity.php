@@ -7,7 +7,10 @@ namespace Baraja\Shop\Order\Entity;
 
 interface OrderPaymentEntity
 {
-	public function getPrice(): float;
+	/**
+	 * @return numeric-string
+	 */
+	public function getPrice(): string;
 
 	public function getDate(): \DateTimeInterface;
 }

@@ -31,10 +31,10 @@ class OrderItem implements OrderItemInterface
 	private Order $order;
 
 	#[ORM\ManyToOne(targetEntity: Product::class)]
-	private ?Product $product;
+	private ?ProductInterface $product;
 
 	#[ORM\ManyToOne(targetEntity: ProductVariant::class)]
-	private ?ProductVariant $variant;
+	private ?ProductVariantInterface $variant;
 
 	#[ORM\Column(type: 'text', nullable: true)]
 	private ?string $label = null;
@@ -64,8 +64,8 @@ class OrderItem implements OrderItemInterface
 	 */
 	public function __construct(
 		Order $order,
-		?Product $product,
-		?ProductVariant $variant,
+		?ProductInterface $product,
+		?ProductVariantInterface $variant,
 		int $count,
 		string $price,
 		?string $unit = null,

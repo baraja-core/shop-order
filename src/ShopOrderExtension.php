@@ -201,11 +201,7 @@ final class ShopOrderExtension extends CompilerExtension
 			. '(function (): void {' . "\n"
 			. "\t" . 'if (str_starts_with(' . Url::class . '::get()->getRelativeUrl(), \'order\')) {' . "\n"
 			. "\t\t" . '$this->getService(?)->onStartup[] = function(' . Application::class . ' $a): void {' . "\n"
-			. "\t\t\t" . 'try {' . "\n"
-			. "\t\t\t\t" . '$this->getService(?)->run();' . "\n"
-			. "\t\t\t" . '} catch (\Throwable $e) {' . "\n"
-			. "\t\t\t\t" . Debugger::class . '::log($e, \'' . ILogger::CRITICAL . '\'); die;' . "\n"
-			. "\t\t\t" . '}' . "\n"
+			. "\t\t\t" . '$this->getService(?)->run();' . "\n"
 			. "\t\t" . '};' . "\n"
 			. "\t" . '}' . "\n"
 			. '})();',

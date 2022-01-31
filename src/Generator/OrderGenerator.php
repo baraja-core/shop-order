@@ -8,6 +8,7 @@ namespace Baraja\Shop\Order;
 use Baraja\Country\Entity\Country;
 use Baraja\Doctrine\EntityManager;
 use Baraja\EcommerceStandard\DTO\CartInterface;
+use Baraja\EcommerceStandard\DTO\CurrencyInterface;
 use Baraja\EcommerceStandard\DTO\OrderInfoInterface;
 use Baraja\EcommerceStandard\DTO\OrderInterface;
 use Baraja\Localization\Localization;
@@ -138,7 +139,7 @@ final class OrderGenerator
 				$cartItem->getProduct(),
 				$cartItem->getVariant(),
 				$cartItem->getCount(),
-				$cartItem->getBasicPrice()
+				$cartItem->getBasicPrice()->getValue()
 			);
 			$this->entityManager->persist($orderItem);
 			$order->addItem($orderItem);
@@ -308,8 +309,8 @@ final class OrderGenerator
 	}
 
 
-	private function getCurrentContextCurrency(): string
+	private function getCurrentContextCurrency(): CurrencyInterface
 	{
-		return $this->currencyManager->get()->getMainCurrency()->getCode();
+		return $this->currencyManager->get()->getMainCurrency();
 	}
 }
