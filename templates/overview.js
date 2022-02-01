@@ -47,7 +47,7 @@ Vue.component('cms-order-overview', {
 								<th width="20">#</th>
 								<th>Label</th>
 								<th width="64">Count</th>
-								<th width="90">U.&nbsp;price</th>
+								<th width="90"><span v-b-tooltip.hover title="Price per one item.">U.&nbsp;price</span></th>
 								<th width="90">Price</th>
 								<th></th>
 							</tr>
@@ -301,7 +301,7 @@ Vue.component('cms-order-overview', {
 					</div>
 					<b-card class="mt-3">
 						<h5>Payment</h5>
-						Bank transfers:
+						<b>Bank transfers:</b>
 						<p v-if="order.transactions.length === 0" class="text-secondary">
 							No records.
 						</p>
@@ -317,24 +317,29 @@ Vue.component('cms-order-overview', {
 								<td>{{ transaction.date }}</td>
 							</tr>
 						</table>
-						Payments by card:
+						<b>Online payments:</b>
 						<p v-if="order.payments.length === 0" class="text-secondary">
 							No records.
 						</p>
-						<table v-else class="table table-sm cms-table-no-border-top">
-							<tr>
-								<th>GoPay ID</th>
-								<th>Price</th>
-								<th>Status</th>
-								<th>Date</th>
-							</tr>
-							<tr v-for="payment in order.payments">
-								<td>{{ payment.gopayId }}</td>
-								<td>{{ payment.price }}</td>
-								<td>{{ payment.status }}</td>
-								<td>{{ payment.insertedDate }}</td>
-							</tr>
-						</table>
+						<template v-else>
+							<table class="table table-sm cms-table-no-border-top">
+								<tr>
+									<th><span v-b-tooltip.hover title="Internal gateway identifier for this payment">Gateway ID</span></th>
+									<th>Price</th>
+									<th><span v-b-tooltip.hover title="The actual payment status claimed by the payment gateway.">Status</span></th>
+									<th><span v-b-tooltip.hover title="The date and time this payment was entered into the system.">Date</span></th>
+									<th><span v-b-tooltip.hover title="Date and time of the last check of this payment.">Last check</span></th>
+								</tr>
+								<tr v-for="payment in order.payments">
+									<td>{{ payment.gopayId }}</td>
+									<td v-html="payment.price"></td>
+									<td>{{ payment.status }}</td>
+									<td>{{ payment.insertedDate }}</td>
+									<td>{{ payment.lastCheckedDate }}</td>
+								</tr>
+							</table>
+							<i>Payment status may change over time depending on system or user activity.</i>
+						</template>
 					</b-card>
 				</div>
 			</div>
@@ -371,13 +376,13 @@ Vue.component('cms-order-overview', {
 			<template v-else>
 				<table class="table table-sm table-hover cms-table-no-border-top">
 					<tr>
-						<th>Č.&nbsp;objednávky</th>
-						<th>Č.&nbsp;balíku</th>
-						<th>Dopravce</th>
-						<th>Pobočka</th>
-						<th>Sledování</th>
-						<th>Štítek</th>
-						<th>Swap pobočky</th>
+						<th>Order ID</th>
+						<th>Package ID</th>
+						<th>Shipper</th>
+						<th>Carrier ID</th>
+						<th>Track</th>
+						<th>LAbel</th>
+						<th>Carrier swap</th>
 					</tr>
 					<tr v-for="package in order.package">
 						<td>{{ package.orderId }}</td>

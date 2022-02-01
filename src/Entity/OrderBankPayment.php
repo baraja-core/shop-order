@@ -385,4 +385,27 @@ class OrderBankPayment implements TransactionEntity
 	{
 		$this->idTransaction = $idTransaction;
 	}
+
+
+	public function getGatewayId(): string
+	{
+		throw new \LogicException('Gateway ID is not relevant for bank account.');
+	}
+
+
+	public function getLastCheckedDate(): \DateTimeInterface
+	{
+		return $this->date;
+	}
+
+
+	public function getStatus(): ?string
+	{
+		return 'paid';
+	}
+
+
+	public function setCheckedNow(): void
+	{
+	}
 }

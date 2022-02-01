@@ -35,6 +35,9 @@ class OrderOnlinePayment implements OrderPaymentEntity
 	#[ORM\Column(type: 'datetime_immutable')]
 	private \DateTimeInterface $insertedDate;
 
+	#[ORM\Column(type: 'datetime_immutable', nullable: true)]
+	private ?\DateTimeInterface $lastCheckedDate;
+
 
 	/**
 	 * @param numeric-string|null $price
@@ -45,6 +48,7 @@ class OrderOnlinePayment implements OrderPaymentEntity
 		$this->gatewayId = $gatewayId;
 		$this->price = Price::normalize($price ?? $order->getPrice()->getValue());
 		$this->insertedDate = new \DateTimeImmutable;
+		$this->lastCheckedDate = new \DateTimeImmutable;
 	}
 
 
@@ -90,5 +94,21 @@ class OrderOnlinePayment implements OrderPaymentEntity
 	public function getDate(): \DateTimeInterface
 	{
 		return $this->insertedDate;
+	}
+
+
+	public function getLastCheckedDate(): \DateTimeInterface
+	{
+		if ($this->lastCheckedDate === null) {
+			$this->lastCheckedDate = $this->insertedDate;
+		}
+
+		return $this->lastCheckedDate;
+	}
+
+
+	public function setCheckedNow(): void
+	{
+		$this->lastCheckedDate = new \DateTimeImmutable;
 	}
 }

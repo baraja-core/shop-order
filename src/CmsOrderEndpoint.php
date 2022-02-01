@@ -266,9 +266,10 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		foreach ($order->getPayments() as $payment) {
 			$payments[] = [
 				'gopayId' => $payment->getGatewayId(),
-				'price' => $payment->getPrice(),
+				'price' => (new Price($payment->getPrice(), $order->getCurrency()))->render(true),
 				'status' => $payment->getStatus(),
 				'insertedDate' => $payment->getDate(),
+				'lastCheckedDate' => $payment->getLastCheckedDate(),
 			];
 		}
 

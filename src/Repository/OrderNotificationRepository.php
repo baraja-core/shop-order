@@ -110,7 +110,7 @@ final class OrderNotificationRepository extends EntityRepository
 			->andWhere('n.active = TRUE')
 			->andWhere('n.locale = :locale')
 			->setParameter('locale', $locale)
-			->orderBy('status.workflowPosition', 'DESC')
+			->orderBy('status.workflowPosition', 'ASC')
 			->getQuery()
 			->getResult();
 

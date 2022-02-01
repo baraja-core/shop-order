@@ -7,6 +7,8 @@ namespace Baraja\Shop\Order\Payment;
 
 use Baraja\BankTransferAuthorizator\MultiAuthorizator;
 use Baraja\Doctrine\EntityManager;
+use Baraja\EcommerceStandard\DTO\OrderGatewayResponseInterface;
+use Baraja\EcommerceStandard\DTO\OrderInterface;
 use Baraja\EcommerceStandard\Service\OrderPaymentGatewayInterface;
 use Baraja\FioPaymentAuthorizator\FioPaymentAuthorizator;
 use Baraja\Shop\Delivery\Entity\Delivery;
@@ -51,7 +53,7 @@ final class OrderPaymentClient
 	/**
 	 * @return never-return
 	 */
-	public function processPayment(Order $order): void
+	public function processPayment(OrderInterface $order): void
 	{
 		if ($this->orderManager->isPaid($order)) {
 			echo 'Order has been paid.';
@@ -60,19 +62,22 @@ final class OrderPaymentClient
 
 		$provider = $this->getBestCompatibleProvider($order);
 		$response = $provider->pay($order);
-		$redirect = $response->getRedirect();
-		$errorMessage = $response->getErrorMessage();
-		if ($redirect !== null) {
-			WebController::redirect($redirect);
-		}
-		if ($errorMessage !== null) {
-			echo htmlspecialchars($errorMessage);
-			die;
-		}
+		$this->processResponse($response);
 	}
 
 
-	public function getBestCompatibleProvider(Order $order): OrderPaymentGatewayInterface
+	/**
+	 * @return never-return
+	 */
+	public function checkPaymentStatus(OrderInterface $order, ?string $id = null): void
+	{
+		$provider = $this->getBestCompatibleProvider($order);
+		$response = $provider->checkPaymentStatus($order, $id);
+		$this->processResponse($response);
+	}
+
+
+	public function getBestCompatibleProvider(OrderInterface $order): OrderPaymentGatewayInterface
 	{
 		$payment = $order->getPayment();
 		if ($payment === null) {
@@ -109,5 +114,22 @@ final class OrderPaymentClient
 	public function addPaymentProvider(OrderPaymentGatewayInterface $provider): void
 	{
 		$this->providers[] = $provider;
+	}
+
+
+	private function processResponse(OrderGatewayResponseInterface $response): void
+	{
+		$redirect = $response->getRedirect();
+		$errorMessage = $response->getErrorMessage();
+		if ($redirect !== null) {
+			if ($errorMessage !== null) {
+				WebController::setFlashMessage($errorMessage);
+			}
+			WebController::redirect($redirect);
+		}
+		if ($errorMessage !== null) {
+			echo htmlspecialchars($errorMessage);
+			die;
+		}
 	}
 }

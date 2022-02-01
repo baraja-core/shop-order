@@ -19,6 +19,8 @@ use Psr\Log\LoggerInterface;
 
 final class WebController
 {
+	public const FLASH_MESSAGE_KEY = '_brj-order-flash-message';
+
 	private OrderRepository $orderRepository;
 
 
@@ -46,12 +48,18 @@ final class WebController
 	}
 
 
+	public static function setFlashMessage(string $message): void
+	{
+		$_SESSION[self::FLASH_MESSAGE_KEY] = [$message, time()];
+	}
+
+
 	/**
 	 * @return never-return
 	 */
 	public static function redirect(string $url): void
 	{
-		header('Location: ' . $url);
+		header(sprintf('Location: %s', $url));
 		die;
 	}
 
@@ -66,13 +74,18 @@ final class WebController
 			if ($action === '' || strlen($action) === 32) {
 				$method = 'actionDefault';
 			} else {
+				$action = (string) preg_replace_callback(
+					'/-([a-z])/',
+					static fn (array $match): string => strtoupper($match[1] ?? ''),
+					$action,
+				);
 				$method = 'action' . $action;
 			}
 			if (method_exists($this, $method)) {
 				(new ServiceMethodInvoker)->invoke(
 					service: $this,
 					methodName: $method,
-					params: [],
+					params: $_GET,
 				);
 			}
 		} catch (\Throwable $e) {
@@ -90,7 +103,12 @@ final class WebController
 	public function actionDefault(): void
 	{
 		$order = $this->getOrder();
-		assert($order !== null);
+		if ($order === null) {
+			throw new \LogicException('Order does not exist.');
+		}
+		if ($_GET !== []) { // canonize url
+			self::redirect(self::getLinkGenerator()->default($order));
+		}
 
 		$templatePath = null;
 		if ($this->frontend !== null) {
@@ -103,6 +121,7 @@ final class WebController
 				'order' => $order,
 				'isPaid' => $this->orderManager->get()->isPaid($order),
 				'gatewayLink' => self::getLinkGenerator()->paymentGateway($order),
+				'flashMessage' => $this->getFlashMessage(),
 			],
 		);
 	}
@@ -120,6 +139,20 @@ final class WebController
 		}
 		try {
 			$this->orderPaymentClient->processPayment($order);
+		} catch (\InvalidArgumentException $e) {
+			echo htmlspecialchars($e->getMessage());
+		}
+	}
+
+
+	public function actionPaymentHandle(string $handler, ?string $id = null): void
+	{
+		$order = $this->getOrder();
+		if ($order === null) {
+			throw new \LogicException('Order does not exist.');
+		}
+		try {
+			$this->orderPaymentClient->checkPaymentStatus($order, $id);
 		} catch (\InvalidArgumentException $e) {
 			echo htmlspecialchars($e->getMessage());
 		}
@@ -144,5 +177,23 @@ final class WebController
 		} catch (NoResultException | NonUniqueResultException) {
 			return null;
 		}
+	}
+
+
+	private function getFlashMessage(): ?string
+	{
+		/** @var array{0?: string, 1?: int} $message */
+		$message = $_SESSION[self::FLASH_MESSAGE_KEY] ?? null;
+		$minAllowedTime = time() - 6;
+		if (is_array($message)
+			&& isset($message[0], $message[1])
+			&& is_string($message[0])
+			&& is_int($message[1])
+			&& $message[1] >= $minAllowedTime
+		) {
+			return $message[0];
+		}
+
+		return null;
 	}
 }

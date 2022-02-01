@@ -91,8 +91,13 @@ final class OrderManager implements OrderManagerInterface
 			$sum = bcadd($sum, $transaction->getPrice());
 		}
 		$orderPrice = $order->getBasePrice();
+		$isPaid = $orderPrice->isEqualTo($sum) || $orderPrice->isSmallerThan($sum);
+		if ($isPaid === true && $order->isPaid() === false) {
+			$order->setPaid(true);
+			$this->entityManager->flush();
+		}
 
-		return $orderPrice->isEqualTo($sum) || $orderPrice->isSmallerThan($sum);
+		return $isPaid;
 	}
 
 

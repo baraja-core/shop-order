@@ -178,4 +178,16 @@ final class SampleOrderEntity implements OrderInterface
 	{
 		return 'My notice.';
 	}
+
+
+	public function getDeliveryPrice(): PriceInterface
+	{
+		// TODO: Implement getDeliveryPrice() method.
+	}
+
+
+	public function getPaymentPrice(): PriceInterface
+	{
+		// TODO: Implement getPaymentPrice() method.
+	}
 }

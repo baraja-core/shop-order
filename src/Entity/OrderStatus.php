@@ -87,7 +87,7 @@ class OrderStatus implements OrderStatusInterface
 	public function __construct(string $code, string $name)
 	{
 		$this->code = Strings::webalize($code);
-		$this->internalName = Strings::firstUpper($name);
+		$this->internalName = Strings::firstUpper(str_replace('-', ' ', $name));
 		$this->label = Strings::firstUpper($name);
 	}
 

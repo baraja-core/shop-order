@@ -4,6 +4,9 @@
 	<div class="card">
 		<div class="card-body">
 			<h1 class="h3">Order {$order->getNumber()}</h1>
+            <div n:if="$flashMessage !== null" class="alert alert-info my-3">
+                {$flashMessage}
+            </div>
 			Status: {$order->getStatus()->getPublicLabel()}
 			| Paid? {$isPaid ? 'YES' : 'NO'}
 			{if count($order->getItems()) === 0}

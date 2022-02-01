@@ -12,7 +12,7 @@ final class LinkGenerator
 {
 	public function default(OrderInterface $order): string
 	{
-		return Url::get()->getBaseUrl() . '/order?hash=' . urlencode($order->getHash());
+		return Url::get()->getBaseUrl() . '/order/' . urlencode($order->getHash());
 	}
 
 

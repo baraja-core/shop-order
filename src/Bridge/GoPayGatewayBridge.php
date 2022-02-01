@@ -56,41 +56,28 @@ final class GoPayGatewayBridge implements OrderPaymentGatewayInterface
 			throw new \InvalidArgumentException(sprintf('Customer for order %s is mandatory.', $order->getNumber()));
 		}
 		$linkGenerator = WebController::getLinkGenerator();
-
-		$items = [];
-		foreach ($order->getItems() as $orderItem) {
-			$items[] = [
-				'name' => $orderItem->getLabel(),
-				'amount' => (float) $orderItem->getFinalPrice()->getValue(),
-			];
-		}
-
-		$response = $this->getClient()->payments->createPayment(
-			PaymentFactory::create(
-				[
-					'payer' => [
-						'default_payment_instrument' => PaymentInstrument::PAYMENT_CARD,
-						'allowed_payment_instruments' => [PaymentInstrument::PAYMENT_CARD],
-						'contact' => [
-							'first_name' => $customer->getFirstName(),
-							'last_name' => $customer->getLastName(),
-							'email' => $customer->getEmail(),
-						],
-					],
-					'amount' => (float) $order->getPrice()->getValue(),
-					'currency' => $order->getCurrency()->getCode(),
-					'order_number' => $order->getNumber(),
-					'order_description' => (string) $order->getNotice(),
-					'items' => $items,
-					'callback' => [
-						'return_url' => $linkGenerator->paymentHandle(order: $order, handler: 'checkPayment'),
-						'notify_url' => $linkGenerator->paymentHandle(order: $order, handler: 'notify'),
-					],
-					'lang' => strtoupper($order->getLocale()),
-				]
-			)
-		);
-
+		$paymentEntity = PaymentFactory::create([
+			'payer' => [
+				'default_payment_instrument' => PaymentInstrument::PAYMENT_CARD,
+				'allowed_payment_instruments' => [PaymentInstrument::PAYMENT_CARD],
+				'contact' => [
+					'first_name' => $customer->getFirstName(),
+					'last_name' => $customer->getLastName(),
+					'email' => $customer->getEmail(),
+				],
+			],
+			'amount' => (float) $order->getPrice()->getValue(),
+			'currency' => $order->getCurrency()->getCode(),
+			'order_number' => $order->getNumber(),
+			'order_description' => (string) $order->getNotice(),
+			'items' => $this->serializeItems($order),
+			'callback' => [
+				'return_url' => $linkGenerator->paymentHandle($order, handler: 'checkPayment'),
+				'notify_url' => $linkGenerator->paymentHandle($order, handler: 'notify'),
+			],
+			'lang' => strtoupper($order->getLocale()),
+		]);
+		$response = $this->getClient()->payments->createPayment($paymentEntity);
 		if (isset($response['gw_url'])) {
 			$payment = new OrderOnlinePayment($order, (string) $response['id']);
 			$this->entityManager->persist($payment);
@@ -126,12 +113,12 @@ final class GoPayGatewayBridge implements OrderPaymentGatewayInterface
 	}
 
 
-	public function handleCheckPayment(string $hash, ?int $id = null): GatewayResponse
+	public function checkPaymentStatus(OrderInterface $order, ?string $id = null): GatewayResponse
 	{
 		$linkGenerator = WebController::getLinkGenerator();
-		$order = $this->orderRepository->getByHash($hash);
 		try {
-			$payment = $this->orderOnlinePaymentRepository->getByGoPayIdAndHash($hash, $id);
+			$payment = $this->orderOnlinePaymentRepository->getByGoPayIdAndHash($order->getHash(), $id);
+			$payment->setCheckedNow();
 		} catch (NoResultException | NonUniqueResultException) {
 			return new GatewayResponse(
 				redirect: $linkGenerator->default($order),
@@ -161,7 +148,8 @@ final class GoPayGatewayBridge implements OrderPaymentGatewayInterface
 			);
 		}
 		if ($statusChanged === true) {
-			$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_PAYMENT_FAILED);
+			assert($order instanceof Order);
+			$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_PAYMENT_FAILED, force: true);
 		}
 
 		return new GatewayResponse(
@@ -172,28 +160,73 @@ final class GoPayGatewayBridge implements OrderPaymentGatewayInterface
 	}
 
 
-	public function handleNotify(string $orderId, ?int $id = null): GatewayResponse
-	{
-		return $this->handleCheckPayment($orderId, $id);
-	}
-
-
 	private function getClient(): Client
 	{
 		if ($this->client === null) {
 			/** @var array{go-id: string, client-id: string, client-secret: string, environment: string} $config */
 			$config = $this->configuration->getMultipleMandatory(['go-id', 'client-id', 'client-secret', 'environment'], 'gopay');
 
-			$this->client = new Client(
-				new Config(
-					(float) $config['go-id'],
-					$config['client-id'],
-					$config['client-secret'],
-					$config['environment'],
-				)
-			);
+			$this->client = new Client(new Config(
+				(float) $config['go-id'],
+				$config['client-id'],
+				$config['client-secret'],
+				strtoupper($config['environment']) === 'TEST' ? Config::TEST : Config::PROD,
+			));
 		}
 
 		return $this->client;
+	}
+
+
+	/**
+	 * @return array<int, array{name: string, amount: float}>
+	 */
+	private function serializeItems(OrderInterface $order): array
+	{
+		$return = [];
+		foreach ($order->getItems() as $orderItem) {
+			$orderItemUnitPrice = (float) $orderItem->getFinalPrice()->getValue();
+			$return[] = [
+				'name' => $orderItem->getLabel(),
+				'amount' => $orderItemUnitPrice * $orderItem->getCount(),
+				'count' => $orderItem->getCount(),
+				'vat_rate' => (int) $orderItem->getVat()->getValue(),
+			];
+		}
+		$delivery = $order->getDelivery();
+		if ($delivery !== null) {
+			$return[] = [
+				'name' => $delivery->getLabel(),
+				'amount' => (float) $order->getDeliveryPrice()->getValue(),
+				'count' => 1,
+				'vat_rate' => 21,
+			];
+		}
+		$payment = $order->getPayment();
+		if ($payment !== null) {
+			$return[] = [
+				'name' => $payment->getName(),
+				'amount' => (float) $order->getPaymentPrice()->getValue(),
+				'count' => 1,
+				'vat_rate' => 21,
+			];
+		}
+
+		$finalPrice = 0;
+		foreach ($return as $item) {
+			$finalPrice += $item['amount'];
+		}
+
+		$diff = ((float) $order->getPrice()->getValue()) - $finalPrice;
+		if (abs($diff) > 0) {
+			$return[] = [
+				'name' => 'Rounding',
+				'amount' => $diff,
+				'count' => 1,
+				'vat_rate' => 0,
+			];
+		}
+
+		return $return;
 	}
 }

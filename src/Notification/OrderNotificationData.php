@@ -8,6 +8,7 @@ namespace Baraja\Shop\Order\Notification;
 use Baraja\DynamicConfiguration\Configuration;
 use Baraja\EcommerceStandard\DTO\OrderInterface;
 use Baraja\Shop\Order\Application\LinkGenerator;
+use Baraja\Shop\Order\Application\WebController;
 use Baraja\Shop\Price\Price;
 use Baraja\Shop\ShopInfo;
 use Baraja\SimpleTemplate\DTO\HTML;
@@ -51,6 +52,10 @@ final class OrderNotificationData implements TemplateData
 	}
 
 
+	/**
+	 * Renders a complete table with the order items.
+	 * The table contains complete formatting and all data including shipping and payment.
+	 */
 	public function getItemList(): HTML
 	{
 		$lines = [];
@@ -92,26 +97,58 @@ final class OrderNotificationData implements TemplateData
 	}
 
 
+	/**
+	 * It contains the account number of this e-shop for payment of the order.
+	 */
 	public function getBankAccount(): string
 	{
 		return $this->shopInfo->getBankAccount() ?? '';
 	}
 
 
+	/**
+	 * It will return the absolute price of the order, which must be paid by the customer.
+	 */
 	public function getFinalPrice(): string
 	{
 		return $this->order->getPrice()->render();
 	}
 
 
+	/**
+	 * Returns the static text that has been set by the administrator as common to all emails.
+	 * This variable is typically used for email footers.
+	 */
 	public function getCustomFooter(): string
 	{
 		return $this->shopInfo->getCustomEmailFooter() ?? '';
 	}
 
 
+	/**
+	 * Creates a direct link to the order overview page.
+	 * In some e-shops, it may redirect the customer to a payment gateway.
+	 */
 	public function getDetailLink(): string
 	{
-		return (new LinkGenerator)->default($this->order);
+		return WebController::getLinkGenerator()->default($this->order);
+	}
+
+
+	/**
+	 * It will generate a direct link to the order confirmation and thank you page.
+	 */
+	public function getConfirmLink(): string
+	{
+		return WebController::getLinkGenerator()->confirmOrder($this->order);
+	}
+
+
+	/**
+	 * It generates a direct link to the payment gateway where the customer can pay for the order immediately.
+	 */
+	public function getGatewayLink(): string
+	{
+		return WebController::getLinkGenerator()->paymentGateway($this->order);
 	}
 }

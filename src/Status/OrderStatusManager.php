@@ -143,11 +143,15 @@ final class OrderStatusManager
 	}
 
 
-	public function setStatus(Order $order, OrderStatus|string $status): void
+	public function setStatus(Order $order, OrderStatus|string $status, bool $force = false): void
 	{
 		$oldStatus = $order->getStatus();
 		if (is_string($status)) {
-			$status = $this->getStatusByCode($status);
+			try {
+				$status = $this->getStatusByCode($status);
+			} catch (\InvalidArgumentException) {
+				$status = $this->createStatus($status, $status);
+			}
 		}
 		if ($oldStatus->getId() === $status->getId()) {
 			return;

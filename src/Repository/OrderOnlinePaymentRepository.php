@@ -15,13 +15,13 @@ final class OrderOnlinePaymentRepository extends EntityRepository
 	/**
 	 * @throws NoResultException|NonUniqueResultException
 	 */
-	public function getByGoPayIdAndHash(string $hash, int $id = null): OrderOnlinePayment
+	public function getByGoPayIdAndHash(string $hash, ?string $gatewayId = null): OrderOnlinePayment
 	{
 		$return = $this->createQueryBuilder('payment')
 			->leftJoin('payment.order', 'o')
-			->where('payment.gopayId = :gopayId')
+			->where('payment.gatewayId = :gatewayId')
 			->andWhere('o.hash = :orderHash')
-			->setParameter('gopayId', $id)
+			->setParameter('gatewayId', (string) $gatewayId)
 			->setParameter('orderHash', $hash)
 			->setMaxResults(1)
 			->getQuery()
