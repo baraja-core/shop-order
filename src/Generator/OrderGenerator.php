@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order;
 
 
+use Baraja\Country\CountryManagerAccessor;
 use Baraja\Country\Entity\Country;
 use Baraja\Doctrine\EntityManager;
 use Baraja\EcommerceStandard\DTO\CartInterface;
@@ -14,6 +15,8 @@ use Baraja\EcommerceStandard\DTO\OrderInterface;
 use Baraja\Localization\Localization;
 use Baraja\Shop\Address\Entity\Address;
 use Baraja\Shop\Cart\CartManager;
+use Baraja\Shop\Cart\OrderInfo;
+use Baraja\Shop\Cart\OrderInfoAddress;
 use Baraja\Shop\Cart\OrderInfoBasic;
 use Baraja\Shop\Currency\CurrencyManagerAccessor;
 use Baraja\Shop\Customer\CustomerManager;
@@ -25,13 +28,12 @@ use Baraja\Shop\Order\Entity\OrderItem;
 use Baraja\Shop\Order\Entity\OrderStatus;
 use Baraja\Shop\Order\Status\OrderWorkflow;
 use Baraja\Shop\Payment\Entity\Payment;
+use Baraja\Shop\Price\Price;
 use Baraja\VariableGenerator\Strategy\YearPrefixIncrementStrategy;
 use Baraja\VariableGenerator\VariableGenerator;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
 use Nette\Security\User;
-use Tracy\Debugger;
-use Tracy\ILogger;
 
 final class OrderGenerator
 {
@@ -46,9 +48,9 @@ final class OrderGenerator
 		private Localization $localization,
 		private CustomerManager $customerManager,
 		private User $user,
-		private Emailer $emailer,
 		private CurrencyManagerAccessor $currencyManager,
 		private OrderWorkflow $workflow,
+		private CountryManagerAccessor $countryManager,
 		private array $createdOrderEvents = [],
 	) {
 	}
@@ -63,15 +65,12 @@ final class OrderGenerator
 			throw new \LogicException(sprintf('Can not create empty order (cart id: "%d").', $cart->getId()));
 		}
 		$info = $orderInfo->getInfo();
-		$address = $orderInfo->getAddress();
-		$deliveryAddress = Address::hydrateData($orderInfo->toArray($address));
-		$invoiceAddress = Address::hydrateData(
-			$orderInfo->toArray(
-				$address->isInvoiceAddressIsDifferent()
-					? $orderInfo->getInvoiceAddress()
-					: $address
-			)
-		);
+		$addressInfo = $orderInfo->getAddress();
+		$invoiceAddressInfo = $addressInfo->isInvoiceAddressIsDifferent()
+			? $orderInfo->getInvoiceAddress()
+			: $addressInfo;
+		$deliveryAddress = $this->resolveAddress($orderInfo, $addressInfo, $cart);
+		$invoiceAddress = $this->resolveAddress($orderInfo, $invoiceAddressInfo, $cart);
 
 		if ($this->user->isLoggedIn()) {
 			/** @var Customer|null $customer */
@@ -92,8 +91,6 @@ final class OrderGenerator
 				->getOneOrNullResult();
 			$cart->setDelivery($selectedDelivery);
 		}
-		$deliveryAddress->setCountry($selectedDelivery->getCountry());
-		$invoiceAddress->setCountry($selectedDelivery->getCountry());
 		if ($selectedPayment === null) {
 			/** @var Payment $selectedPayment */
 			$selectedPayment = $this->entityManager->getRepository(Payment::class)
@@ -105,6 +102,7 @@ final class OrderGenerator
 		}
 
 		$group = $group ?? $this->orderGroupManager->getDefaultGroup();
+		$itemsPrice = $cart->getItemsPrice()->getValue();
 		$order = new Order(
 			group: $group,
 			status: $this->statusManager->getStatusByCode(OrderStatus::STATUS_NEW),
@@ -115,17 +113,24 @@ final class OrderGenerator
 			locale: $this->localization->getLocale(),
 			delivery: $selectedDelivery,
 			payment: $selectedPayment,
-			price: $cart->getPrice(),
-			priceWithoutVat: $cart->getPriceWithoutVat(),
-			currency: $this->getCurrentContextCurrency(),
+			price: $itemsPrice,
+			priceWithoutVat: $cart->getPriceWithoutVat()->getValue(),
+			currency: $cart->getCurrency(),
 		);
+		if ($cart->getRuntimeContext()->getFreeDeliveryResolver()->isFreeDelivery($cart, $customer ?? $cart->getCustomer())) {
+			$order->setDeliveryPrice('0');
+		}
 		$order->setNotice($info->getNotice());
 		if ($order->getCustomer()->getDefaultOrderSale() > 0) {
 			$order->recountPrice();
-			$orderBasePrice = $order->getBasePrice() - $order->getDeliveryPrice();
-			$order->setSale(
-				$orderBasePrice - $orderBasePrice * ($order->getCustomer()->getDefaultOrderSale() / 100)
-			);
+			$orderBasePrice = $order->getBasePrice()->minus($order->getDeliveryPrice());
+			$order->setSale($orderBasePrice->minus(new Price(
+				bcmul(
+					$orderBasePrice->getValue(),
+					(string) ($order->getCustomer()->getDefaultOrderSale() / 100),
+				),
+				$cart->getCurrency(),
+			)));
 		}
 		$order->setDeliveryBranchId($cart->getDeliveryBranchId());
 
@@ -207,6 +212,7 @@ final class OrderGenerator
 			priceWithoutVat: 0,
 			currency: $this->getCurrentContextCurrency(),
 		);
+		$order->setDeliveryPrice($delivery->getPrice());
 		$order->setNotice('Manually created order.');
 
 		$this->entityManager->persist($deliveryAddress);
@@ -312,5 +318,31 @@ final class OrderGenerator
 	private function getCurrentContextCurrency(): CurrencyInterface
 	{
 		return $this->currencyManager->get()->getMainCurrency();
+	}
+
+
+	private function resolveAddress(OrderInfo $orderInfo, OrderInfoAddress $address, ?CartInterface $cart = null): Address
+	{
+		$data = $orderInfo->toArray($address);
+		$countryId = $data['country'];
+		$country = null;
+		if ($countryId !== null) {
+			$country = $this->countryManager->get()->getById($countryId);
+		} else {
+			try {
+				$country = $cart?->getDelivery()?->getCountry();
+			} catch (\Throwable) {
+			}
+		}
+		if ($country === null) {
+			$country = $this->countryManager->get()->getByCode('CZE'); // TODO: Load default country
+		}
+		if ($country->isActive() === false) {
+			throw new \InvalidArgumentException(sprintf('Country "%s" must be active.', $country->getCode()));
+		}
+		$realAddress = $data;
+		$realAddress['country'] = $country;
+
+		return Address::hydrateData($realAddress);
 	}
 }

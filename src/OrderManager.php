@@ -49,7 +49,7 @@ final class OrderManager implements OrderManagerInterface
 			->select('o, customer, deliveryAddress, invoiceAddress, delivery, payment')
 			->leftJoin('o.customer', 'customer')
 			->leftJoin('o.deliveryAddress', 'deliveryAddress')
-			->leftJoin('o.invoiceAddress', 'invoiceAddress')
+			->leftJoin('o.paymentAddress', 'invoiceAddress')
 			->leftJoin('o.delivery', 'delivery')
 			->leftJoin('o.payment', 'payment')
 			->where('o.hash = :hash')

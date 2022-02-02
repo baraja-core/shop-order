@@ -47,7 +47,7 @@ final class CmsOrderVatEndpoint extends BaseEndpoint
 			->select('o, invoice, payment, address')
 			->leftJoin('o.invoices', 'invoice')
 			->leftJoin('o.payment', 'payment')
-			->leftJoin('o.invoiceAddress', 'address')
+			->leftJoin('o.paymentAddress', 'address')
 			->andWhere('o.status IN (:statuses)')
 			->setParameters(
 				[

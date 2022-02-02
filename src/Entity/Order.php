@@ -97,7 +97,7 @@ class Order implements OrderInterface, OrderEntity
 
 	/** @var numeric-string|null */
 	#[ORM\Column(type: 'decimal', precision: 15, scale: 4, options: ['unsigned' => true])]
-	private ?string $paymentPrice = null;
+	private ?string $paymentPrice = '0';
 
 	#[ORM\Column(type: 'integer', nullable: true, options: ['unsigned' => true])]
 	private ?int $deliveryBranchId = null;
