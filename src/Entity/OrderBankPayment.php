@@ -28,7 +28,7 @@ class OrderBankPayment implements TransactionEntity
 	private \DateTimeInterface $date;
 
 	/** @var numeric-string */
-	#[ORM\Column(type: 'decimal', precision: 15, scale: 4, options: ['unsigned' => true])]
+	#[ORM\Column(type: 'decimal', precision: 15, scale: 4)]
 	private string $price;
 
 	#[ORM\Column(type: 'string', length: 3)]

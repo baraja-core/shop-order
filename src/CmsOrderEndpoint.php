@@ -8,10 +8,9 @@ namespace Baraja\Shop\Order;
 use Baraja\Country\CountryManagerAccessor;
 use Baraja\Doctrine\EntityManager;
 use Baraja\EcommerceStandard\DTO\AddressInterface;
+use Baraja\EcommerceStandard\Service\InvoiceManagerInterface;
 use Baraja\Localization\Localization;
-use Baraja\Search\Search;
 use Baraja\Shop\Address\Entity\Address;
-use Baraja\Shop\Currency\CurrencyManagerAccessor;
 use Baraja\Shop\Customer\CustomerManager;
 use Baraja\Shop\Customer\Entity\Customer;
 use Baraja\Shop\Delivery\BranchManager;
@@ -52,15 +51,12 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		private OrderGroupManager $orderGroupManager,
 		private OrderGenerator $orderGenerator,
 		private OrderDeliveryManager $deliveryManager,
-		private Emailer $emailer,
 		private OrderStatusManager $orderStatusManager,
 		private BranchManager $branchManager,
 		private CountryManagerAccessor $countryManager,
 		private OrderDocumentManager $documentManager,
-		private Search $search,
 		private OrderFeedRepository $orderFeedRepository,
 		private OrderWorkflow $workflow,
-		private CurrencyManagerAccessor $currencyManager,
 		private OrderNotification $notification,
 		private Localization $localization,
 		private ?InvoiceManagerInterface $invoiceManager = null,

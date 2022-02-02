@@ -6,11 +6,10 @@ namespace Baraja\Shop\Order\Status;
 
 
 use Baraja\Doctrine\EntityManager;
-use Baraja\Shop\Order\Emailer;
+use Baraja\EcommerceStandard\Service\InvoiceManagerInterface;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderStatus;
 use Baraja\Shop\Order\Entity\OrderWorkflowEvent;
-use Baraja\Shop\Order\InvoiceManagerInterface;
 use Baraja\Shop\Order\Notification\OrderNotification;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -19,7 +18,6 @@ final class OrderWorkflow
 {
 	public function __construct(
 		private EntityManager $entityManager,
-		private Emailer $emailer,
 		private OrderNotification $notification,
 		private ?InvoiceManagerInterface $invoiceManager = null,
 	) {
@@ -31,10 +29,12 @@ final class OrderWorkflow
 		$status = $order->getStatus()->getCode();
 		$this->processByStatus($order);
 		if ($status === OrderStatus::STATUS_PAID) {
-			try {
-				$this->getInvoiceManager()->createInvoice($order);
-			} catch (\Throwable $e) {
-				Debugger::log($e, ILogger::CRITICAL);
+			if ($this->getInvoiceManager()->isInvoice($order) === false) {
+				try {
+					$this->getInvoiceManager()->createInvoice($order);
+				} catch (\Throwable $e) {
+					Debugger::log($e, ILogger::CRITICAL);
+				}
 			}
 		} elseif ($status === OrderStatus::STATUS_DONE) {
 			if (PHP_SAPI !== 'cli' && $this->getInvoiceManager()->isInvoice($order) === false) {
