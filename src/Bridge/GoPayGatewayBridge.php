@@ -14,7 +14,6 @@ use Baraja\Shop\Order\Entity\OrderOnlinePayment;
 use Baraja\Shop\Order\Entity\OrderStatus;
 use Baraja\Shop\Order\Payment\Gateway\GatewayResponse;
 use Baraja\Shop\Order\Repository\OrderOnlinePaymentRepository;
-use Baraja\Shop\Order\Repository\OrderRepository;
 use Contributte\GopayInline\Api\Entity\PaymentFactory;
 use Contributte\GopayInline\Api\Lists\PaymentInstrument;
 use Contributte\GopayInline\Api\Lists\PaymentState;
@@ -27,8 +26,6 @@ use Psr\Log\LoggerInterface;
 
 final class GoPayGatewayBridge implements OrderPaymentGatewayInterface
 {
-	private OrderRepository $orderRepository;
-
 	private OrderOnlinePaymentRepository $orderOnlinePaymentRepository;
 
 	private ?Client $client = null;
@@ -40,11 +37,8 @@ final class GoPayGatewayBridge implements OrderPaymentGatewayInterface
 		private Configuration $configuration,
 		private ?LoggerInterface $logger = null,
 	) {
-		$orderRepository = $entityManager->getRepository(Order::class);
 		$orderOnlinePaymentRepository = $entityManager->getRepository(OrderOnlinePayment::class);
-		assert($orderRepository instanceof OrderRepository);
 		assert($orderOnlinePaymentRepository instanceof OrderOnlinePaymentRepository);
-		$this->orderRepository = $orderRepository;
 		$this->orderOnlinePaymentRepository = $orderOnlinePaymentRepository;
 	}
 
@@ -141,7 +135,7 @@ final class GoPayGatewayBridge implements OrderPaymentGatewayInterface
 
 		if ($status === PaymentState::PAID) {
 			$order->setPaid(true);
-			$this->orderStatusManager->setStatus($payment->getOrder(), OrderStatus::STATUS_PAID);
+			$this->orderStatusManager->setStatus($payment->getOrder(), OrderStatus::STATUS_PAID, force: true);
 
 			return new GatewayResponse(
 				redirect: $linkGenerator->default($order),

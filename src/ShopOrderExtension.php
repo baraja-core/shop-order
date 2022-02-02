@@ -13,6 +13,7 @@ use Baraja\Shop\Cart\ShopCartExtension;
 use Baraja\Shop\Order\Application\WebController;
 use Baraja\Shop\Order\Bridge\HeurekaOverenoCreatedOrderEvent;
 use Baraja\Shop\Order\Bridge\RegisterNewsletterCreatedOrderEvent;
+use Baraja\Shop\Order\Command\CheckGatewayPaymentsCommand;
 use Baraja\Shop\Order\Command\CheckOrderCommand;
 use Baraja\Shop\Order\Delivery\OrderCarrierManager;
 use Baraja\Shop\Order\Delivery\OrderDeliveryManager;
@@ -91,6 +92,9 @@ final class ShopOrderExtension extends CompilerExtension
 
 		$builder->addDefinition($this->prefix('checkOrderCommand'))
 			->setFactory(CheckOrderCommand::class);
+
+		$builder->addDefinition($this->prefix('checkGatewayPaymentsCommand'))
+			->setFactory(CheckGatewayPaymentsCommand::class);
 
 		$builder->addDefinition($this->prefix('emailer'))
 			->setFactory(Emailer::class);

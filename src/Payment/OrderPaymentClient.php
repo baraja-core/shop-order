@@ -77,6 +77,15 @@ final class OrderPaymentClient
 	}
 
 
+	/**
+	 * Check an internal payment status and starts workflow.
+	 */
+	public function checkPaymentStatusOnly(OrderInterface $order, ?string $id = null): void
+	{
+		$this->getBestCompatibleProvider($order)->checkPaymentStatus($order, $id);
+	}
+
+
 	public function getBestCompatibleProvider(OrderInterface $order): OrderPaymentGatewayInterface
 	{
 		$payment = $order->getPayment();

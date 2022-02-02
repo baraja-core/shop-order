@@ -30,4 +30,26 @@ final class OrderOnlinePaymentRepository extends EntityRepository
 
 		return $return;
 	}
+
+
+	/**
+	 * @return OrderOnlinePayment[]
+	 */
+	public function getUnresolvedPayments(string $interval = '1 hour'): array
+	{
+		$findFrom = new \DateTimeImmutable(sprintf('now - %s', $interval));
+
+		/** @var OrderOnlinePayment[] $payments */
+		$payments = $this->createQueryBuilder('payment')
+			->select('payment, o')
+			->leftJoin('payment.order', 'o')
+			->where('payment.status IS NULL OR payment.status NOT IN (:successStatuses)')
+			->andWhere('payment.insertedDate < :minInsertedDate')
+			->setParameter('successStatuses', ['PAID', 'TIMEOUTED', 'CANCELED'])
+			->setParameter('minInsertedDate', $findFrom->format('Y-m-d H:i:s'))
+			->getQuery()
+			->getResult();
+
+		return $payments;
+	}
 }
