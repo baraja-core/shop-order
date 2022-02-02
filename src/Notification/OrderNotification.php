@@ -112,7 +112,7 @@ final class OrderNotification
 		if ($template === null) {
 			return;
 		}
-		if ($this->emailProvider === null) {
+		if ($this->smsProvider === null) {
 			throw new \LogicException('SMS provider is not available now.');
 		}
 		$content = $this->renderTemplate((string) $template->getContent(), $order);
@@ -174,11 +174,11 @@ final class OrderNotification
 	 *     subject: string,
 	 *     content: string,
 	 *     active: bool,
-	 *     insertedDate: \DateTimeInterface,
+	 *     insertedDate: \DateTimeInterface|null,
 	 *     documentation: array<int, array{name: string, documentation: string|null}>
 	 * }
 	 */
-	public function getNotificationData(OrderStatusInterface $status, string $locale, string $type): ?array
+	public function getNotificationData(OrderStatusInterface $status, string $locale, string $type): array
 	{
 		$template = $this->findTemplateByStatus($status, $locale, $type);
 		if ($template === null) {

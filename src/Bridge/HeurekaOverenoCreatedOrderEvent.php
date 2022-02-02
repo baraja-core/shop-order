@@ -35,10 +35,13 @@ final class HeurekaOverenoCreatedOrderEvent implements CreatedOrderEvent
 		if ($apiKey === null || $metaKey === 'true') {
 			return;
 		}
-
+		$email = $order->getCustomer()->getEmail();
+		if ($email === null) {
+			throw new \InvalidArgumentException(sprintf('Customer e-mail for order "%s" does not exist.', $order->getNumber()));
+		}
 		try {
 			$shopCertification = new ShopCertification($apiKey);
-			$shopCertification->setEmail($order->getCustomer()->getEmail());
+			$shopCertification->setEmail($email);
 			$shopCertification->setOrderId((int) preg_replace('/\D+/', '', $order->getNumber()));
 			$usedProducts = [];
 			foreach ($order->getItems() as $item) {

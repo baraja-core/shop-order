@@ -62,7 +62,7 @@ final class OrderRepository extends EntityRepository
 				->setParameter('groupId', $groupId);
 		}
 
-		/** @var array{0?: array{id: int, number: string}} $result */
+		/** @var array{0?: array{id: int, number: string}} $return */
 		$return = $qb
 			->orderBy('o.id', $direction)
 			->setMaxResults(1)

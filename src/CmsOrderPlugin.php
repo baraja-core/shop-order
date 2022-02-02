@@ -91,7 +91,7 @@ final class CmsOrderPlugin extends BasePlugin implements SearchablePlugin
 	/**
 	 * @param array{id: int, number: string} $order
 	 */
-	private function addButtonByOrder(array $order, string $label): ?Button
+	private function addButtonByOrder(array $order, string $label): Button
 	{
 		return new Button(
 			variant: Button::VARIANT_INFO,

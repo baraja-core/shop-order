@@ -14,8 +14,10 @@ use Baraja\EcommerceStandard\DTO\OrderItemInterface;
 use Baraja\EcommerceStandard\DTO\OrderStatusInterface;
 use Baraja\EcommerceStandard\DTO\PaymentInterface;
 use Baraja\EcommerceStandard\DTO\PriceInterface;
+use Baraja\Shop\Customer\Entity\Customer;
 use Baraja\Shop\Entity\Currency\Currency;
 use Baraja\Shop\Order\Entity\OrderStatus;
+use Baraja\Shop\Price\Price;
 
 final class SampleOrderEntity implements OrderInterface
 {
@@ -68,6 +70,7 @@ final class SampleOrderEntity implements OrderInterface
 
 	public function getCustomer(): ?CustomerInterface
 	{
+		return new Customer('jan@barasek.com', 'Jan', 'Barášek');
 	}
 
 
@@ -84,21 +87,25 @@ final class SampleOrderEntity implements OrderInterface
 
 	public function getPrice(): PriceInterface
 	{
+		return new Price('130', $this->getCurrency());
 	}
 
 
 	public function getBasePrice(): PriceInterface
 	{
+		return new Price('100', $this->getCurrency());
 	}
 
 
 	public function getVatValue(): PriceInterface
 	{
+		return new Price('30', $this->getCurrency());
 	}
 
 
 	public function getPriceWithoutVat(): PriceInterface
 	{
+		return new Price('100', $this->getCurrency());
 	}
 
 
@@ -109,6 +116,7 @@ final class SampleOrderEntity implements OrderInterface
 
 	public function getSale(): PriceInterface
 	{
+		return new Price('0', $this->getCurrency());
 	}
 
 
@@ -136,11 +144,13 @@ final class SampleOrderEntity implements OrderInterface
 
 	public function getDeliveryAddress(): ?AddressInterface
 	{
+		return null;
 	}
 
 
 	public function getPaymentAddress(): ?AddressInterface
 	{
+		return null;
 	}
 
 
@@ -182,12 +192,12 @@ final class SampleOrderEntity implements OrderInterface
 
 	public function getDeliveryPrice(): PriceInterface
 	{
-		// TODO: Implement getDeliveryPrice() method.
+		return new Price('0', $this->getCurrency());
 	}
 
 
 	public function getPaymentPrice(): PriceInterface
 	{
-		// TODO: Implement getPaymentPrice() method.
+		return new Price('0', $this->getCurrency());
 	}
 }

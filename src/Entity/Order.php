@@ -206,6 +206,8 @@ class Order implements OrderInterface, OrderEntity
 
 	public function getId(): int
 	{
+		assert($this->id > 0);
+
 		return $this->id;
 	}
 
@@ -325,6 +327,8 @@ class Order implements OrderInterface, OrderEntity
 
 	public function getNumber(): string
 	{
+		assert($this->number !== '');
+
 		return $this->number;
 	}
 
@@ -356,6 +360,8 @@ class Order implements OrderInterface, OrderEntity
 
 	public function getHash(): string
 	{
+		assert($this->hash !== '');
+
 		return $this->hash;
 	}
 

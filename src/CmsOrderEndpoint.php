@@ -271,6 +271,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 		$items = [];
 		foreach ($order->getItems() as $item) {
+			assert($item instanceof OrderItem);
 			$items[] = [
 				'id' => $item->getId(),
 				'productId' => $item->isRealProduct() ? $item->getProduct()->getId() : null,
@@ -513,8 +514,9 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	{
 		$order = $this->getOrderById($id);
 
-		$hydrate = function (Address $address, array $data): void
+		$hydrate = function (AddressInterface $address, array $data): void
 		{
+			assert($address instanceof Address);
 			$address->setFirstName((string) $data['firstName']);
 			$address->setLastName((string) $data['lastName']);
 			$address->setStreet((string) $data['street']);
@@ -532,6 +534,9 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$this->entityManager->flush();
 
 		if ($this->documentManager->isDocument((int) $order->getId())) {
+			if ($this->invoiceManager === null) {
+				throw new \LogicException('Invoice manager has not been installed.');
+			}
 			$this->invoiceManager->createInvoice($order);
 			$this->flashMessage('The revised invoice has been sent to the customer.', 'success');
 		}
@@ -593,27 +598,30 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$order = $this->getOrderById($id);
 		$oldPrice = $order->getPrice();
 		$order->setNotice($notice);
-		$order->setDeliveryPrice($deliverPrice);
-		$order->setBasePrice($price);
+		$order->setDeliveryPrice((string) $deliverPrice);
+		$order->setBasePrice(new Price($price, $order->getCurrency()));
 		$this->orderManager->recountPrice($order);
 		$this->entityManager->flush();
 		$this->flashMessage(
 			sprintf('Order "%s" has been saved.', $order->getNumber())
-			. (abs($oldPrice - $order->getPrice()) > 0.001 ? ' The price has been recalculated.' : ''),
+			. (abs((float) $oldPrice->minus($order->getPrice())->getValue()) > 0.001 ? ' The price has been recalculated.' : ''),
 			'success'
 		);
 		$this->sendOk();
 	}
 
 
+	/**
+	 * @param array<int, array{id: int, type: string, count: int}> $items
+	 */
 	public function postChangeQuantity(int $id, array $items): void
 	{
 		$order = $this->getOrderById($id);
 		foreach ($items as $item) {
 			if ($item['type'] === 'product') {
 				/** @var OrderItem $orderItem */
-				$orderItem = $this->entityManager->getRepository(OrderItem::class)->find((int) $item['id']);
-				$orderItem->setCount((int) $item['count']);
+				$orderItem = $this->entityManager->getRepository(OrderItem::class)->find($item['id']);
+				$orderItem->setCount($item['count']);
 			}
 		}
 
@@ -682,6 +690,9 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	}
 
 
+	/**
+	 * @param numeric-string $price
+	 */
 	public function postAddVirtualItem(int $orderId, string $name, string $price): void
 	{
 		$order = $this->getOrderById($orderId);
@@ -698,6 +709,9 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 	public function postCreateInvoice(int $id): void
 	{
+		if ($this->invoiceManager === null) {
+			throw new \LogicException('Invoice manager has not been installed.');
+		}
 		$order = $this->getOrderById($id);
 		try {
 			$invoice = $this->invoiceManager->createInvoice($order);

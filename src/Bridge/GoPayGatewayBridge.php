@@ -75,18 +75,17 @@ final class GoPayGatewayBridge implements OrderPaymentGatewayInterface
 		if (isset($response['gw_url'])) {
 			$payment = new OrderOnlinePayment($order, (string) $response['id']);
 			$this->entityManager->persist($payment);
+			assert($order instanceof Order);
 			$order->addPayment($payment);
 			$this->entityManager->flush();
 
 			return new GatewayResponse($response['gw_url']);
 		}
 
-		if ($this->logger !== null) {
-			$this->logger->critical(
-				'Gateway error: ' . json_encode($response, JSON_THROW_ON_ERROR),
-				iterator_to_array($response->getIterator()),
-			);
-		}
+		$this->logger?->critical(
+			'Gateway error: ' . json_encode($response, JSON_THROW_ON_ERROR),
+			iterator_to_array($response->getIterator()),
+		);
 
 		return new GatewayResponse(
 			$linkGenerator->default($order),

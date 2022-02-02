@@ -81,10 +81,10 @@ class OrderItem implements OrderItemInterface
 		$this->price = Price::normalize($price);
 		$this->setUnit($unit);
 		if ($product !== null) {
-			$this->setLabel((string) $product->getName());
+			$this->setLabel($product->getLabel());
 			$this->vat = $product->getVat();
 		} else {
-			$this->vat = (float) ($vat ?? VatResolver::DEFAULT_VAT);
+			$this->vat = $vat ?? (string) VatResolver::DEFAULT_VAT;
 		}
 	}
 
@@ -105,10 +105,7 @@ class OrderItem implements OrderItemInterface
 
 	public function getCode(): string
 	{
-		$return = null;
-		if ($this->variant !== null) {
-			$return = $this->variant->getCode();
-		}
+		$return = $this->variant?->getCode();
 		if ($return === null && $this->product !== null) {
 			$return = $this->product->getCode();
 		}
@@ -145,7 +142,7 @@ class OrderItem implements OrderItemInterface
 			return '[!!!] Unknown product';
 		}
 
-		return (string) $this->product->getName();
+		return $this->product->getLabel();
 	}
 
 
@@ -226,6 +223,7 @@ class OrderItem implements OrderItemInterface
 	{
 		$return = $this->label ?? $this->getName();
 		if ($this->variant !== null) {
+			assert($this->variant instanceof ProductVariant);
 			$return .= sprintf(' [%s]', str_replace(';', '; ', $this->variant->getRelationHash()));
 		}
 

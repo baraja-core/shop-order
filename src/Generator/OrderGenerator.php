@@ -64,6 +64,7 @@ final class OrderGenerator
 		if ($cart->isEmpty()) {
 			throw new \LogicException(sprintf('Can not create empty order (cart id: "%d").', $cart->getId()));
 		}
+		assert($orderInfo instanceof OrderInfo);
 		$info = $orderInfo->getInfo();
 		$addressInfo = $orderInfo->getAddress();
 		$invoiceAddressInfo = $addressInfo->isInvoiceAddressIsDifferent()
@@ -100,6 +101,8 @@ final class OrderGenerator
 				->getOneOrNullResult();
 			$cart->setPayment($selectedPayment);
 		}
+		assert($selectedDelivery instanceof Delivery);
+		assert($selectedPayment instanceof Payment);
 
 		$group = $group ?? $this->orderGroupManager->getDefaultGroup();
 		$itemsPrice = $cart->getItemsPrice()->getValue();
@@ -208,8 +211,8 @@ final class OrderGenerator
 			locale: $this->localization->getLocale(),
 			delivery: $delivery,
 			payment: $payment,
-			price: 0,
-			priceWithoutVat: 0,
+			price: '0',
+			priceWithoutVat: '0',
 			currency: $this->getCurrentContextCurrency(),
 		);
 		$order->setDeliveryPrice($delivery->getPrice());
@@ -275,12 +278,10 @@ final class OrderGenerator
 
 	private function processCustomer(OrderInfoBasic $info, CartInterface $cart): Customer
 	{
-		$userExist = false;
 		$customer = $cart->getCustomer();
 		if ($customer === null) {
 			try {
 				$customer = $this->customerManager->getByEmail($info->getEmail());
-				$userExist = true;
 			} catch (NoResultException | NonUniqueResultException) {
 				$customer = new Customer(
 					$info->getEmail(),
@@ -293,13 +294,11 @@ final class OrderGenerator
 			}
 		}
 
+		assert($customer instanceof Customer);
 		$customer->setFirstName($info->getFirstName());
 		$customer->setLastName($info->getLastName());
 		$customer->setPhone($info->getPhone());
 
-		// TODO: if ($userExist === false && $info->isRegister()) {
-		// TODO: $this->emailer->sendRegister($customer);
-		// TODO: }
 		if ($info->isNewsletter()) {
 			$customer->setNewsletter(true);
 		}
@@ -324,9 +323,9 @@ final class OrderGenerator
 	private function resolveAddress(OrderInfo $orderInfo, OrderInfoAddress $address, ?CartInterface $cart = null): Address
 	{
 		$data = $orderInfo->toArray($address);
-		$countryId = $data['country'];
+		$countryId = $data['country'] ?? null;
 		$country = null;
-		if ($countryId !== null) {
+		if (is_int($countryId)) {
 			$country = $this->countryManager->get()->getById($countryId);
 		} else {
 			try {
@@ -337,12 +336,14 @@ final class OrderGenerator
 		if ($country === null) {
 			$country = $this->countryManager->get()->getByCode('CZE'); // TODO: Load default country
 		}
+		assert($country instanceof Country);
 		if ($country->isActive() === false) {
 			throw new \InvalidArgumentException(sprintf('Country "%s" must be active.', $country->getCode()));
 		}
 		$realAddress = $data;
 		$realAddress['country'] = $country;
 
+		/** @phpstan-ignore-next-line */
 		return Address::hydrateData($realAddress);
 	}
 }

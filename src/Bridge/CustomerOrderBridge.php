@@ -19,7 +19,7 @@ final class CustomerOrderBridge implements OrderLoader
 
 
 	/**
-	 * @return array<int, array{id: int, number: string, price: float, date: \DateTimeImmutable}>
+	 * @return array<int, array{id: int, number: string, price: string, date: \DateTimeImmutable}>
 	 */
 	public function getOrders(int $customerId): array
 	{
@@ -38,9 +38,9 @@ final class CustomerOrderBridge implements OrderLoader
 		foreach ($orders as $order) {
 			$date = $order->getInsertedDate();
 			$return[] = [
-				'id' => (int) $order->getId(),
+				'id' => $order->getId(),
 				'number' => $order->getNumber(),
-				'price' => $order->getPrice(),
+				'price' => $order->getPrice()->render(true),
 				'date' => new \DateTimeImmutable($date->format('Y-m-d H:i:s.u'), $date->getTimezone()),
 			];
 		}

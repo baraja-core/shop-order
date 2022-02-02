@@ -24,6 +24,7 @@
 	},
 	"require-dev": {
 		"heureka/overeno-zakazniky": "^3.0",
+		"inspirum/balikobot": "^6.3",
 		"baraja-core/gopay-inline": "^1.0",
 		"baraja-core/fio-payment-authorizator": "^2.0",
 		"phpstan/phpstan": "^0.12.74",

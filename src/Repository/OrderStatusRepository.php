@@ -10,6 +10,9 @@ use Doctrine\ORM\EntityRepository;
 
 final class OrderStatusRepository extends EntityRepository
 {
+	/**
+	 * @return OrderStatus[]
+	 */
 	public function getAll(): array
 	{
 		/** @var OrderStatus[] $return */

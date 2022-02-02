@@ -19,11 +19,9 @@ final class RegisterNewsletterCreatedOrderEvent implements CreatedOrderEvent
 
 	public function process(Order $order): void
 	{
-		if ($order->getCustomer()->isNewsletter()) {
-			$this->newsletterManagerAccessor->get()->register(
-				$order->getCustomer()->getEmail(),
-				'shop-order',
-			);
+		$email = $order->getCustomer()->getEmail();
+		if ($email !== null && $order->getCustomer()->isNewsletter()) {
+			$this->newsletterManagerAccessor->get()->register($email, 'shop-order');
 		}
 	}
 }

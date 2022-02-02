@@ -6,9 +6,9 @@ namespace Baraja\Shop\Order\Command;
 
 
 use Baraja\BankTransferAuthorizator\Authorizator;
+use Baraja\BankTransferAuthorizator\Transaction;
 use Baraja\Doctrine\EntityManager;
 use Baraja\Doctrine\EntityManagerException;
-use Baraja\FioPaymentAuthorizator\Transaction;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderStatus;
 use Baraja\Shop\Order\OrderStatusManager;
@@ -129,6 +129,7 @@ final class CheckOrderCommand extends Command
 			$processed = [];
 			$unmatchedTransactionsList = $authorizator->getUnmatchedTransactions($unauthorizedVariables);
 			foreach ($unmatchedTransactionsList as $transaction) {
+				assert($transaction instanceof \Baraja\FioPaymentAuthorizator\Transaction);
 				if (
 					isset($processed[$transaction->getIdTransaction()]) === false
 					&& $this->tm->transactionExist((int) $transaction->getIdTransaction()) === false
@@ -167,9 +168,7 @@ final class CheckOrderCommand extends Command
 					$variable = (string) $transaction->getVariableSymbol();
 					if ($variable !== '') {
 						$this->orderStatusManager->setStatus($orderByVariable[$variable], OrderStatus::STATUS_PAID);
-						if ($entity !== null) {
-							$entity->setOrder($orderByVariable[$variable]);
-						}
+						$entity?->setOrder($orderByVariable[$variable]);
 					}
 					$this->entityManager->flush();
 				},

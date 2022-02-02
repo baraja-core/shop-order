@@ -26,7 +26,6 @@ final class OrderManager implements OrderManagerInterface
 {
 	public function __construct(
 		private OrderPaymentClient $paymentClient,
-		private OrderStatusManager $statusManager,
 		private OrderGenerator $orderGenerator,
 		private EntityManager $entityManager,
 		private BranchManager $branchManager,
@@ -80,6 +79,7 @@ final class OrderManager implements OrderManagerInterface
 	public function isPaid(OrderInterface $order): bool
 	{
 		$sum = '0';
+		assert($order instanceof Order);
 		foreach ($order->getPayments() as $payment) {
 			assert($payment instanceof OrderOnlinePayment);
 			if ($payment->getStatus() === 'PAID') {

@@ -90,7 +90,7 @@ final class OrderPaymentManager
 			$transactionEntity = new OrderBankPayment(
 				$transaction->getId(),
 				$transaction->getDate(),
-				$transaction->getPrice(),
+				(string) $transaction->getPrice(),
 				$transaction->getCurrency(),
 				$transaction->getToAccount(),
 				$transaction->getToAccountName(),

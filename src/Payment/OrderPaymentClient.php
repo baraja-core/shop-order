@@ -57,7 +57,7 @@ final class OrderPaymentClient
 	{
 		if ($this->orderManager->isPaid($order)) {
 			echo 'Order has been paid.';
-			return;
+			die;
 		}
 
 		$provider = $this->getBestCompatibleProvider($order);
@@ -126,6 +126,9 @@ final class OrderPaymentClient
 	}
 
 
+	/**
+	 * @return never-return
+	 */
 	private function processResponse(OrderGatewayResponseInterface $response): void
 	{
 		$redirect = $response->getRedirect();
@@ -138,7 +141,7 @@ final class OrderPaymentClient
 		}
 		if ($errorMessage !== null) {
 			echo htmlspecialchars($errorMessage);
-			die;
 		}
+		die;
 	}
 }
