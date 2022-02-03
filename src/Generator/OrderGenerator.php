@@ -343,7 +343,6 @@ final class OrderGenerator
 		$realAddress = $data;
 		$realAddress['country'] = $country;
 
-		/** @phpstan-ignore-next-line */
 		return Address::hydrateData($realAddress);
 	}
 }

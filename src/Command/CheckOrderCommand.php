@@ -61,10 +61,13 @@ final class CheckOrderCommand extends Command
 		$unauthorizedVariables = [];
 		/** @var array<string, Order> $orderByVariable */
 		$orderByVariable = [];
+		/** @var array<int, int> $unauthorizedVariablesForCheck */
+		$unauthorizedVariablesForCheck = [];
 
 		foreach ($orders as $order) {
-			$unauthorizedVariables[$order->getNumber()] = $order->getPrice();
+			$unauthorizedVariables[$order->getNumber()] = (float) $order->getPrice()->getValue();
 			$orderByVariable[$order->getNumber()] = $order;
+			$unauthorizedVariablesForCheck[] = (int) $order->getNumber();
 
 			echo $order->getNumber() . ' [' . $order->getPrice() . ' ' . $order->getCurrencyCode() . ']';
 			echo ' [' . $order->getInsertedDate()->format('Y-m-d H:i:s') . ']';
@@ -74,7 +77,7 @@ final class CheckOrderCommand extends Command
 
 		$authorizator = $this->orderPaymentClient->getAuthorizator();
 		echo 'Check and save unmatched:' . "\n";
-		$this->checkUnmatchedTransactions(array_keys($unauthorizedVariables), $authorizator);
+		$this->checkUnmatchedTransactions($unauthorizedVariablesForCheck, $authorizator);
 
 		echo "\n\n" . 'Saving..,' . "\n\n";
 		$this->entityManager->flush();
@@ -121,7 +124,7 @@ final class CheckOrderCommand extends Command
 
 
 	/**
-	 * @param int[] $unauthorizedVariables
+	 * @param array<int, int> $unauthorizedVariables
 	 */
 	private function checkUnmatchedTransactions(array $unauthorizedVariables, Authorizator $authorizator): void
 	{
@@ -156,22 +159,25 @@ final class CheckOrderCommand extends Command
 	 */
 	private function authOrders(array $unauthorizedVariables, array $orderByVariable, Authorizator $authorizator): void
 	{
+		/** @var callable&(callable(Transaction): void)[] $callback */
+		$callback = function (Transaction $transaction) use ($orderByVariable): void {
+			assert($transaction instanceof \Baraja\FioPaymentAuthorizator\Transaction);
+			$entity = null;
+			if ($this->tm->transactionExist((int) $transaction->getIdTransaction()) === false) {
+				$entity = $this->tm->storeTransaction($transaction);
+			}
+			$variable = (string) $transaction->getVariableSymbol();
+			if ($variable !== '') {
+				$this->orderStatusManager->setStatus($orderByVariable[$variable], OrderStatus::STATUS_PAID);
+				$entity?->setOrder($orderByVariable[$variable]);
+			}
+			$this->entityManager->flush();
+		};
+
 		try {
 			$authorizator->authOrders(
 				$unauthorizedVariables,
-				function (Transaction $transaction) use ($orderByVariable): void
-				{
-					$entity = null;
-					if ($this->tm->transactionExist((int) $transaction->getIdTransaction()) === false) {
-						$entity = $this->tm->storeTransaction($transaction);
-					}
-					$variable = (string) $transaction->getVariableSymbol();
-					if ($variable !== '') {
-						$this->orderStatusManager->setStatus($orderByVariable[$variable], OrderStatus::STATUS_PAID);
-						$entity?->setOrder($orderByVariable[$variable]);
-					}
-					$this->entityManager->flush();
-				},
+				$callback,
 				'CZK',
 				0.25
 			);

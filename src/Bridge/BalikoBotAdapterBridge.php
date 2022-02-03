@@ -96,10 +96,13 @@ final class BalikoBotAdapterBridge implements CarrierAdapter
 		// save track URL for each package
 		foreach ($responsePackages as $key => $orderedPackage) {
 			$order = $orders[$key] ?? null;
+			if ($order === null) {
+				continue;
+			}
 			$packageRecord = new OrderPackage(
 				order: $order,
 				orderId: $orderedShipment->getOrderId(),
-				packageId: $orderedPackage->getPackageId(),
+				packageId: (int) $orderedPackage->getPackageId(),
 				batchId: $orderedPackage->getBatchId(),
 				shipper: $orderedPackage->getShipper(),
 				carrierId: $orderedPackage->getCarrierId(),
@@ -135,7 +138,7 @@ final class BalikoBotAdapterBridge implements CarrierAdapter
 
 		$package = new Package;
 		$package->setServiceType($serviceType);
-		$package->setRecEmail($order->getCustomer()->getEmail());
+		$package->setRecEmail((string) $order->getCustomer()->getEmail());
 		$package->setRecName($order->getDeliveryAddress()->getPersonName());
 		$package->setRecStreet($order->getDeliveryAddress()->getStreet());
 		$package->setRecCity($order->getDeliveryAddress()->getCity());
@@ -145,8 +148,8 @@ final class BalikoBotAdapterBridge implements CarrierAdapter
 		if ($phone !== null) {
 			$package->setRecPhone($phone);
 		}
-		$package->setPrice($order->getPrice());
-		$package->setInsCurrency('CZK'); // TODO: hardcoded
+		$package->setPrice((float) $order->getPrice()->getValue());
+		$package->setInsCurrency($order->getCurrency()->getCode());
 		$package->setWeight(0.4); // TODO: hardcoded
 		if ($order->getDeliveryBranchId()) {
 			$package->setBranchId((string) $order->getDeliveryBranchId());
