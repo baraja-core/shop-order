@@ -345,7 +345,11 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$branch = null;
 		$branchId = $order->getDeliveryBranchId();
 		if ($branchId !== null && $deliveryItem !== null) {
-			$branch = $this->branchManager->getBranchById($deliveryItem, $branchId);
+			try {
+				$branch = $this->branchManager->getBranchById($deliveryItem, $branchId);
+			} catch (\InvalidArgumentException $e) {
+				$this->flashMessage($e->getMessage(), self::FLASH_MESSAGE_INFO);
+			}
 		}
 
 		$formatAddress = static function (AddressInterface $address): array
