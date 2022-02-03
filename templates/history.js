@@ -34,7 +34,7 @@ Vue.component('cms-order-history', {
 				<td>{{ notificationItem.subject }}</td>
 				<td>
 					<div class="card p-1" style="font-size:10pt;background:#eee">
-						<span>{{ notificationItem.content }}</span>
+						<pre>{{ notificationItem.content }}</pre>
 					</div>
 				</td>
 				<td class="text-right">{{ notificationItem.insertedDate }}</td>

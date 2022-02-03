@@ -291,7 +291,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				? 'Unknown delivery'
 				: 'Delivery ' . $deliveryItem->getName(),
 			'count' => 1,
-			'price' => $order->getDeliveryPrice()->getValue(),
+			'price' => (float) $order->getDeliveryPrice()->getValue(),
 			'type' => 'delivery',
 		];
 		$paymentItem = $order->getPayment();
@@ -301,7 +301,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				? 'Unknown payment'
 				: 'Payment ' . $paymentItem->getName(),
 			'count' => 1,
-			'price' => $order->getPaymentPrice()->getValue(),
+			'price' => (float) $order->getPaymentPrice()->getValue(),
 			'type' => 'payment',
 		];
 
@@ -377,7 +377,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'invoiceNumber' => $order->getInvoiceNumber(),
 				'locale' => $order->getLocale(),
 				'status' => $order->getStatus(),
-				'price' => $order->getPrice(),
+				'price' => $order->getPrice()->getValue(),
 				'sale' => $order->getSale(),
 				'currency' => $order->getCurrencyCode(),
 				'statuses' => $this->formatBootstrapSelectArray($this->orderStatusManager->getKeyValueList()),
@@ -394,13 +394,13 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'deliveryList' => $this->formatBootstrapSelectArray($deliverySelectbox),
 				'paymentList' => $this->formatBootstrapSelectArray($paymentSelectbox),
 				'deliveryId' => $deliveryItem === null ? null : $deliveryItem->getId(),
-				'deliverPrice' => $order->getDeliveryPrice(),
+				'deliverPrice' => $order->getDeliveryPrice()->getValue(),
 				'deliveryBranch' => $branchId !== null
 					? (static function (int $id, ?BranchInterface $branch): BranchInterface|array
 					{
 						return $branch ?? [
-							'id' => $id,
-						];
+								'id' => $id,
+							];
 					})(
 						$branchId, $branch
 					) : null,
@@ -612,7 +612,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 
 	/**
-	 * @param array<int, array{id: int, type: string, count: int}> $items
+	 * @param array<int, array{id: numeric-string, type: string, count: numeric-string}> $items
 	 */
 	public function postChangeQuantity(int $id, array $items): void
 	{
@@ -620,8 +620,8 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		foreach ($items as $item) {
 			if ($item['type'] === 'product') {
 				/** @var OrderItem $orderItem */
-				$orderItem = $this->entityManager->getRepository(OrderItem::class)->find($item['id']);
-				$orderItem->setCount($item['count']);
+				$orderItem = $this->entityManager->getRepository(OrderItem::class)->find((int) $item['id']);
+				$orderItem->setCount((int) $item['count']);
 			}
 		}
 

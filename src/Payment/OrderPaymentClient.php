@@ -19,6 +19,9 @@ use Nette\Caching\Storage;
 
 final class OrderPaymentClient
 {
+	private const FALLBACK_PROVIDERS = ['gopay'];
+
+
 	private OrderManager $orderManager;
 
 
@@ -92,11 +95,19 @@ final class OrderPaymentClient
 		if ($payment === null) {
 			throw new \InvalidArgumentException(sprintf('Payment for order "%s" has not set.', $order->getNumber()));
 		}
+		$fallback = null;
 		$orderPaymentCode = $payment->getCode();
 		foreach ($this->providers as $provider) {
-			if ($provider->getPaymentMethodCode() === $orderPaymentCode) {
+			$providerCode = $provider->getPaymentMethodCode();
+			if ($providerCode === $orderPaymentCode) {
 				return $provider;
 			}
+			if ($fallback === null && in_array($providerCode, self::FALLBACK_PROVIDERS, true)) {
+				$fallback = $provider;
+			}
+		}
+		if ($fallback !== null) {
+			return $fallback;
 		}
 
 		throw new \InvalidArgumentException('Order can not be paid, because no compatible provider exist.');

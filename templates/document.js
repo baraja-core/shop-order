@@ -10,20 +10,24 @@ Vue.component('cms-order-document', {
 		</div>
 		<table v-else class="table table-sm cms-table-no-border-top">
 			<tr>
-				<th>ID</th>
-				<th>Number</th>
+				<th width="100">ID</th>
+				<th width="100">Number</th>
 				<th>Label</th>
 				<th>Tags</th>
-				<th>Download</th>
+				<th width="100"></th>
 			</tr>
-			<tr v-for="file in items">
+			<tr v-for="file in list">
 				<td>{{ file.id }}</td>
 				<td>{{ file.number }}</td>
 				<td>{{ file.label }}</td>
-				<td>{{ file.tags }}</td>
 				<td>
+					<template v-for="tag in file.tags">
+						<span class="badge badge-primary">{{ tag }}</span>
+					</template>
+				</td>
+				<td class="text-right">
 					<a :href="file.downloadLink" target="_blank">
-						<b-button variant="secondary" size="sm">download</b-button>
+						<b-button variant="secondary" size="sm">Download</b-button>
 					</a>
 				</td>
 			</tr>

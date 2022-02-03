@@ -18,7 +18,7 @@ Vue.component('cms-order-overview', {
 				Price sum:
 				<div class="row">
 					<div class="col">
-						<b-form-input v-model="order.price" :class="{ 'alert-success': Math.abs(order.price) <= 0.001 }"></b-form-input>
+						<div :class="{ 'card': true, 'px-3': true, 'py-1': true, 'alert-success': Math.abs(order.price) <= 0.001 }"><b>{{ order.price }}</b></div>
 					</div>
 					<div class="col-3">
 						<b style="font-size:18pt">{{ order.currency }}</b>
@@ -279,15 +279,9 @@ Vue.component('cms-order-overview', {
 									<template v-else>
 										<div>
 											Branch {{ order.deliveryBranch.id }}<br>
-											{{ order.deliveryBranch.nameStreet }}<br>
-											<a :href="order.deliveryBranch.url" target="_blank">More info</a>
-										</div>
-										<div v-if="order.deliveryBranch.photos.length > 0" class="mt-3">
-											<template v-for="branchImage in order.deliveryBranch.photos">
-												<a :href="branchImage.normal" target="_blank">
-													<img :src="branchImage.thumbnail" class="m-1" style="height:64px">
-												</a>
-											</template>
+											<i>{{ order.deliveryBranch.name }}</i><br>
+											{{ order.deliveryBranch.latitude }}, {{ order.deliveryBranch.longitude }}
+											<!-- <a :href="order.deliveryBranch.url" target="_blank">More info</a> -->
 										</div>
 									</template>
 								</template>
