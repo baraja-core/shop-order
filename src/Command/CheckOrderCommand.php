@@ -67,9 +67,10 @@ final class CheckOrderCommand extends Command
 		foreach ($orders as $order) {
 			/** @var numeric-string $number */
 			$number = $order->getNumber();
+			$numberInt = (int) $number;
 			$unauthorizedVariables[$number] = (float) $order->getPrice()->getValue();
 			$orderByVariable[$number] = $order;
-			$unauthorizedVariablesForCheck[] = (int) $number;
+			$unauthorizedVariablesForCheck[] = $numberInt;
 
 			echo $number . ' [' . $order->getPrice() . ' ' . $order->getCurrencyCode() . ']';
 			echo ' [' . $order->getInsertedDate()->format('Y-m-d H:i:s') . ']';
@@ -169,7 +170,7 @@ final class CheckOrderCommand extends Command
 				$entity = $this->tm->storeTransaction($transaction);
 			}
 			$variable = (string) $transaction->getVariableSymbol();
-			if ($variable !== '') {
+			if ($variable !== '' && isset($orderByVariable[$variable])) {
 				$this->orderStatusManager->setStatus($orderByVariable[$variable], OrderStatus::STATUS_PAID);
 				$entity?->setOrder($orderByVariable[$variable]);
 			}
