@@ -149,63 +149,17 @@ Vue.component('cms-order-overview', {
 								<td>{{ order.customer.phone }}</td>
 							</tr>
 						</table>
-						<div :class="['alert', showDelivery ? 'alert-secondary' : 'alert-warning', 'px-2', 'my-0']">
-							<div class="row">
-								<div class="col">
-									<h5>{{ showDelivery ? 'Delivery address' : 'Invoice address' }}</h5>
-								</div>
-								<div class="col-4 text-right">
-									<b-btn size="sm" class="btn btn-sm py-0" @click="showDelivery=!showDelivery">Switch</b-btn>
+						<div class="row">
+							<div class="col">
+								<div class="alert alert-secondary px-2 my-0">
+									<h5>Delivery address</h5>
+									<cms-order-overview-address :address="order.deliveryAddress" :country-list="countryList"></cms-order-overview-address>
 								</div>
 							</div>
-							<div>
-								<div class="row">
-									<div class="col pr-0">
-										<small>Firstname:</small>
-										<b-form-input v-model="address.firstName" size="sm"></b-form-input>
-									</div>
-									<div class="col pl-0">
-										<small>Lastname:</small>
-										<b-form-input v-model="address.lastName" size="sm"></b-form-input>
-									</div>
-								</div>
-								<div class="row">
-									<div class="col">
-										<small>Street:</small>
-										<b-form-input v-model="address.street" size="sm"></b-form-input>
-									</div>
-								</div>
-								<div class="row">
-									<div class="col pr-0">
-										<small>City:</small>
-										<b-form-input v-model="address.city" size="sm"></b-form-input>
-									</div>
-									<div class="col-4 pl-0">
-										<small>ZIP:</small>
-										<b-form-input v-model="address.zip" size="sm"></b-form-input>
-									</div>
-								</div>
-								<div class="row">
-									<div class="col">
-										<small>Country:</small>
-										<b-form-select v-model="address.country" :options="countryList" size="sm"></b-form-select>
-									</div>
-								</div>
-								<div class="row">
-									<div class="col">
-										<small>Company:</small>
-										<b-form-input v-model="address.companyName" size="sm"></b-form-input>
-									</div>
-								</div>
-								<div class="row">
-									<div class="col pr-0">
-										<small>VAT number:</small>
-										<b-form-input v-model="address.ic" size="sm"></b-form-input>
-									</div>
-									<div class="col pl-0">
-										<small>TIN:</small>
-										<b-form-input v-model="address.dic" size="sm"></b-form-input>
-									</div>
+							<div class="col">
+								<div class="alert alert-warning px-2 my-0">
+									<h5>Invoice address</h5>
+									<cms-order-overview-address :address="order.invoiceAddress" :country-list="countryList"></cms-order-overview-address>
 								</div>
 							</div>
 						</div>
@@ -449,7 +403,6 @@ Vue.component('cms-order-overview', {
 			order: null,
 			countryList: [],
 			addItemList: null,
-			showDelivery: true,
 			loading: {
 				createPackage: false
 			},
@@ -472,11 +425,6 @@ Vue.component('cms-order-overview', {
 			packetaWidgetScript.setAttribute('data-api-key', 'client API key');
 			document.head.appendChild(packetaWidgetScript);
 		});
-	},
-	computed: {
-		address: function () {
-			return this.order[this.showDelivery ? 'deliveryAddress' : 'invoiceAddress'];
-		}
 	},
 	methods: {
 		sync() {
@@ -644,4 +592,58 @@ Vue.component('cms-order-overview', {
 			});
 		}
 	}
+});
+
+Vue.component('cms-order-overview-address', {
+	props: ['address', 'countryList'],
+	template: `<div>
+	<div class="row">
+		<div class="col pr-0">
+			<small>Firstname:</small>
+			<b-form-input v-model="address.firstName" size="sm"></b-form-input>
+		</div>
+		<div class="col pl-0">
+			<small>Lastname:</small>
+			<b-form-input v-model="address.lastName" size="sm"></b-form-input>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col">
+			<small>Street:</small>
+			<b-form-input v-model="address.street" size="sm"></b-form-input>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col pr-0">
+			<small>City:</small>
+			<b-form-input v-model="address.city" size="sm"></b-form-input>
+		</div>
+		<div class="col-4 pl-0">
+			<small>ZIP:</small>
+			<b-form-input v-model="address.zip" size="sm"></b-form-input>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col">
+			<small>Country:</small>
+			<b-form-select v-model="address.country" :options="countryList" size="sm"></b-form-select>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col">
+			<small>Company:</small>
+			<b-form-input v-model="address.companyName" size="sm"></b-form-input>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col pr-0">
+			<small>VAT number:</small>
+			<b-form-input v-model="address.ic" size="sm"></b-form-input>
+		</div>
+		<div class="col pl-0">
+			<small>TIN:</small>
+			<b-form-input v-model="address.dic" size="sm"></b-form-input>
+		</div>
+	</div>
+</div>`
 });
