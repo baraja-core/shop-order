@@ -59,17 +59,19 @@ final class CheckOrderCommand extends Command
 
 		/** @var array<string, float> $unauthorizedVariables */
 		$unauthorizedVariables = [];
-		/** @var array<string, Order> $orderByVariable */
+		/** @var array<numeric-string, Order> $orderByVariable */
 		$orderByVariable = [];
 		/** @var array<int, int> $unauthorizedVariablesForCheck */
 		$unauthorizedVariablesForCheck = [];
 
 		foreach ($orders as $order) {
-			$unauthorizedVariables[$order->getNumber()] = (float) $order->getPrice()->getValue();
-			$orderByVariable[$order->getNumber()] = $order;
-			$unauthorizedVariablesForCheck[] = (int) $order->getNumber();
+			/** @var numeric-string $number */
+			$number = $order->getNumber();
+			$unauthorizedVariables[$number] = (float) $order->getPrice()->getValue();
+			$orderByVariable[$number] = $order;
+			$unauthorizedVariablesForCheck[] = (int) $number;
 
-			echo $order->getNumber() . ' [' . $order->getPrice() . ' ' . $order->getCurrencyCode() . ']';
+			echo $number . ' [' . $order->getPrice() . ' ' . $order->getCurrencyCode() . ']';
 			echo ' [' . $order->getInsertedDate()->format('Y-m-d H:i:s') . ']';
 			$this->updateStatusByWorkflow($order);
 			echo "\n";
@@ -155,7 +157,7 @@ final class CheckOrderCommand extends Command
 
 	/**
 	 * @param array<string, float> $unauthorizedVariables
-	 * @param array<string, Order> $orderByVariable
+	 * @param array<numeric-string, Order> $orderByVariable
 	 */
 	private function authOrders(array $unauthorizedVariables, array $orderByVariable, Authorizator $authorizator): void
 	{
