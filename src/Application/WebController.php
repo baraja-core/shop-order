@@ -25,7 +25,7 @@ final class WebController
 
 
 	public function __construct(
-		private EntityManager $entityManager,
+		EntityManager $entityManager,
 		private OrderManagerAccessor $orderManager,
 		private OrderPaymentClient $orderPaymentClient,
 		private ?FrontendInterface $frontend = null,
