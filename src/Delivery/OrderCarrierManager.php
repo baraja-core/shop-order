@@ -10,8 +10,13 @@ use Baraja\Shop\Order\Entity\Order;
 
 final class OrderCarrierManager
 {
-	/** @var array<int, CarrierAdapter> */
-	private array $carrierAdapters = [];
+	/**
+	 * @param CarrierAdapter[] $carrierAdapters
+	 */
+	public function __construct(
+		private array $carrierAdapters = []
+	) {
+	}
 
 
 	/**
@@ -66,7 +71,7 @@ final class OrderCarrierManager
 			}
 		}
 		if ($adapterService === null) {
-			throw new \InvalidArgumentException('Adapter service does not exist for carrier "' . $carrier . '".');
+			throw new \InvalidArgumentException(sprintf('Adapter service does not exist for carrier "%s".', $carrier));
 		}
 
 		return $adapterService;
@@ -80,8 +85,7 @@ final class OrderCarrierManager
 	{
 		$carrier = null;
 		foreach ($orders as $order) {
-			$delivery = $order->getDelivery();
-			$orderCarrier = $delivery !== null ? $delivery->getCarrier() : null;
+			$orderCarrier = $order->getDelivery()?->getCarrier();
 			if ($orderCarrier === null) {
 				throw new \InvalidArgumentException(sprintf('Carrier for order "%s" does not exist.', $order->getNumber()));
 			}
