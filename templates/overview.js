@@ -129,170 +129,90 @@ Vue.component('cms-order-overview', {
 							<b-button size="sm" @click="setOrderSale()">Set a discount for the entire order</b-button>
 						</div>
 					</b-card>
-					<div class="row">
-						<div class="col">
-							<b-card :class="{ 'mt-3': true, 'bg-warning': order.notice }">
-								<h5>Customer notice</h5>
-								<b-form-textarea v-model="order.notice"></b-form-textarea>
-							</b-card>
-						</div>
-						<div class="col">
-							<b-card class="mt-3">
-								<h5>Workflow notification</h5>
-								<template v-for="notificationItem in order.notifications">
-									<b-button variant="secondary" size="sm" class="mr-1 mb-1" @click="sendEmail(notificationItem.id)">
-										{{ notificationItem.label }}
-										<template v-if="notificationItem.type === 'sms'">📱</template>
-										<template v-else-if="notificationItem.type === 'email'">📧</template>
-										<template v-else>({{ notificationItem.type }})</template>
-									</b-button>
-								</template>
-							</b-card>
-						</div>
-					</div>
-					<div class="mt-3">
-						<b-button variant="primary" @click="save">Save</b-button>
-					</div>
-				</div>
-				<div class="col">
-					<div class="row">
-						<div class="col">
-							<b-card>
-								<h5>Customer</h5>
-								<table class="table table-sm">
-									<tr>
-										<td style="border-top:0"><strong>Name</strong></td>
-										<td style="border-top:0">
-											<a :href="link('Customer:detail', {id: order.customer.id})" target="_blank">
-												{{ order.customer.name }} ({{ order.customer.id }})
-											</a>
-										</td>
-									</tr>
-									<tr>
-										<td><strong>E-mail</strong></td>
-										<td>{{ order.customer.email }}</td>
-									</tr>
-									<tr>
-										<td><strong>Phone</strong></td>
-										<td>{{ order.customer.phone }}</td>
-									</tr>
-								</table>
-								<div :class="['alert', showDelivery ? 'alert-secondary' : 'alert-warning', 'px-2', 'my-0']">
-									<div class="row">
-										<div class="col">
-											<h5>{{ showDelivery ? 'Delivery address' : 'Invoice address' }}</h5>
-										</div>
-										<div class="col-4 text-right">
-											<b-btn size="sm" class="btn btn-sm py-0" @click="showDelivery=!showDelivery">Switch</b-btn>
-										</div>
+					<b-card class="mt-3">
+						<h5>Customer</h5>
+						<table class="table table-sm">
+							<tr>
+								<td style="border-top:0"><strong>Name</strong></td>
+								<td style="border-top:0">
+									<a :href="link('Customer:detail', {id: order.customer.id})" target="_blank">
+										{{ order.customer.name }} ({{ order.customer.id }})
+									</a>
+								</td>
+							</tr>
+							<tr>
+								<td><strong>E-mail</strong></td>
+								<td>{{ order.customer.email }}</td>
+							</tr>
+							<tr>
+								<td><strong>Phone</strong></td>
+								<td>{{ order.customer.phone }}</td>
+							</tr>
+						</table>
+						<div :class="['alert', showDelivery ? 'alert-secondary' : 'alert-warning', 'px-2', 'my-0']">
+							<div class="row">
+								<div class="col">
+									<h5>{{ showDelivery ? 'Delivery address' : 'Invoice address' }}</h5>
+								</div>
+								<div class="col-4 text-right">
+									<b-btn size="sm" class="btn btn-sm py-0" @click="showDelivery=!showDelivery">Switch</b-btn>
+								</div>
+							</div>
+							<div>
+								<div class="row">
+									<div class="col pr-0">
+										<small>Firstname:</small>
+										<b-form-input v-model="address.firstName" size="sm"></b-form-input>
 									</div>
-									<div>
-										<div class="row">
-											<div class="col pr-0">
-												<small>Firstname:</small>
-												<b-form-input v-model="address.firstName" size="sm"></b-form-input>
-											</div>
-											<div class="col pl-0">
-												<small>Lastname:</small>
-												<b-form-input v-model="address.lastName" size="sm"></b-form-input>
-											</div>
-										</div>
-										<div class="row">
-											<div class="col">
-												<small>Street:</small>
-												<b-form-input v-model="address.street" size="sm"></b-form-input>
-											</div>
-										</div>
-										<div class="row">
-											<div class="col pr-0">
-												<small>City:</small>
-												<b-form-input v-model="address.city" size="sm"></b-form-input>
-											</div>
-											<div class="col-4 pl-0">
-												<small>ZIP:</small>
-												<b-form-input v-model="address.zip" size="sm"></b-form-input>
-											</div>
-										</div>
-										<div class="row">
-											<div class="col">
-												<small>Country:</small>
-												<b-form-select v-model="address.country" :options="countryList" size="sm"></b-form-select>
-											</div>
-										</div>
-										<div class="row">
-											<div class="col">
-												<small>Company:</small>
-												<b-form-input v-model="address.companyName" size="sm"></b-form-input>
-											</div>
-										</div>
-										<div class="row">
-											<div class="col pr-0">
-												<small>VAT number:</small>
-												<b-form-input v-model="address.ic" size="sm"></b-form-input>
-											</div>
-											<div class="col pl-0">
-												<small>TIN:</small>
-												<b-form-input v-model="address.dic" size="sm"></b-form-input>
-											</div>
-										</div>
+									<div class="col pl-0">
+										<small>Lastname:</small>
+										<b-form-input v-model="address.lastName" size="sm"></b-form-input>
 									</div>
 								</div>
-								<b-button variant="secondary" size="sm" @click="saveAddress()" class="mt-2">
-									Save addresses and re-generate invoice
-								</b-button>
-							</b-card>
-						</div>
-						<div class="col">
-							<b-card>
 								<div class="row">
 									<div class="col">
-										<h5>Invoice</h5>
-									</div>
-									<div class="col-4 text-right">
-										<b-button variant="secondary" size="sm" @click="createInvoice">Create</b-button>
+										<small>Street:</small>
+										<b-form-input v-model="address.street" size="sm"></b-form-input>
 									</div>
 								</div>
-								<p v-if="order.invoiceNumber === null" class="text-secondary">No&nbsp;invoice.</p>
-								<p v-else>{{ order.invoiceNumber }}</p>
-							</b-card>
-							<b-card class="mt-3">
-								<table class="w-100 mb-1">
-									<tr>
-										<td>
-											<h5>Packeta</h5>
-										</td>
-										<td class="text-right">
-											<b-button variant="secondary" size="sm" @click="document.getElementById('zasilkovna-open-button').click()">Change</b-button>
-										</td>
-									</tr>
-								</table>
-								<div class="alert alert-warning" v-if="order.deliveryBranch === null">
-									The branch has not been selected.
+								<div class="row">
+									<div class="col pr-0">
+										<small>City:</small>
+										<b-form-input v-model="address.city" size="sm"></b-form-input>
+									</div>
+									<div class="col-4 pl-0">
+										<small>ZIP:</small>
+										<b-form-input v-model="address.zip" size="sm"></b-form-input>
+									</div>
 								</div>
-								<template v-else>
-									<template v-if="order.deliveryBranchError === true">
-										<div class="alert alert-danger">
-											Attention: Customer has chosen a branch that is not available.<br><br>
-											Branch ID: <strong>{{ order.deliveryBranch.id }}</strong>
-										</div>
-									</template>
-									<template v-else>
-										<div>
-											Branch {{ order.deliveryBranch.id }}<br>
-											<i>{{ order.deliveryBranch.name }}</i><br>
-											{{ order.deliveryBranch.latitude }}, {{ order.deliveryBranch.longitude }}
-											<!-- <a :href="order.deliveryBranch.url" target="_blank">More info</a> -->
-										</div>
-									</template>
-								</template>
-								<b-card v-if="zasilkovna.id !== ''" class="mt-3">
-									Selected branch <strong>{{ zasilkovna.id }}</strong>:<br>
-									{{ zasilkovna.name }}<br>
-									<b-button variant="success" class="mt-3" @click="savePacketa()">Save branch</b-button>
-								</b-card>
-							</b-card>
+								<div class="row">
+									<div class="col">
+										<small>Country:</small>
+										<b-form-select v-model="address.country" :options="countryList" size="sm"></b-form-select>
+									</div>
+								</div>
+								<div class="row">
+									<div class="col">
+										<small>Company:</small>
+										<b-form-input v-model="address.companyName" size="sm"></b-form-input>
+									</div>
+								</div>
+								<div class="row">
+									<div class="col pr-0">
+										<small>VAT number:</small>
+										<b-form-input v-model="address.ic" size="sm"></b-form-input>
+									</div>
+									<div class="col pl-0">
+										<small>TIN:</small>
+										<b-form-input v-model="address.dic" size="sm"></b-form-input>
+									</div>
+								</div>
+							</div>
 						</div>
-					</div>
+						<b-button variant="secondary" size="sm" @click="saveAddress()" class="mt-2">
+							Save addresses and re-generate invoice
+						</b-button>
+					</b-card>
 					<b-card class="mt-3">
 						<h5>Payment</h5>
 						<b>Bank transfers:</b>
@@ -333,6 +253,74 @@ Vue.component('cms-order-overview', {
 								</tr>
 							</table>
 							<i>Payment status may change over time depending on system or user activity.</i>
+						</template>
+					</b-card>
+					<div class="mt-3">
+						<b-button variant="primary" @click="save">Save</b-button>
+					</div>
+				</div>
+				<div class="col-sm-3">
+					<b-card :class="{ 'bg-warning': order.notice }">
+						<h5>Customer notice</h5>
+						<b-form-textarea v-model="order.notice"></b-form-textarea>
+					</b-card>
+					<b-card class="mt-3">
+						<div class="row">
+							<div class="col">
+								<h5>Invoice</h5>
+							</div>
+							<div class="col-4 text-right">
+								<b-button variant="secondary" size="sm" @click="createInvoice">Create</b-button>
+							</div>
+						</div>
+						<p v-if="order.invoiceNumber === null" class="text-secondary">No&nbsp;invoice.</p>
+						<p v-else>{{ order.invoiceNumber }}</p>
+					</b-card>
+					<b-card class="mt-3">
+						<table class="w-100 mb-1">
+							<tr>
+								<td>
+									<h5>Packeta</h5>
+								</td>
+								<td class="text-right">
+									<b-button variant="secondary" size="sm" @click="document.getElementById('zasilkovna-open-button').click()">Change</b-button>
+								</td>
+							</tr>
+						</table>
+						<div class="alert alert-warning" v-if="order.deliveryBranch === null">
+							The branch has not been selected.
+						</div>
+						<template v-else>
+							<template v-if="order.deliveryBranchError === true">
+								<div class="alert alert-danger">
+									Attention: Customer has chosen a branch that is not available.<br><br>
+									Branch ID: <strong>{{ order.deliveryBranch.id }}</strong>
+								</div>
+							</template>
+							<template v-else>
+								<div>
+									Branch {{ order.deliveryBranch.id }}<br>
+									<i>{{ order.deliveryBranch.name }}</i><br>
+									{{ order.deliveryBranch.latitude }}, {{ order.deliveryBranch.longitude }}
+									<!-- <a :href="order.deliveryBranch.url" target="_blank">More info</a> -->
+								</div>
+							</template>
+						</template>
+						<b-card v-if="zasilkovna.id !== ''" class="mt-3">
+							Selected branch <strong>{{ zasilkovna.id }}</strong>:<br>
+							{{ zasilkovna.name }}<br>
+							<b-button variant="success" class="mt-3" @click="savePacketa()">Save branch</b-button>
+						</b-card>
+					</b-card>
+					<b-card class="mt-3">
+						<h5>Workflow notification</h5>
+						<template v-for="notificationItem in order.notifications">
+							<b-button variant="secondary" size="sm" class="mr-1 mb-1" @click="sendEmail(notificationItem.id)">
+								{{ notificationItem.label }}
+								<template v-if="notificationItem.type === 'sms'">📱</template>
+								<template v-else-if="notificationItem.type === 'email'">📧</template>
+								<template v-else>({{ notificationItem.type }})</template>
+							</b-button>
 						</template>
 					</b-card>
 				</div>
