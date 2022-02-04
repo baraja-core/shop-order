@@ -164,6 +164,9 @@ final class BalikoBotAdapterBridge implements CarrierAdapter
 		if ($this->bot === null) {
 			$apiUser = $this->configuration->get('balikobot-api-user', 'shop');
 			$apiKey = $this->configuration->get('balikobot-api-key', 'shop');
+			if ($apiUser === null || $apiKey === null) {
+				throw new \LogicException('Balikobot configuration does not exist. Please set API user and API key.');
+			}
 			$this->bot = new Balikobot(new Requester($apiUser, $apiKey));
 		}
 
