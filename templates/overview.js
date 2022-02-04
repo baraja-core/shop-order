@@ -247,7 +247,9 @@ Vue.component('cms-order-overview', {
 								<tr v-for="payment in order.payments">
 									<td>{{ payment.gopayId }}</td>
 									<td v-html="payment.price"></td>
-									<td>{{ payment.status }}</td>
+									<td :class="{ 'table-danger': !payment.status, 'text-danger': !payment.status }">
+										{{ payment.status ? payment.status : 'WAITING' }}
+									</td>
 									<td>{{ payment.insertedDate }}</td>
 									<td>{{ payment.lastCheckedDate }}</td>
 								</tr>
