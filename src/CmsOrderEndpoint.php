@@ -281,6 +281,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'price' => $item->getPrice()->getValue(),
 				'sale' => $item->getSale()->getValue(),
 				'finalPrice' => $item->getFinalPrice()->getValue(),
+				'vat' => $item->getVat()->getValue(),
 				'type' => 'product',
 			];
 		}
@@ -616,9 +617,9 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 
 	/**
-	 * @param array<int, array{id: numeric-string, type: string, count: numeric-string}> $items
+	 * @param array<int, array{id: numeric-string, type: string, count: numeric-string, vat: numeric-string}> $items
 	 */
-	public function postChangeQuantity(int $id, array $items): void
+	public function postChangeItems(int $id, array $items): void
 	{
 		$order = $this->getOrderById($id);
 		foreach ($items as $item) {
@@ -626,11 +627,13 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				/** @var OrderItem $orderItem */
 				$orderItem = $this->entityManager->getRepository(OrderItem::class)->find((int) $item['id']);
 				$orderItem->setCount((int) $item['count']);
+				$orderItem->setVat(new Price($item['vat'], $order->getCurrency()));
 			}
 		}
 
 		$this->orderManager->recountPrice($order);
 		$this->entityManager->flush();
+		$this->flashMessage('Items has been changed.', self::FLASH_MESSAGE_SUCCESS);
 		$this->sendOk();
 	}
 

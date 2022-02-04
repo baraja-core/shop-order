@@ -46,6 +46,7 @@ Vue.component('cms-order-overview', {
 							<tr>
 								<th width="20">#</th>
 								<th>Label</th>
+								<th width="64">VAT</th>
 								<th width="64">Count</th>
 								<th width="90"><span v-b-tooltip.hover title="Price per one item.">U.&nbsp;price</span></th>
 								<th width="90">Price</th>
@@ -79,7 +80,12 @@ Vue.component('cms-order-overview', {
 								</td>
 								<td>
 									<template v-if="item.type === 'product'">
-										<b-form-input v-model="item.count" type="number" min="1" max="100" size="sm" @change="changeCount"></b-form-input>
+										<b-form-input v-model="item.vat" type="number" min="1" max="100" size="sm" @change="changeItems"></b-form-input>
+									</template>
+								</td>
+								<td>
+									<template v-if="item.type === 'product'">
+										<b-form-input v-model="item.count" type="number" min="1" max="100" size="sm" @change="changeItems"></b-form-input>
 									</template>
 									<template v-else>
 										{{ item.count }}
@@ -389,7 +395,9 @@ Vue.component('cms-order-overview', {
 			</div>
 			<div class="mb-3">
 				Price:
-				<b-form-input type="number" v-model="virtualItemForm.price"></b-form-input>
+				<b-input-group :append="order.currency" class="mb-2 mr-sm-2 mb-sm-0">
+					<b-form-input type="number" v-model="virtualItemForm.price"></b-form-input>
+				</b-input-group>
 			</div>
 			<b-button type="submit" variant="primary" class="mt-3">Add product</b-button>
 		</b-form>
@@ -458,8 +466,8 @@ Vue.component('cms-order-overview', {
 				this.sync();
 			});
 		},
-		changeCount() {
-			axiosApi.post('cms-order/change-quantity', {
+		changeItems() {
+			axiosApi.post('cms-order/change-items', {
 				id: this.id,
 				items: this.order.items
 			}).then(() => {
