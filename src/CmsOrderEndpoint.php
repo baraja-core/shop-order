@@ -617,7 +617,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 
 	/**
-	 * @param array<int, array{id: numeric-string, type: string, count: numeric-string, vat: numeric-string}> $items
+	 * @param array<int, array{id: numeric-string, type: string, count: numeric-string, vat: numeric-string, price: numeric-string}> $items
 	 */
 	public function postChangeItems(int $id, array $items): void
 	{
@@ -628,6 +628,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				$orderItem = $this->entityManager->getRepository(OrderItem::class)->find((int) $item['id']);
 				$orderItem->setCount((int) $item['count']);
 				$orderItem->setVat(new Price($item['vat'], $order->getCurrency()));
+				$orderItem->dangerouslySetPrice(new Price($item['price'], $order->getCurrency()));
 			}
 		}
 

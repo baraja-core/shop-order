@@ -48,7 +48,7 @@ Vue.component('cms-order-overview', {
 								<th>Label</th>
 								<th width="64">VAT</th>
 								<th width="64">Count</th>
-								<th width="90"><span v-b-tooltip.hover title="Price per one item.">U.&nbsp;price</span></th>
+								<th width="150"><span v-b-tooltip.hover title="Price per one item.">U.&nbsp;price</span></th>
 								<th width="90">Price</th>
 								<th></th>
 							</tr>
@@ -98,18 +98,20 @@ Vue.component('cms-order-overview', {
 									<template v-else>
 										<span v-if="item.price === 0" class="text-success">FREE</span>
 										<template v-else>
+											<div role="group" class="input-group mb-2 mr-sm-2 mb-sm-0">
+												<b-form-input v-model="item.price" @change="changeItems" type="number" size="sm" :class="{ 'alert-danger': item.sale > 0 }"></b-form-input>
+												<div class="input-group-append">
+													<div class="input-group-text py-0">{{ order.currency }}</div>
+												</div>
+											</div>
 											<template v-if="item.sale > 0">
-												<s class="text-danger">{{ item.price }}&nbsp;{{ order.currency }}</s><br>
-												<b>{{ item.finalPrice }}&nbsp;{{ order.currency }}</b>
-											</template>
-											<template v-else>
-												{{ item.price }}&nbsp;{{ order.currency }}
+												<b class="text-danger">NEW:&nbsp;{{ item.finalPrice }}&nbsp;{{ order.currency }}</b>
 											</template>
 										</template>
 									</template>
-									<template v-if="item.type === 'product'">
+									<div v-if="item.type === 'product'">
 										<b-button class="btn-sm py-0" style="font-size:10pt" @click="setItemSale(item.id)">Set sale</b-button>
-									</template>
+									</div>
 								</td>
 								<td>
 									<span v-if="(item.count * item.price) === 0" class="text-success">FREE</span>
