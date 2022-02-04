@@ -1,0 +1,72 @@
+{layout false}
+<div style="border:1px solid black;padding:8px;margin:8px;width:650px">
+	<table style="width:100%">
+		<tr>
+			<td>
+				<h1 style="font-size:18pt">
+					Order
+				</h1>
+			</td>
+			<td style="text-align:right">
+				<h1 style="font-size:18pt">{$order->getNumber()}</h1>
+			</td>
+		</tr>
+	</table>
+	Order: <b>{$order->getInsertedDate()->format('Y-m-d H:i:s')}</b>
+	<hr>
+	<table style="width:100%">
+		<tr>
+			<td>
+				<b>Customer:</b>
+				<p style="line-height:1.6;margin-top:4px !important;">
+					{$order->getCustomer()->getName()}<br>
+					{$order->getDeliveryAddress()->getStreet()} {$order->getDeliveryAddress()->getCity()}<br>
+					{$order->getCustomer()->getEmail()}<br>
+					{$order->getCustomer()->getPhone()}
+				</p>
+			</td>
+			<td style="text-align:right;width:250px">
+				<div style="border:1px solid #555;padding:8px;text-align:center">
+					{if $order->isPaid() === true}
+						Paid
+					{else}
+						Not paid
+					{/if}
+				</div>
+			</td>
+		</tr>
+	</table>
+	<table style="width:100%" border="1" cellpadding="0" cellspacing="0">
+		<tr>
+			<th style="padding:4px 8px">Item</th>
+			<th style="padding:4px 8px">Count</th>
+			<th style="padding:4px 8px">Price</th>
+		</tr>
+		<tr n:foreach="$order->getItems() as $item">
+			<td style="padding:4px 8px">{$item->getLabel()}</td>
+			<td style="padding:4px 8px">{$item->getCount()}</td>
+			<td style="padding:4px 8px">{$item->getPrice()->render(true)|noescape}</td>
+		</tr>
+		<tr>
+			<td colspan="2" style="padding:4px 8px">
+				<i>{$order->getDelivery()->getName()}</i>
+			</td>
+			<td style="padding:4px 8px">{$order->getDeliveryPrice()->render(true)|noescape}</td>
+		</tr>
+		<tr>
+			<td colspan="2" style="padding:4px 8px">
+				<i>{$order->getPayment()->getName()}</i>
+			</td>
+			<td style="padding:4px 8px">{$order->getPaymentPrice()->render(true)|noescape}</td>
+		</tr>
+		<tr>
+			<td colspan="2" style="padding:4px 8px;text-align:right">SUM:</td>
+			<td style="padding:4px 8px"><b>{$order->getPrice()->render(true)|noescape}</b></td>
+		</tr>
+	</table>
+</div>
+<style>
+	* {
+		font-family: Arial;
+	}
+</style>

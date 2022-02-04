@@ -110,11 +110,7 @@ final class WebController
 			self::redirect(self::getLinkGenerator()->default($order));
 		}
 
-		$templatePath = null;
-		if ($this->frontend !== null) {
-			$templatePath = $this->frontend->getDefaultTemplatePath();
-		}
-
+		$templatePath = $this->frontend?->getDefaultTemplatePath();
 		(new Engine)->render(
 			$templatePath ?? __DIR__ . '/template/default.latte',
 			[
@@ -156,6 +152,24 @@ final class WebController
 		} catch (\InvalidArgumentException $e) {
 			echo htmlspecialchars($e->getMessage());
 		}
+	}
+
+
+	public function actionPrint(): void
+	{
+		$order = $this->getOrder();
+		if ($order === null) {
+			throw new \LogicException('Order does not exist.');
+		}
+
+		$templatePath = $this->frontend?->getDefaultPrintTemplatePath();
+		(new Engine)->render(
+			$templatePath ?? __DIR__ . '/template/print.latte',
+			[
+				'order' => $order,
+				'isPaid' => $this->orderManager->get()->isPaid($order),
+			],
+		);
 	}
 
 

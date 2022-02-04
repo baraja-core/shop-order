@@ -15,4 +15,9 @@ interface FrontendInterface
 	 * Returns the absolute disk path to the Latte template with the order detail.
 	 */
 	public function getDefaultTemplatePath(): ?string;
+
+	/**
+	 * Returns the absolute disk path to the Latte template with the order print template.
+	 */
+	public function getDefaultPrintTemplatePath(): ?string;
 }
