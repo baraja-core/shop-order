@@ -11,6 +11,7 @@ use Baraja\Plugin\Component\VueComponent;
 use Baraja\Plugin\PluginManager;
 use Baraja\Shop\Cart\ShopCartExtension;
 use Baraja\Shop\Order\Application\WebController;
+use Baraja\Shop\Order\Bridge\BalikoBotAdapterBridge;
 use Baraja\Shop\Order\Bridge\HeurekaOverenoCreatedOrderEvent;
 use Baraja\Shop\Order\Bridge\RegisterNewsletterCreatedOrderEvent;
 use Baraja\Shop\Order\Command\CheckGatewayPaymentsCommand;
@@ -27,6 +28,7 @@ use Baraja\Shop\Order\Status\OrderWorkflow;
 use Baraja\Url\Url;
 use Contributte\GopayInline\Client;
 use Heureka\ShopCertification;
+use Inspirum\Balikobot\Services\Balikobot;
 use Nette\Application\Application;
 use Nette\DI\CompilerExtension;
 use Nette\DI\Definitions\ServiceDefinition;
@@ -112,6 +114,11 @@ final class ShopOrderExtension extends CompilerExtension
 			->setFactory(WebController::class);
 
 		// bridges
+		if (class_exists(Balikobot::class)) {
+			$builder->addDefinition($this->prefix('balikoBotAdapterBridge'))
+				->setFactory(BalikoBotAdapterBridge::class)
+				->setAutowired(BalikoBotAdapterBridge::class);
+		}
 		if (class_exists(ShopCertification::class)) {
 			$builder->addDefinition($this->prefix('heurekaOverenoBridgeEvent'))
 				->setFactory(HeurekaOverenoCreatedOrderEvent::class)

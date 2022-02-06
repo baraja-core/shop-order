@@ -12,19 +12,19 @@ final class LinkGenerator
 {
 	public function default(OrderInterface $order): string
 	{
-		return Url::get()->getBaseUrl() . '/order/' . urlencode($order->getHash());
+		return sprintf('%s/order/%s', $this->resolveBaseUrl(), urlencode($order->getHash()));
 	}
 
 
 	public function confirmOrder(OrderInterface $order): string
 	{
-		return Url::get()->getBaseUrl() . '/order/confirm?hash=' . urlencode($order->getHash());
+		return sprintf('%s/order/confirm?hash=%s', $this->resolveBaseUrl(), urlencode($order->getHash()));
 	}
 
 
 	public function paymentGateway(OrderInterface $order): string
 	{
-		return Url::get()->getBaseUrl() . '/order/gateway?hash=' . urlencode($order->getHash());
+		return sprintf('%s/order/gateway?hash=%s', $this->resolveBaseUrl(), urlencode($order->getHash()));
 	}
 
 
@@ -33,7 +33,7 @@ final class LinkGenerator
 	 */
 	public function paymentHandle(OrderInterface $order, string $handler, array $params = []): string
 	{
-		$url = new \Nette\Http\Url(Url::get()->getBaseUrl() . '/order/payment-handle');
+		$url = new \Nette\Http\Url(sprintf('%s/order/payment-handle', $this->resolveBaseUrl()));
 		$url->setQueryParameter('hash', $order->getHash());
 		$url->setQueryParameter('handler', $handler);
 		foreach ($params as $paramKey => $paramValue) {
@@ -44,5 +44,15 @@ final class LinkGenerator
 		}
 
 		return $url->getAbsoluteUrl();
+	}
+
+
+	private function resolveBaseUrl(): string
+	{
+		try {
+			return Url::get()->getBaseUrl();
+		} catch (\Throwable) {
+			return '/';
+		}
 	}
 }

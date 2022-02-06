@@ -243,6 +243,12 @@ class OrderItem implements OrderItemInterface
 	}
 
 
+	public function dangerouslySetPrice(PriceInterface $price): void
+	{
+		$this->price = $price->getValue();
+	}
+
+
 	public function getFinalPrice(): PriceInterface
 	{
 		return $this->getPrice()->minus($this->getSale());

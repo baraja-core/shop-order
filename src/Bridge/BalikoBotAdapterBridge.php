@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Bridge;
 
 
+use Baraja\DynamicConfiguration\Configuration;
 use Baraja\PhoneNumber\PhoneNumberFormatter;
 use Baraja\Shop\Delivery\Entity\Delivery;
 use Baraja\Shop\Order\Delivery\Carrier\CarrierAdapter;
@@ -22,8 +23,7 @@ final class BalikoBotAdapterBridge implements CarrierAdapter
 
 
 	public function __construct(
-		private string $apiUser,
-		private string $apiKey,
+		private Configuration $configuration,
 		private EntityManagerInterface $entityManager
 	) {
 	}
@@ -34,7 +34,7 @@ final class BalikoBotAdapterBridge implements CarrierAdapter
 	 */
 	public function getCompatibleCarriers(): array
 	{
-		return ['zasilkovna', 'gls'];
+		return ['packeta', 'zasilkovna', 'gls'];
 	}
 
 
@@ -162,7 +162,12 @@ final class BalikoBotAdapterBridge implements CarrierAdapter
 	private function getBotService(): Balikobot
 	{
 		if ($this->bot === null) {
-			$this->bot = new Balikobot(new Requester($this->apiUser, $this->apiKey));
+			$apiUser = $this->configuration->get('balikobot-api-user', 'shop');
+			$apiKey = $this->configuration->get('balikobot-api-key', 'shop');
+			if ($apiUser === null || $apiKey === null) {
+				throw new \LogicException('Balikobot configuration does not exist. Please set API user and API key.');
+			}
+			$this->bot = new Balikobot(new Requester($apiUser, $apiKey));
 		}
 
 		return $this->bot;

@@ -281,6 +281,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'price' => $item->getPrice()->getValue(),
 				'sale' => $item->getSale()->getValue(),
 				'finalPrice' => $item->getFinalPrice()->getValue(),
+				'vat' => $item->getVat()->getValue(),
 				'type' => 'product',
 			];
 		}
@@ -342,16 +343,6 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			];
 		}
 
-		$branch = null;
-		$branchId = $order->getDeliveryBranchId();
-		if ($branchId !== null && $deliveryItem !== null) {
-			try {
-				$branch = $this->branchManager->getBranchById($deliveryItem, $branchId);
-			} catch (\InvalidArgumentException $e) {
-				$this->flashMessage($e->getMessage(), self::FLASH_MESSAGE_INFO);
-			}
-		}
-
 		$formatAddress = static function (AddressInterface $address): array
 		{
 			return [
@@ -397,19 +388,10 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'countryList' => $this->formatBootstrapSelectArray($countryList),
 				'deliveryList' => $this->formatBootstrapSelectArray($deliverySelectbox),
 				'paymentList' => $this->formatBootstrapSelectArray($paymentSelectbox),
-				'deliveryId' => $deliveryItem === null ? null : $deliveryItem->getId(),
+				'deliveryId' => $deliveryItem?->getId(),
 				'deliverPrice' => $order->getDeliveryPrice()->getValue(),
-				'deliveryBranch' => $branchId !== null
-					? (static function (int $id, ?BranchInterface $branch): BranchInterface|array
-					{
-						return $branch ?? [
-								'id' => $id,
-							];
-					})(
-						$branchId, $branch
-					) : null,
-				'deliveryBranchError' => $branchId !== null && $branch === null,
-				'paymentId' => $paymentItem === null ? null : $paymentItem->getId(),
+				'deliveryBranch' => $order->getDeliveryBranchId(),
+				'paymentId' => $paymentItem?->getId(),
 				'items' => $items,
 				'transactions' => $transactions,
 				'payments' => $payments,
@@ -418,6 +400,54 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'notifications' => $this->notification->getActiveStatusTypes($order->getLocale()),
 			]
 		);
+	}
+
+
+	public function actionDeliveryBranch(int $id): void
+	{
+		$order = $this->getOrderById($id);
+		$delivery = $order->getDelivery();
+
+		$return = null;
+		$branchId = $order->getDeliveryBranchId();
+		if ($branchId !== null && $delivery !== null) {
+			try {
+				$branch = $this->branchManager->getBranchById($delivery, $branchId);
+				if ($branch === null) {
+					$return = ['id' => $id];
+				} else {
+					// https://mapy.cz/screenshoter?url=https%3A%2F%2Fframe.mapy.cz%2Fzakladni%3Fx%3D14.4000000%26y%3D50.0500000%26z%3D16&width=2000&height=1000
+					$return = [
+						'id' => $id,
+						'name' => $branch->getName(),
+						'labelRouting' => $branch->getLabelRouting(),
+						'latitude' => $branch->getLatitude(),
+						'longitude' => $branch->getLongitude(),
+						'mapsUrl' => sprintf(
+							'https://www.google.com/maps/search/?api=1&query=%s%%2C%s',
+							$branch->getLatitude(),
+							$branch->getLongitude(),
+						),
+						'mapsStaticUrl' => sprintf('https://mapy.cz/screenshoter?url=%s&width=300&height=400',
+							urlencode(sprintf('https://frame.mapy.cz/zakladni?%s',
+								http_build_query([
+									'x' => $branch->getLongitude(),
+									'y' => $branch->getLatitude(),
+									'z' => 16,
+								])),
+							),
+						),
+					];
+				}
+			} catch (\InvalidArgumentException $e) {
+				$this->flashMessage($e->getMessage(), self::FLASH_MESSAGE_INFO);
+			}
+		}
+
+		$this->sendJson([
+			'branch' => $return,
+			'error' => $branchId !== null && $return === null,
+		]);
 	}
 
 
@@ -616,9 +646,9 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 
 	/**
-	 * @param array<int, array{id: numeric-string, type: string, count: numeric-string}> $items
+	 * @param array<int, array{id: numeric-string, type: string, count: numeric-string, vat: numeric-string, price: numeric-string}> $items
 	 */
-	public function postChangeQuantity(int $id, array $items): void
+	public function postChangeItems(int $id, array $items): void
 	{
 		$order = $this->getOrderById($id);
 		foreach ($items as $item) {
@@ -626,11 +656,14 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				/** @var OrderItem $orderItem */
 				$orderItem = $this->entityManager->getRepository(OrderItem::class)->find((int) $item['id']);
 				$orderItem->setCount((int) $item['count']);
+				$orderItem->setVat(new Price($item['vat'], $order->getCurrency()));
+				$orderItem->dangerouslySetPrice(new Price($item['price'], $order->getCurrency()));
 			}
 		}
 
 		$this->orderManager->recountPrice($order);
 		$this->entityManager->flush();
+		$this->flashMessage('Items has been changed.', self::FLASH_MESSAGE_SUCCESS);
 		$this->sendOk();
 	}
 

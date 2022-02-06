@@ -122,7 +122,10 @@ final class OrderGenerator
 		);
 		if ($cart->getRuntimeContext()->getFreeDeliveryResolver()->isFreeDelivery($cart, $customer ?? $cart->getCustomer())) {
 			$order->setDeliveryPrice('0');
+		} else {
+			$order->setDeliveryPrice($selectedDelivery->getPrice());
 		}
+		$order->setPaymentPrice($selectedPayment->getPrice());
 		$order->setNotice($info->getNotice());
 		if ($order->getCustomer()->getDefaultOrderSale() > 0) {
 			$order->recountPrice();
@@ -154,6 +157,7 @@ final class OrderGenerator
 		}
 
 		$this->cartManager->removeCart($cart);
+		$order->recountPrice();
 		$this->entityManager->flush();
 
 		$this->workflow->run($order);
@@ -216,11 +220,13 @@ final class OrderGenerator
 			currency: $this->getCurrentContextCurrency(),
 		);
 		$order->setDeliveryPrice($delivery->getPrice());
+		$order->setPaymentPrice($payment->getPrice());
 		$order->setNotice('Manually created order.');
 
 		$this->entityManager->persist($deliveryAddress);
 		$this->entityManager->persist($invoiceAddress);
 		$this->entityManager->persist($order);
+		$order->recountPrice();
 		$this->entityManager->flush();
 		foreach ($this->createdOrderEvents as $createdOrderEvent) {
 			$createdOrderEvent->process($order);

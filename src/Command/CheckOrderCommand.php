@@ -59,17 +59,20 @@ final class CheckOrderCommand extends Command
 
 		/** @var array<string, float> $unauthorizedVariables */
 		$unauthorizedVariables = [];
-		/** @var array<string, Order> $orderByVariable */
+		/** @var array<numeric-string, Order> $orderByVariable */
 		$orderByVariable = [];
 		/** @var array<int, int> $unauthorizedVariablesForCheck */
 		$unauthorizedVariablesForCheck = [];
 
 		foreach ($orders as $order) {
-			$unauthorizedVariables[$order->getNumber()] = (float) $order->getPrice()->getValue();
-			$orderByVariable[$order->getNumber()] = $order;
-			$unauthorizedVariablesForCheck[] = (int) $order->getNumber();
+			/** @var numeric-string $number */
+			$number = $order->getNumber();
+			$numberInt = (int) $number;
+			$unauthorizedVariables[$number] = (float) $order->getPrice()->getValue();
+			$orderByVariable[$number] = $order;
+			$unauthorizedVariablesForCheck[] = $numberInt;
 
-			echo $order->getNumber() . ' [' . $order->getPrice() . ' ' . $order->getCurrencyCode() . ']';
+			echo $number . ' [' . $order->getPrice() . ' ' . $order->getCurrencyCode() . ']';
 			echo ' [' . $order->getInsertedDate()->format('Y-m-d H:i:s') . ']';
 			$this->updateStatusByWorkflow($order);
 			echo "\n";
@@ -155,7 +158,7 @@ final class CheckOrderCommand extends Command
 
 	/**
 	 * @param array<string, float> $unauthorizedVariables
-	 * @param array<string, Order> $orderByVariable
+	 * @param array<numeric-string, Order> $orderByVariable
 	 */
 	private function authOrders(array $unauthorizedVariables, array $orderByVariable, Authorizator $authorizator): void
 	{
@@ -167,7 +170,7 @@ final class CheckOrderCommand extends Command
 				$entity = $this->tm->storeTransaction($transaction);
 			}
 			$variable = (string) $transaction->getVariableSymbol();
-			if ($variable !== '') {
+			if ($variable !== '' && isset($orderByVariable[$variable])) {
 				$this->orderStatusManager->setStatus($orderByVariable[$variable], OrderStatus::STATUS_PAID);
 				$entity?->setOrder($orderByVariable[$variable]);
 			}

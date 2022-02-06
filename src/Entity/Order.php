@@ -488,11 +488,9 @@ class Order implements OrderInterface, OrderEntity
 			$sum = bcadd($sum, bcmul($item->getFinalPrice()->getValue(), (string) $item->getCount(), 2), 2);
 		}
 		$sum = bcadd($sum, $this->getDeliveryPrice()->getValue(), 2);
-		if ($this->payment !== null) {
-			$sum = bcadd($sum, $this->payment->getPrice(), 2);
-		}
+		$sum = bcadd($sum, $this->getPaymentPrice()->getValue(), 2);
 
-		$this->price = $sum;
+		$this->price = Price::normalize($sum);
 	}
 
 
