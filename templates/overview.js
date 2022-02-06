@@ -241,40 +241,48 @@ Vue.component('cms-order-overview', {
 						<p v-else>{{ order.invoiceNumber }}</p>
 					</b-card>
 					<b-card class="mt-3">
-						<table class="w-100 mb-1">
-							<tr>
-								<td>
-									<h5>Packeta</h5>
-								</td>
-								<td class="text-right">
-									<b-button variant="secondary" size="sm" @click="document.getElementById('zasilkovna-open-button').click()">Change</b-button>
-								</td>
-							</tr>
-						</table>
-						<div class="alert alert-warning" v-if="order.deliveryBranch === null">
-							The branch has not been selected.
+						<div class="row">
+							<div class="col">
+								<h5>
+									Branch
+									<template v-if="order.deliveryBranch">({{ order.deliveryBranch }})</template>
+								</h5>
+							</div>
+							<div class="col-sm-4 text-right">
+								<b-button variant="secondary" size="sm" @click="document.getElementById('zasilkovna-open-button').click()">Change</b-button>
+							</div>
+						</div>
+						<div v-if="loading.deliveryBranch" class="text-center my-5">
+							<b-spinner></b-spinner>
 						</div>
 						<template v-else>
-							<template v-if="order.deliveryBranchError === true">
-								<div class="alert alert-danger">
-									Attention: Customer has chosen a branch that is not available.<br><br>
-									Branch ID: <strong>{{ order.deliveryBranch.id }}</strong>
-								</div>
-							</template>
+							<div class="alert alert-warning" v-if="deliveryBranch.branch === null">
+								The branch has not been selected.
+							</div>
 							<template v-else>
-								<div>
-									Branch {{ order.deliveryBranch.id }}<br>
-									<i>{{ order.deliveryBranch.name }}</i><br>
-									{{ order.deliveryBranch.latitude }}, {{ order.deliveryBranch.longitude }}
-									<!-- <a :href="order.deliveryBranch.url" target="_blank">More info</a> -->
-								</div>
+								<template v-if="deliveryBranch.error === true">
+									<div class="alert alert-danger">
+										Attention: Customer has chosen a branch that is not available.<br><br>
+										Branch ID: <strong>{{ deliveryBranch.branch.id }}</strong>
+									</div>
+								</template>
+								<template v-else>
+									<p><i>{{ deliveryBranch.branch.name }}</i></p>
+									<div class="text-center">
+										<a :href="deliveryBranch.branch.mapsUrl" target="_blank">
+											<img :src="deliveryBranch.branch.mapsStaticUrl" referrerpolicy="no-referrer">
+										</a><br>
+										<i>({{ deliveryBranch.branch.latitude }}, {{ deliveryBranch.branch.longitude }})</i>
+									</div>
+									<!-- <a :href="deliveryBranch.branch.url" target="_blank">More info</a> -->
+								</template>
 							</template>
+							<b-card v-if="zasilkovna.id !== ''" class="mt-3">
+								Selected branch <strong>{{ zasilkovna.id }}</strong>:<br>
+								{{ zasilkovna.name }}<br>
+								<b-button variant="success" class="mt-3" @click="savePacketa()">Save branch</b-button>
+							</b-card>
 						</template>
-						<b-card v-if="zasilkovna.id !== ''" class="mt-3">
-							Selected branch <strong>{{ zasilkovna.id }}</strong>:<br>
-							{{ zasilkovna.name }}<br>
-							<b-button variant="success" class="mt-3" @click="savePacketa()">Save branch</b-button>
-						</b-card>
 					</b-card>
 					<b-card class="mt-3">
 						<h5>Workflow notification</h5>
@@ -413,8 +421,13 @@ Vue.component('cms-order-overview', {
 			order: null,
 			countryList: [],
 			addItemList: null,
+			deliveryBranch: {
+				branch: null,
+				error: null
+			},
 			loading: {
-				createPackage: false
+				createPackage: false,
+				deliveryBranch: true
 			},
 			zasilkovna: {
 				name: '',
@@ -442,6 +455,13 @@ Vue.component('cms-order-overview', {
 				.then(req => {
 					this.order = req.data;
 					this.countryList = req.data.countryList;
+					if (this.order.deliveryBranch !== null) {
+						axiosApi.get(`cms-order/delivery-branch?id=${this.id}`)
+							.then(req => {
+								this.deliveryBranch = req.data;
+								this.loading.deliveryBranch = false;
+							});
+					}
 				});
 		},
 		syncZasilkovna() {
