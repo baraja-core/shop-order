@@ -16,7 +16,6 @@ use Baraja\Shop\Order\Payment\OrderPaymentClient;
 use Baraja\Shop\Order\Status\OrderWorkflow;
 use Baraja\Shop\Order\OrderPaymentManager;
 use Nette\Application\UI\InvalidLinkException;
-use Nette\Utils\DateTime;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -106,7 +105,7 @@ final class CheckOrderCommand extends Command
 		if ($now - $order->getInsertedDate()->getTimestamp() > $this->workflow->getIntervalForCancelOrder()) {
 			$cancel = true;
 			echo ' (cancel mail)';
-			$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_STORNO);
+			$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_STORNO, force: true);
 		}
 
 		// send ping mail
@@ -116,11 +115,7 @@ final class CheckOrderCommand extends Command
 			&& $now - $order->getInsertedDate()->getTimestamp() > $this->workflow->getIntervalForPingOrder()
 		) {
 			echo ' (ping mail)';
-			try {
-				$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_PAYMENT_PING);
-			} catch (\InvalidArgumentException) {
-				// status ping is not implemented
-			}
+			$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_PAYMENT_PING, force: true);
 			$order->setPinged(true);
 		}
 	}
@@ -171,8 +166,10 @@ final class CheckOrderCommand extends Command
 			}
 			$variable = (string) $transaction->getVariableSymbol();
 			if ($variable !== '' && isset($orderByVariable[$variable])) {
-				$this->orderStatusManager->setStatus($orderByVariable[$variable], OrderStatus::STATUS_PAID);
-				$entity?->setOrder($orderByVariable[$variable]);
+				$order = $orderByVariable[$variable];
+				$order->setPaid(true);
+				$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_PAID);
+				$entity?->setOrder($order);
 			}
 			$this->entityManager->flush();
 		};
@@ -200,12 +197,12 @@ final class CheckOrderCommand extends Command
 			->where('status.code = :status')
 			->andWhere('o.updatedDate <= :days')
 			->setParameter('status', OrderStatus::STATUS_SENT)
-			->setParameter('days', DateTime::from('now - 10 days'))
+			->setParameter('days', new \DateTimeImmutable('now - 10 days'))
 			->getQuery()
 			->getResult();
 
 		foreach ($orders as $order) {
-			$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_DONE);
+			$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_DONE, force: true);
 		}
 	}
 }
