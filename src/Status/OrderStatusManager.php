@@ -22,6 +22,9 @@ final class OrderStatusManager
 
 	private OrderStatusHistoryRepository $orderStatusHistoryRepository;
 
+	/** @var array<int, OrderStatus> */
+	private array $statusList = [];
+
 
 	/**
 	 * @param OrderStatusChangedEvent[] $onChangeEvents
@@ -45,17 +48,16 @@ final class OrderStatusManager
 	 */
 	public function getAllStatuses(): array
 	{
-		static $cache;
-		if ($cache === null) {
-			$cache = $this->orderStatusRepository->getAll();
-			if ($cache === []) {
+		if ($this->statusList === []) {
+			$this->statusList = $this->orderStatusRepository->getAll();
+			if ($this->statusList === []) {
 				$this->initDefault();
 
 				return $this->getAllStatuses();
 			}
 		}
 
-		return $cache;
+		return $this->statusList;
 	}
 
 
@@ -186,6 +188,10 @@ final class OrderStatusManager
 		$status = new OrderStatus($name, $code);
 		$this->entityManager->persist($status);
 		$this->entityManager->flush();
+
+		// update cache
+		$this->statusList = [];
+		$this->getAllStatuses();
 
 		return $status;
 	}
