@@ -22,7 +22,7 @@ final class CheckGatewayPaymentsCommand extends Command
 	public function __construct(
 		private EntityManagerInterface $entityManager,
 		private OrderPaymentClient $orderPaymentClient,
-		private LoggerInterface $logger,
+		private ?LoggerInterface $logger = null,
 	) {
 		parent::__construct();
 		$orderOnlinePaymentRepository = $entityManager->getRepository(OrderOnlinePayment::class);
@@ -47,7 +47,7 @@ final class CheckGatewayPaymentsCommand extends Command
 				$this->orderPaymentClient->checkPaymentStatusOnly($payment->getOrder(), $payment->getGatewayId());
 				echo 'OK';
 			} catch (\Throwable $e) {
-				$this->logger->critical($e->getMessage(), ['exception' => $e]);
+				$this->logger?->critical($e->getMessage(), ['exception' => $e]);
 				echo htmlspecialchars($e->getMessage());
 			}
 			echo "\n";
