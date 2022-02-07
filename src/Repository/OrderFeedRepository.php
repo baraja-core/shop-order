@@ -28,6 +28,7 @@ final class OrderFeedRepository
 		if (class_exists(Invoice::class) === false) {
 			throw new \LogicException('Package "baraja-core/shop-invoice" has not been installed.');
 		}
+		/** @phpstan-ignore-next-line */
 		$invoiceRepository = $entityManager->getRepository(Invoice::class);
 		assert($invoiceRepository instanceof OrderInvoiceRepository);
 		$this->invoiceRepository = $invoiceRepository;

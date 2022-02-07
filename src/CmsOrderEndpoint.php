@@ -1097,7 +1097,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 	/**
 	 * @param array<string, numeric-string> $sum
-	 * @return array<string, numeric-string>
+	 * @return array<string, string>
 	 */
 	private function formatSumPrices(array $sum): array
 	{

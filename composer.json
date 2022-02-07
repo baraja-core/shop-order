@@ -20,7 +20,8 @@
 		"baraja-core/newsletter": "^1.0",
 		"baraja-core/emailer": "^1.2",
 		"baraja-core/variable-generator": "^2.0",
-		"baraja-core/bank-transaction-authorizator": "^2.0"
+		"baraja-core/bank-transaction-authorizator": "^2.0",
+		"baraja-core/doctrine-fulltext-search": "^3.2 >=3.2.2"
 	},
 	"require-dev": {
 		"heureka/overeno-zakazniky": "^3.0",
