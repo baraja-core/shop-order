@@ -233,8 +233,11 @@ Vue.component('cms-order-overview', {
 							<div class="col">
 								<h5>Invoice</h5>
 							</div>
-							<div class="col-4 text-right">
-								<b-button variant="secondary" size="sm" @click="createInvoice">Create</b-button>
+							<div class="col-5 text-right">
+								<b-button variant="secondary" size="sm" @click="createInvoice">
+									<template v-if="order.invoiceNumber === null">Create</template>
+									<template v-else>Regenerate</template>
+								</b-button>
 							</div>
 						</div>
 						<p v-if="order.invoiceNumber === null" class="text-secondary">No&nbsp;invoice.</p>
@@ -546,6 +549,9 @@ Vue.component('cms-order-overview', {
 			});
 		},
 		createInvoice() {
+			if (this.order.invoiceNumber !== null && confirm('Do you really want to re-generate the invoice?') === false) {
+				return;
+			}
 			axiosApi.post('cms-order/create-invoice', {
 				id: this.id
 			}).then(() => {
