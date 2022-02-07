@@ -378,7 +378,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			[
 				'id' => $id,
 				'number' => $order->getNumber(),
-				'invoiceNumber' => $order->getInvoiceNumber(),
+				'invoiceNumber' => $this->documentManager->getDocumentByTag($order, 'invoice')?->getNumber(),
 				'locale' => $order->getLocale(),
 				'status' => $order->getStatus(),
 				'price' => $order->getPrice()->getValue(),
