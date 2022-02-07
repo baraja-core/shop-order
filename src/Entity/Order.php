@@ -226,11 +226,7 @@ class Order implements OrderInterface, OrderEntity
 
 	public function getInvoiceNumber(): ?string
 	{
-		foreach ($this->getFiles() as $file) {
-			if ($file->hasTag('invoice')) {
-				return $file->getNumber();
-			}
-		}
+		trigger_error('Method "' . __METHOD__ . '" is deprecated, use native Invoice query.');
 
 		return null;
 	}
