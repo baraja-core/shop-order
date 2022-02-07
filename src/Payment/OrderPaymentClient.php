@@ -11,10 +11,10 @@ use Baraja\EcommerceStandard\DTO\OrderGatewayResponseInterface;
 use Baraja\EcommerceStandard\DTO\OrderInterface;
 use Baraja\EcommerceStandard\Service\OrderPaymentGatewayInterface;
 use Baraja\FioPaymentAuthorizator\FioPaymentAuthorizator;
-use Baraja\Shop\Delivery\Entity\Delivery;
 use Baraja\Shop\Order\Application\WebController;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\OrderManager;
+use Baraja\Shop\Payment\Entity\Payment;
 use Nette\Caching\Storage;
 
 final class OrderPaymentClient
@@ -116,13 +116,13 @@ final class OrderPaymentClient
 
 	public function getAuthorizator(): MultiAuthorizator
 	{
-		/** @var Delivery[] $deliveries */
-		$deliveries = $this->entityManager->getRepository(Delivery::class)->findAll();
+		/** @var Payment[] $payments */
+		$payments = $this->entityManager->getRepository(Payment::class)->findAll();
 
 		$services = [];
-		foreach ($deliveries as $delivery) {
-			$authorizatorKey = $delivery->getAuthorizatorKey();
-			if ($authorizatorKey !== null && $delivery->getCode() === 'fio') {
+		foreach ($payments as $payment) {
+			$authorizatorKey = $payment->getAuthorizatorKey();
+			if ($authorizatorKey !== null && $payment->getCode() === 'fio') {
 				$services[] = new FioPaymentAuthorizator($authorizatorKey, $this->storage);
 			}
 		}
