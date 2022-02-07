@@ -322,6 +322,9 @@ Vue.component('cms-order-default', {
 						<b-form-checkbox v-model="statusItem.markAsPaid" :value="true" :unchecked-value="false">
 							Mark as paid
 						</b-form-checkbox>
+						<b-form-checkbox v-model="statusItem.createInvoice" :value="true" :unchecked-value="false">
+							Create invoice
+						</b-form-checkbox>
 					</td>
 					<td>
 						<b-form-input v-model="statusItem.systemHandle" size="sm"></b-form-input>

@@ -73,6 +73,9 @@ class OrderStatus implements OrderStatusInterface
 	#[ORM\Column(type: 'boolean')]
 	private bool $markAsPaid = false;
 
+	#[ORM\Column(type: 'boolean')]
+	private bool $createInvoice = false;
+
 	/**
 	 * Internal smart logic.
 	 * Some order states can only serve as a virtual state used by third-party logic.
@@ -211,6 +214,18 @@ class OrderStatus implements OrderStatusInterface
 	public function setMarkAsPaid(bool $markAsPaid): void
 	{
 		$this->markAsPaid = $markAsPaid;
+	}
+
+
+	public function isCreateInvoice(): bool
+	{
+		return $this->createInvoice;
+	}
+
+
+	public function setCreateInvoice(bool $createInvoice): void
+	{
+		$this->createInvoice = $createInvoice;
 	}
 
 

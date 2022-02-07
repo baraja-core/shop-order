@@ -6,6 +6,7 @@ namespace Baraja\Shop\Order;
 
 
 use Baraja\EcommerceStandard\DTO\OrderInterface;
+use Baraja\EcommerceStandard\Service\InvoiceManagerInterface;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderStatus;
 use Baraja\Shop\Order\Entity\OrderStatusCollection;
@@ -32,6 +33,7 @@ final class OrderStatusManager
 	public function __construct(
 		private EntityManagerInterface $entityManager,
 		private OrderWorkflow $workflow,
+		private ?InvoiceManagerInterface $invoiceManager = null,
 		private array $onChangeEvents = [],
 	) {
 		$orderStatusRepository = $entityManager->getRepository(OrderStatus::class);
@@ -176,6 +178,9 @@ final class OrderStatusManager
 		if ($status->isMarkAsPaid()) {
 			$order->setPaid(true);
 		}
+		if ($status->isCreateInvoice()) {
+			$this->createInvoice($order);
+		}
 
 		$this->workflow->run($order);
 		foreach ($this->onChangeEvents as $changedEvent) {
@@ -236,5 +241,16 @@ final class OrderStatusManager
 			$position++;
 		}
 		$this->entityManager->flush();
+	}
+
+
+	private function createInvoice(Order $order): void
+	{
+		if ($this->invoiceManager === null) {
+			throw new \LogicException('Invoice manager does not exist, but it is mandatory.');
+		}
+		if ($this->invoiceManager->isInvoice($order) === false) {
+			$this->invoiceManager->createInvoice($order);
+		}
 	}
 }

@@ -856,6 +856,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'systemHandle' => $status->getSystemHandle(),
 				'position' => $status->getWorkflowPosition(),
 				'markAsPaid' => $status->isMarkAsPaid(),
+				'createInvoice' => $status->isCreateInvoice(),
 				'code' => $status->getCode(),
 				'color' => $status->getColor(),
 				'redirectTo' => $redirectTo?->getId(),
@@ -902,6 +903,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	 *     systemHandle: string|null,
 	 *     position: int,
 	 *     markAsPaid: bool,
+	 *     createInvoice: bool,
 	 *     color: string,
 	 *     redirectTo: int|null
 	 * }> $statusList
@@ -916,6 +918,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			$status->setSystemHandle($item['systemHandle']);
 			$status->setWorkflowPosition((int) $item['position']);
 			$status->setMarkAsPaid($item['markAsPaid']);
+			$status->setCreateInvoice($item['createInvoice']);
 			$status->setColor($item['color']);
 			$status->setRedirectTo(
 				$item['redirectTo'] !== null
