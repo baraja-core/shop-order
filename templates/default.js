@@ -92,8 +92,8 @@ Vue.component('cms-order-default', {
 				</td>
 				<td>
 					<a :href="link('CmsOrder:detail', {id: item.id})">{{ item.number }}</a><br>
-					<span class="badge badge-secondary" v-b-tooltip.hover title="Last updated date">{{ item.updatedDate }}</span><br>
-					<span class="badge badge-light" v-b-tooltip.hover title="Inserted date">{{ item.insertedDate }}</span>
+					<span class="badge badge-secondary" v-b-tooltip.hover.left title="Last updated date">{{ item.updatedDate }}</span><br>
+					<span class="badge badge-light" v-b-tooltip.hover.left title="Inserted date">{{ item.insertedDate }}</span>
 				</td>
 				<td :class="{ 'table-primary': item.status.code === 'new', 'table-success': item.status.code === 'paid' }">
 					<b-form-select v-model="item.status.code" :options="staticFilter.statuses" size="sm" @change="changeStatus(item.id, item.status.code)" style="margin-bottom:5px;height:8px"></b-form-select>
