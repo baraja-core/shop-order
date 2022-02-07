@@ -11,6 +11,7 @@ use Baraja\EcommerceStandard\DTO\AddressInterface;
 use Baraja\EcommerceStandard\Service\InvoiceManagerInterface;
 use Baraja\Localization\Localization;
 use Baraja\Shop\Address\Entity\Address;
+use Baraja\Shop\Currency\CurrencyManager;
 use Baraja\Shop\Customer\CustomerManager;
 use Baraja\Shop\Customer\Entity\Customer;
 use Baraja\Shop\Delivery\BranchManager;
@@ -59,6 +60,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		private OrderWorkflow $workflow,
 		private OrderNotification $notification,
 		private Localization $localization,
+		private CurrencyManager $currencyManager,
 		private ?InvoiceManagerInterface $invoiceManager = null,
 	) {
 		$deliveryRepository = $entityManager->getRepository(Delivery::class);
@@ -113,6 +115,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 					'label' => $order->getStatus()->getName(),
 				],
 				'paid' => $order->isPaid(),
+				'pinged' => $order->isPinged(),
 				'price' => $order->getBasePrice(),
 				'sale' => $order->getSale(),
 				'finalPrice' => $order->getPrice()->render(true),
@@ -131,16 +134,16 @@ final class CmsOrderEndpoint extends BaseEndpoint
 					'ban' => $order->getCustomer()->isBan(),
 				],
 				'delivery' => [
-					'id' => $deliveryItem === null ? null : $deliveryItem->getId(),
-					'name' => $deliveryItem === null ? null : (string) $deliveryItem->getName(),
-					'price' => $order->getDeliveryPrice(),
-					'color' => $deliveryItem === null ? null : $deliveryItem->getColor(),
+					'id' => $deliveryItem?->getId(),
+					'name' => $deliveryItem?->getLabel(),
+					'price' => $order->getDeliveryPrice()->render(true),
+					'color' => $deliveryItem?->getColor(),
 				],
 				'payment' => [
-					'id' => $paymentItem === null ? null : $paymentItem->getId(),
-					'name' => $paymentItem === null ? null : $paymentItem->getName(),
-					'price' => $paymentItem === null ? 0 : $paymentItem->getPrice(),
-					'color' => $paymentItem === null ? null : $paymentItem->getColor(),
+					'id' => $paymentItem?->getId(),
+					'name' => $paymentItem?->getName(),
+					'price' => $order->getPaymentPrice()->render(true),
+					'color' => $paymentItem?->getColor(),
 				],
 				'items' => (static function ($items): array
 				{
@@ -191,7 +194,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$this->sendJson(
 			[
 				'items' => $return,
-				'sum' => $sum,
+				'sum' => $this->formatSumPrices($sum),
 				'paginator' => (new Paginator)
 					->setItemCount($feed['count'])
 					->setItemsPerPage($limit)
@@ -1078,5 +1081,21 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			->setMaxResults(1)
 			->getQuery()
 			->getSingleResult();
+	}
+
+
+	/**
+	 * @param array<string, numeric-string> $sum
+	 * @return array<string, numeric-string>
+	 */
+	private function formatSumPrices(array $sum): array
+	{
+		$return = [];
+		foreach ($sum as $currencyCode => $value) {
+			$currency = $this->currencyManager->getCurrency($currencyCode);
+			$return[$currencyCode] = (new Price($value, $currency))->render(true);
+		}
+
+		return $return;
 	}
 }

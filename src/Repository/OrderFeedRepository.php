@@ -141,7 +141,7 @@ final class OrderFeedRepository
 		/** @var Order[] $orders */
 		$orders = $this->entityManager->getRepository(Order::class)
 			->createQueryBuilder('o')
-			->select('PARTIAL o.{id, hash, number, paid, price, currency, sale, insertedDate, updatedDate, notice, deliveryPrice}')
+			->select('PARTIAL o.{id, hash, number, paid, pinged, price, currency, sale, insertedDate, updatedDate, notice, deliveryPrice, paymentPrice}')
 			->addSelect('PARTIAL status.{id, code, label, workflowPosition, color}')
 			->addSelect('PARTIAL customer.{id, email, firstName, lastName, phone, premium, ban}')
 			->addSelect('PARTIAL item.{id, count, price, sale, label}')

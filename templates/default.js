@@ -56,7 +56,7 @@ Vue.component('cms-order-default', {
 			<div class="col">
 				Count: <b>{{ paginator.itemCount }}</b>
 				| Sum of&nbsp;view:
-				<span v-for="(sumValue, sumCurrency) in sum" class="badge badge-light">{{ sumValue }} {{ sumCurrency }}</span>
+				<span v-for="sumValue in sum" class="badge badge-light" v-html="sumValue"></span>
 			</div>
 			<div class="col-sm-2 text-right">
 				<b-button @click="sendPackets()" variant="secondary" size="sm" v-b-tooltip.hover title="Clicking the button will establish shipments with the carrier for all orders displayed. This action cannot be reverted.">
@@ -86,7 +86,7 @@ Vue.component('cms-order-default', {
 				<th>Payment</th>
 				<th>Files</th>
 			</tr>
-			<tr v-for="item in items">
+			<tr v-for="item in items" :class="{ 'table-warning': item.pinged }">
 				<td>
 					<b-form-checkbox v-model="item.checked"></b-form-checkbox>
 				</td>
@@ -94,6 +94,9 @@ Vue.component('cms-order-default', {
 					<a :href="link('CmsOrder:detail', {id: item.id})">{{ item.number }}</a><br>
 					<span class="badge badge-secondary" v-b-tooltip.hover.left title="Last updated date">{{ item.updatedDate }}</span><br>
 					<span class="badge badge-light" v-b-tooltip.hover.left title="Inserted date">{{ item.insertedDate }}</span>
+					<div v-if="item.pinged">
+						<span class="badge badge-danger" v-b-tooltip.hover.left title="The customer had to be notified of the forgotten payment.">PING!</span>
+					</div>
 				</td>
 				<td :class="{ 'table-primary': item.status.code === 'new', 'table-success': item.status.code === 'paid' }">
 					<b-form-select v-model="item.status.code" :options="staticFilter.statuses" size="sm" @change="changeStatus(item.id, item.status.code)" style="margin-bottom:5px;height:8px"></b-form-select>
@@ -151,7 +154,8 @@ Vue.component('cms-order-default', {
 					<template v-if="item.delivery.name">
 						<span class="badge badge-secondary" :style="'background:' + item.delivery.color">{{ item.delivery.name }}</span>
 						<br>
-					</template>{{ item.delivery.price }}
+					</template>
+					<div v-html="item.delivery.price"></div>
 					<div v-if="item.package">
 						<span class="badge badge-success">PACKAGE READY</span>
 					</div>
@@ -161,7 +165,7 @@ Vue.component('cms-order-default', {
 						<span class="badge badge-secondary" :style="'background:' + item.payment.color">{{ item.payment.name }}</span>
 						<br>
 					</template>
-					{{ item.payment.price }}
+					<div v-html="item.payment.price"></div>
 				</td>
 				<td>
 					<div v-for="document in item.documents">
@@ -507,7 +511,7 @@ Vue.component('cms-order-default', {
 			items: null,
 			customerList: null,
 			customerListSearch: '',
-			sum: 0,
+			sum: [],
 			paginator: {
 				itemsPerPage: 0,
 				page: 1,
