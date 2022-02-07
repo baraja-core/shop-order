@@ -425,7 +425,6 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				if ($branch === null) {
 					$return = ['id' => $id];
 				} else {
-					// https://mapy.cz/screenshoter?url=https%3A%2F%2Fframe.mapy.cz%2Fzakladni%3Fx%3D14.4000000%26y%3D50.0500000%26z%3D16&width=2000&height=1000
 					$return = [
 						'id' => $id,
 						'name' => $branch->getName(),
