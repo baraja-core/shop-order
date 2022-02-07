@@ -42,8 +42,8 @@ final class OrderFeedRepository
 		$orderCandidateSelection = $this->entityManager->getRepository(Order::class)
 			->createQueryBuilder('o')
 			->select('PARTIAL o.{id}')
-			->leftJoin('o.status', 'status')
-			->leftJoin('o.group', 'orderGroup');
+			->join('o.status', 'status')
+			->join('o.group', 'orderGroup');
 
 		if ($orderBy !== null) {
 			if ($orderBy === 'old') {
@@ -56,25 +56,27 @@ final class OrderFeedRepository
 		} else {
 			$orderCandidateSelection->orderBy('o.number', 'DESC');
 		}
-		if ($query !== null && trim($query) !== '') {
-			$orderCandidateSelection->andWhere('o.id IN (:searchIds)')
-				->setParameter(
-					'searchIds',
-					$this->search->search(
-						$query,
-						[
-							Order::class => [
-								'number',
-								'notice',
-								'customer.email',
-								'customer.firstName',
-								'customer.lastName',
-							],
-						],
-						useAnalytics: false
-					)
-						->getIds()
-				);
+		if ($query !== null) {
+			$query = trim($query);
+			if (preg_match('/^\d+$/', $query) === 1) {
+				$orderCandidateSelection->andWhere('o.number LIKE :queryLeft OR o.number LIKE :queryRight')
+					->setParameter('queryLeft', $query . '%')
+					->setParameter('queryRight', '%' . $query);
+			} else {
+				$orderCandidateSelection->andWhere('o.id IN (:searchIds)')
+					->setParameter(
+						'searchIds',
+						$this->search->selectorBuilder($query)
+							->addEntity(Order::class)
+							->addColumn('number')
+							->addColumn('notice')
+							->addColumn('customer.email')
+							->addColumn('customer.firstName')
+							->addColumn('customer.lastName')
+							->search(useAnalytics: false)
+							->getIds(),
+					);
+			}
 		}
 		if ($status === null) { // find all
 			$orderCandidateSelection->andWhere('status.code != :statusDone')
@@ -114,7 +116,7 @@ final class OrderFeedRepository
 				->setParameter('payment', $payment);
 		}
 		if ($currency !== null) {
-			$orderCandidateSelection->leftJoin('o.currency', 'currency')
+			$orderCandidateSelection->join('o.currency', 'currency')
 				->andWhere('currency.code = :currencyCode')
 				->setParameter('currencyCode', $currency);
 		}
@@ -152,10 +154,10 @@ final class OrderFeedRepository
 			->addSelect('productVariant')
 			->addSelect('PARTIAL paymentReal.{id}')
 			->addSelect('PARTIAL package.{id}')
-			->leftJoin('o.status', 'status')
-			->leftJoin('o.customer', 'customer')
+			->join('o.status', 'status')
+			->join('o.customer', 'customer')
 			->leftJoin('o.items', 'item')
-			->leftJoin('o.currency', 'currency')
+			->join('o.currency', 'currency')
 			->leftJoin('o.delivery', 'delivery')
 			->leftJoin('o.payment', 'payment')
 			->leftJoin('item.product', 'product')
