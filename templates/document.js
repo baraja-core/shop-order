@@ -24,11 +24,17 @@ Vue.component('cms-order-document', {
 					<template v-for="tag in file.tags">
 						<span class="badge badge-primary">{{ tag }}</span>
 					</template>
+					<template v-if="!file.downloadLink">
+						<span class="badge badge-danger" v-b-tooltip.hover title="A link cannot be generated to this file because it has been corrupted.">Broken file</span>
+					</template>
 				</td>
 				<td class="text-right">
-					<a :href="file.downloadLink" target="_blank">
-						<b-button variant="secondary" size="sm">Download</b-button>
-					</a>
+					<template v-if="file.downloadLink">
+						<a :href="file.downloadLink" target="_blank">
+							<b-button variant="secondary" size="sm">Download</b-button>
+						</a>
+					</template>
+					<template v-else>?</template>
 				</td>
 			</tr>
 		</table>
