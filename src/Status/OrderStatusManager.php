@@ -173,6 +173,9 @@ final class OrderStatusManager
 		} else {
 			$order->setStatus($status);
 		}
+		if ($status->isMarkAsPaid()) {
+			$order->setPaid(true);
+		}
 
 		$this->workflow->run($order);
 		foreach ($this->onChangeEvents as $changedEvent) {

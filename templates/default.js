@@ -279,14 +279,13 @@ Vue.component('cms-order-default', {
 				<tr>
 					<th>#</th>
 					<th width="80">Position</th>
-					<th>Name /&nbsp;Code</th>
-					<th>Internal name</th>
+					<th width="130">Name /&nbsp;Code</th>
 					<th>Label</th>
-					<th>Public label</th>
-					<th>Color</th>
+					<th width="40">Color</th>
+					<th>Rules</th>
 					<th>Handler</th>
-					<th>Redirect&nbsp;to</th>
-					<th>Notification</th>
+					<th width="130"><span v-b-tooltip title="When this status occurs, automatically execute the workflow rules and redirect to the new one.">Redirect&nbsp;to</span></th>
+					<th width="80"><span v-b-tooltip title="Shows active notifications. A green icon indicates that notifications are actively being sent when order is switched to this status.">Notif.</span></th>
 				</tr>
 				<tr v-for="statusItem in statusList">
 					<td>{{ statusItem.id }}</td>
@@ -294,20 +293,35 @@ Vue.component('cms-order-default', {
 						<b-form-input type="number" v-model="statusItem.position" size="sm"></b-form-input>
 					</td>
 					<td>
-						<span class="badge badge-secondary" :style="'background:' + statusItem.color">{{ statusItem.name }}</span><br>
+						<span class="badge badge-secondary" :style="'background:' + statusItem.color + ';white-space:break-spaces'">{{ statusItem.name }}</span><br>
 						<code>{{ statusItem.code }}</code>
 					</td>
-					<td>
-						<b-form-input v-model="statusItem.internalName" size="sm"></b-form-input>
-					</td>
-					<td>
-						<b-form-input v-model="statusItem.label" size="sm"></b-form-input>
-					</td>
-					<td>
-						<b-form-input v-model="statusItem.publicLabel" size="sm"></b-form-input>
+					<td class="p-0">
+						<template v-if="editedStatus !== statusItem.id">
+							<button class="btn btn-secondary btn-sm py-0 my-2" @click="editedStatus=statusItem.id">Rename</button>
+						</template>
+						<table v-else class="table table-sm my-0" cellpadding="0" cellspacing="0">
+							<tr>
+								<td class="small" style="border-top:0">Internal name</td>
+								<td style="border-top:0"><b-form-input v-model="statusItem.internalName" size="sm"></b-form-input></td>
+							</tr>
+							<tr>
+								<td class="small">Label</td>
+								<td><b-form-input v-model="statusItem.label" size="sm"></b-form-input></td>
+							</tr>
+							<tr>
+								<td class="small">Public label</td>
+								<td><b-form-input v-model="statusItem.publicLabel" size="sm"></b-form-input></td>
+							</tr>
+						</table>
 					</td>
 					<td>
 						<b-form-input type="color" v-model="statusItem.color" size="sm"></b-form-input>
+					</td>
+					<td>
+						<b-form-checkbox v-model="statusItem.markAsPaid" :value="true" :unchecked-value="false">
+							Mark as paid
+						</b-form-checkbox>
 					</td>
 					<td>
 						<b-form-input v-model="statusItem.systemHandle" size="sm"></b-form-input>
@@ -354,7 +368,7 @@ Vue.component('cms-order-default', {
 					</td>
 					<td>
 						<template v-for="collectionCodeItem in statusCollectionItem.codes">
-							<span class="badge badge-secondary m-1" :style="'background:' + collectionCodeItem.color">{{ collectionCodeItem.label }}</span>
+							<span class="badge badge-secondary m-1" :style="'background:' + collectionCodeItem.color + ';white-space:break-spaces'">{{ collectionCodeItem.label }}</span>
 						</template>
 					</td>
 				</tr>
@@ -565,6 +579,7 @@ Vue.component('cms-order-default', {
 			statusSelectList: null,
 			statusCollectionList: null,
 			workflowRulesList: null,
+			editedStatus: null,
 			newGroupForm: {
 				name: '',
 				code: ''

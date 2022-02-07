@@ -855,9 +855,10 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'publicLabel' => $status->getPublicLabel(),
 				'systemHandle' => $status->getSystemHandle(),
 				'position' => $status->getWorkflowPosition(),
+				'markAsPaid' => $status->isMarkAsPaid(),
 				'code' => $status->getCode(),
 				'color' => $status->getColor(),
-				'redirectTo' => $redirectTo !== null ? $redirectTo->getId() : null,
+				'redirectTo' => $redirectTo?->getId(),
 				'redirectOptions' => $this->formatBootstrapSelectArray([null => '- no -'] + $redirectOptions),
 				'notification' => $notifications,
 			];
@@ -900,6 +901,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	 *     publicLabel: string,
 	 *     systemHandle: string|null,
 	 *     position: int,
+	 *     markAsPaid: bool,
 	 *     color: string,
 	 *     redirectTo: int|null
 	 * }> $statusList
@@ -913,6 +915,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			$status->setPublicLabel($item['publicLabel']);
 			$status->setSystemHandle($item['systemHandle']);
 			$status->setWorkflowPosition((int) $item['position']);
+			$status->setMarkAsPaid($item['markAsPaid']);
 			$status->setColor($item['color']);
 			$status->setRedirectTo(
 				$item['redirectTo'] !== null

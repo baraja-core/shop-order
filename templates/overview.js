@@ -338,7 +338,7 @@ Vue.component('cms-order-overview', {
 						<th>Shipper</th>
 						<th>Carrier ID</th>
 						<th>Track</th>
-						<th>LAbel</th>
+						<th>Label</th>
 						<th>Carrier swap</th>
 					</tr>
 					<tr v-for="package in order.package">

@@ -70,6 +70,9 @@ class OrderStatus implements OrderStatusInterface
 	#[ORM\Column(type: 'integer', nullable: true, options: ['unsigned' => true])]
 	private ?int $workflowPosition = null;
 
+	#[ORM\Column(type: 'boolean')]
+	private bool $markAsPaid = false;
+
 	/**
 	 * Internal smart logic.
 	 * Some order states can only serve as a virtual state used by third-party logic.
@@ -196,6 +199,18 @@ class OrderStatus implements OrderStatusInterface
 			$workflowPosition = 0;
 		}
 		$this->workflowPosition = $workflowPosition;
+	}
+
+
+	public function isMarkAsPaid(): bool
+	{
+		return $this->markAsPaid;
+	}
+
+
+	public function setMarkAsPaid(bool $markAsPaid): void
+	{
+		$this->markAsPaid = $markAsPaid;
 	}
 
 
