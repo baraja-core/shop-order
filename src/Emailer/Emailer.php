@@ -25,7 +25,7 @@ final class Emailer implements OrderNotificationEmailProviderInterface
 	public function send(OrderInterface $order, string $subject, string $content): void
 	{
 		$customer = $order->getCustomer();
-		$customerEmail = $customer !== null ? $customer->getEmail() : null;
+		$customerEmail = $customer?->getEmail();
 		if ($customerEmail === null) {
 			return;
 		}

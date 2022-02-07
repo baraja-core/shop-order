@@ -6,7 +6,9 @@ namespace Baraja\Shop\Order\Repository;
 
 
 use Baraja\Doctrine\EntityManager;
+use Baraja\EcommerceStandard\DTO\InvoiceInterface;
 use Baraja\Search\Search;
+use Baraja\Shop\Invoice\Entity\Invoice;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderStatus;
 use Baraja\Shop\Order\OrderGroupManager;
@@ -14,17 +16,30 @@ use Baraja\Shop\Order\OrderStatusManager;
 
 final class OrderFeedRepository
 {
+	private OrderInvoiceRepository $invoiceRepository;
+
+
 	public function __construct(
 		private EntityManager $entityManager,
 		private OrderStatusManager $statusManager,
 		private OrderGroupManager $orderGroupManager,
 		private Search $search,
 	) {
+		if (class_exists(Invoice::class) === false) {
+			throw new \LogicException('Package "baraja-core/shop-invoice" has not been installed.');
+		}
+		$invoiceRepository = $entityManager->getRepository(Invoice::class);
+		assert($invoiceRepository instanceof OrderInvoiceRepository);
+		$this->invoiceRepository = $invoiceRepository;
 	}
 
 
 	/**
-	 * @return array{orders: array<int, Order>, count: int}
+	 * @return array{
+	 *     orders: array<int, Order>,
+	 *     invoices: array<int, InvoiceInterface>,
+	 *     count: int
+	 * }
 	 */
 	public function getFeed(
 		?string $query = null,
@@ -172,6 +187,7 @@ final class OrderFeedRepository
 
 		return [
 			'orders' => $orders,
+			'invoices' => $this->invoiceRepository->getInvoicesByOrderIds($candidateIds),
 			'count' => $count,
 		];
 	}

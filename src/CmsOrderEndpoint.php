@@ -8,6 +8,7 @@ namespace Baraja\Shop\Order;
 use Baraja\Country\CountryManagerAccessor;
 use Baraja\Doctrine\EntityManager;
 use Baraja\EcommerceStandard\DTO\AddressInterface;
+use Baraja\EcommerceStandard\DTO\InvoiceInterface;
 use Baraja\EcommerceStandard\Service\InvoiceManagerInterface;
 use Baraja\Localization\Localization;
 use Baraja\Shop\Address\Entity\Address;
@@ -103,6 +104,16 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$return = [];
 		/** @var Order $order */
 		foreach ($feed['orders'] as $order) {
+			$documents = [];
+			if (isset($feed['invoices'][$order->getId()])) {
+				/** @var InvoiceInterface $invoice */
+				$invoice = $feed['invoices'][$order->getId()];
+				$documents[] = [
+					'url' => $invoice->getDownloadLink(),
+					'label' => '🧾',
+				];
+			}
+
 			$deliveryItem = $order->getDelivery();
 			$paymentItem = $order->getPayment();
 			$return[] = [
@@ -164,12 +175,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				})(
 					$order->getItems()
 				),
-				'documents' => [
-					[
-						'url' => '#',
-						'label' => 'Test',
-					],
-				],
+				'documents' => $documents,
 				'payments' => (static function ($items): array
 				{
 					$return = [];
