@@ -252,31 +252,34 @@ Vue.component('cms-order-overview', {
 								<b-button variant="secondary" size="sm" @click="document.getElementById('zasilkovna-open-button').click()">Change</b-button>
 							</div>
 						</div>
-						<div v-if="loading.deliveryBranch" class="text-center my-5">
+						<div v-if="loading.deliveryBranch && order.deliveryBranch !== null" class="text-center my-5">
 							<b-spinner></b-spinner>
 						</div>
 						<template v-else>
-							<div class="alert alert-warning" v-if="deliveryBranch.branch === null">
-								The branch has not been selected.
-							</div>
-							<template v-else>
-								<template v-if="deliveryBranch.error === true">
-									<div class="alert alert-danger">
-										Attention: Customer has chosen a branch that is not available.<br><br>
-										Branch ID: <strong>{{ deliveryBranch.branch.id }}</strong>
-									</div>
-								</template>
+							<template v-if="order.deliveryBranch !== null">
+								<div class="alert alert-warning" v-if="deliveryBranch.branch === null">
+									The branch has not been selected.
+								</div>
 								<template v-else>
-									<p><i>{{ deliveryBranch.branch.name }}</i></p>
-									<div class="text-center">
-										<a :href="deliveryBranch.branch.mapsUrl" target="_blank">
-											<img :src="deliveryBranch.branch.mapsStaticUrl" referrerpolicy="no-referrer">
-										</a><br>
-										<i>({{ deliveryBranch.branch.latitude }}, {{ deliveryBranch.branch.longitude }})</i>
-									</div>
-									<!-- <a :href="deliveryBranch.branch.url" target="_blank">More info</a> -->
+									<template v-if="deliveryBranch.error === true">
+										<div class="alert alert-danger">
+											Attention: Customer has chosen a branch that is not available.<br><br>
+											Branch ID: <strong>{{ deliveryBranch.branch.id }}</strong>
+										</div>
+									</template>
+									<template v-else>
+										<p><i>{{ deliveryBranch.branch.name }}</i></p>
+										<div class="text-center">
+											<a :href="deliveryBranch.branch.mapsUrl" target="_blank">
+												<img :src="deliveryBranch.branch.mapsStaticUrl" referrerpolicy="no-referrer">
+											</a><br>
+											<i>({{ deliveryBranch.branch.latitude }}, {{ deliveryBranch.branch.longitude }})</i>
+										</div>
+										<!-- <a :href="deliveryBranch.branch.url" target="_blank">More info</a> -->
+									</template>
 								</template>
 							</template>
+							<p v-else class="text-secondary mb-0">Not used.</p>
 							<b-card v-if="zasilkovna.id !== ''" class="mt-3">
 								Selected branch <strong>{{ zasilkovna.id }}</strong>:<br>
 								{{ zasilkovna.name }}<br>
