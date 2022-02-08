@@ -436,7 +436,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 							$branch->getLatitude(),
 							$branch->getLongitude(),
 						),
-						'mapsStaticUrl' => sprintf('https://mapy.cz/screenshoter?url=%s&width=300&height=400',
+						'mapsStaticUrl' => sprintf('https://mapy.cz/screenshoter?url=%s&width=500&height=400',
 							urlencode(sprintf('https://frame.mapy.cz/zakladni?%s',
 								http_build_query([
 									'x' => $branch->getLongitude(),

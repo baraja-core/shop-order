@@ -273,10 +273,10 @@ Vue.component('cms-order-overview', {
 									<template v-else>
 										<p><i>{{ deliveryBranch.branch.name }}</i></p>
 										<div class="text-center">
+											<div :style="'background-image:url(' + deliveryBranch.branch.mapsStaticUrl + ');width:100%;height:280px;background-position:center'"></div>
 											<a :href="deliveryBranch.branch.mapsUrl" target="_blank">
-												<img :src="deliveryBranch.branch.mapsStaticUrl" referrerpolicy="no-referrer">
-											</a><br>
-											<i>({{ deliveryBranch.branch.latitude }}, {{ deliveryBranch.branch.longitude }})</i>
+												<i>({{ deliveryBranch.branch.latitude }}, {{ deliveryBranch.branch.longitude }})</i>
+											</a>
 										</div>
 										<!-- <a :href="deliveryBranch.branch.url" target="_blank">More info</a> -->
 									</template>
