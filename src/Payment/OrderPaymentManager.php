@@ -159,9 +159,10 @@ final class OrderPaymentManager
 			try {
 				$this->entityManager->getRepository(OrderOnlinePayment::class)
 					->createQueryBuilder('o')
-					->where('o.number = :number')
-					->setParameter('number', $number)
+					->leftJoin('o.order', 'realOrder')
+					->where('realOrder.number = :number')
 					->andWhere('o.status = :status')
+					->setParameter('number', $number)
 					->setParameter('status', OrderStatus::STATUS_PAID)
 					->getQuery()
 					->getSingleResult();
