@@ -19,8 +19,6 @@ use Nette\Application\UI\InvalidLinkException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Tracy\Debugger;
-use Tracy\ILogger;
 
 final class CheckOrderCommand extends Command
 {
@@ -51,7 +49,8 @@ final class CheckOrderCommand extends Command
 		$orders = $this->entityManager->getRepository(Order::class)
 			->createQueryBuilder('orderEntity')
 			->leftJoin('orderEntity.status', 'status')
-			->where('status.code = :code')
+			->where('orderEntity.paid = FALSE')
+			->andWhere('status.code = :code')
 			->setParameter('code', OrderStatus::STATUS_NEW)
 			->getQuery()
 			->getResult();
@@ -126,27 +125,26 @@ final class CheckOrderCommand extends Command
 	 */
 	private function checkUnmatchedTransactions(array $unauthorizedVariables, Authorizator $authorizator): void
 	{
-		try {
-			$processed = [];
-			$unmatchedTransactionsList = $authorizator->getUnmatchedTransactions($unauthorizedVariables);
-			foreach ($unmatchedTransactionsList as $transaction) {
-				assert($transaction instanceof \Baraja\FioPaymentAuthorizator\Transaction);
-				if (
-					isset($processed[$transaction->getIdTransaction()]) === false
-					&& $this->tm->transactionExist((int) $transaction->getIdTransaction()) === false
-					&& $this->tm->orderHasPaidByVariableSymbol($transaction->getVariableSymbol()) === false
-				) {
-					if ($transaction->getPrice() > 0) {
-						$this->tm->storeUnmatchedTransaction($transaction);
-					}
-					echo $transaction->getIdTransaction() . "\n";
-					$this->tm->storeTransaction($transaction, true);
-					$processed[$transaction->getIdTransaction()] = true;
-				}
+		$processed = [];
+		$unmatchedTransactionsList = $authorizator->getUnmatchedTransactions($unauthorizedVariables);
+		foreach ($unmatchedTransactionsList as $transaction) {
+			assert($transaction instanceof \Baraja\FioPaymentAuthorizator\Transaction);
+			$idTransaction = $transaction->getIdTransaction();
+			if ($idTransaction === null) {
+				continue;
 			}
-		} catch (\Throwable $e) {
-			Debugger::log($e, ILogger::CRITICAL);
-			die;
+			if (
+				isset($processed[$idTransaction]) === false
+				&& $this->tm->transactionExist($idTransaction) === false
+				&& $this->tm->orderHasPaidByVariableSymbol($transaction->getVariableSymbol()) === false
+			) {
+				if ($transaction->getPrice() > 0) {
+					$this->tm->storeUnmatchedTransaction($transaction);
+				}
+				echo $idTransaction . "\n";
+				$this->tm->storeTransaction($transaction, true);
+				$processed[$idTransaction] = true;
+			}
 		}
 	}
 
@@ -179,11 +177,10 @@ final class CheckOrderCommand extends Command
 				$unauthorizedVariables,
 				$callback,
 				'CZK',
-				0.25
+				0.25,
 			);
 		} catch (\Throwable $e) {
-			Debugger::log($e, ILogger::CRITICAL);
-			die;
+			throw new \RuntimeException(sprintf('Can not authorize orders: %s', $e->getMessage()), 500, $e);
 		}
 	}
 
