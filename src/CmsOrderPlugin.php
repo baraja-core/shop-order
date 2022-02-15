@@ -6,21 +6,20 @@ namespace Baraja\Shop\Order;
 
 
 use Baraja\Cms\Search\SearchablePlugin;
-use Baraja\Doctrine\EntityManager;
 use Baraja\Plugin\BasePlugin;
 use Baraja\Plugin\SimpleComponent\Button;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Repository\OrderRepository;
 use Baraja\Url\Url;
+use Doctrine\ORM\EntityManagerInterface;
 
 final class CmsOrderPlugin extends BasePlugin implements SearchablePlugin
 {
 	private OrderRepository $orderRepository;
 
 
-	public function __construct(
-		private EntityManager $entityManager,
-	) {
+	public function __construct(EntityManagerInterface $entityManager)
+	{
 		$orderRepository = $entityManager->getRepository(Order::class);
 		assert($orderRepository instanceof OrderRepository);
 		$this->orderRepository = $orderRepository;

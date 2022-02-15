@@ -21,7 +21,7 @@ class OrderFile implements OrderDocument
 	private Order $order;
 
 	#[ORM\Column(type: 'string', length: 64, nullable: true)]
-	private ?string $number = null;
+	private ?string $number;
 
 	#[ORM\Column(type: 'string', length: 128)]
 	private string $label;
@@ -55,9 +55,11 @@ class OrderFile implements OrderDocument
 
 	public static function getRelativePath(self $orderFile): string
 	{
-		return 'order-file/' . $orderFile->getInsertedDate()->format('Y-m-d')
-			. '/' . $orderFile->getOrder()->getHash()
-			. '/' . $orderFile->getFilename();
+		return sprintf('order-file/%s/%s/%s',
+			$orderFile->getInsertedDate()->format('Y-m-d'),
+			$orderFile->getOrder()->getHash(),
+			$orderFile->getFilename(),
+		);
 	}
 
 
