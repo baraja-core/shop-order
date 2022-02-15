@@ -45,19 +45,23 @@ final class HeurekaOverenoCreatedOrderEvent implements CreatedOrderEvent
 			$shopCertification->setOrderId((int) preg_replace('/\D+/', '', $order->getNumber()));
 			$usedProducts = [];
 			foreach ($order->getItems() as $item) {
-				$productId = (string) $item->getProduct()->getId();
-				if (isset($usedProducts[$productId]) === false) {
-					$shopCertification->addProductItemId((string) $item->getProduct()->getId());
+				try {
+					$productId = (string) $item->getProduct()->getId();
+				} catch (\Throwable) { // Product can be broken.
+					$productId = null;
+				}
+				if ($productId !== null && isset($usedProducts[$productId]) === false) {
+					$shopCertification->addProductItemId($productId);
 					$usedProducts[$productId] = true;
 				}
 			}
 			$shopCertification->logOrder();
+			$this->entityManager->persist(new OrderMeta($order, self::META_KEY, 'true'));
 		} catch (\Throwable $e) {
 			$order->addNotice('Heureka Ověřeno zákazníky: ' . $e->getMessage());
 			Debugger::log($e, ILogger::CRITICAL);
 		}
 
-		$this->entityManager->persist(new OrderMeta($order, self::META_KEY, 'true'));
 		$this->entityManager->flush();
 	}
 
