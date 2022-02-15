@@ -6,6 +6,7 @@ namespace Baraja\Shop\Order\Repository;
 
 
 use Baraja\Shop\Order\Entity\Order;
+use Baraja\Shop\Order\Entity\OrderStatus;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
@@ -76,6 +77,23 @@ final class OrderRepository extends EntityRepository
 	/**
 	 * @throws NoResultException|NonUniqueResultException
 	 */
+	public function getById(int $id): Order
+	{
+		$return = $this->createQueryBuilder('o')
+			->where('o.id = :id')
+			->setParameter('id', $id)
+			->setMaxResults(1)
+			->getQuery()
+			->getSingleResult();
+		assert($return instanceof Order);
+
+		return $return;
+	}
+
+
+	/**
+	 * @throws NoResultException|NonUniqueResultException
+	 */
 	public function getByHash(string $hash): Order
 	{
 		$return = $this->createQueryBuilder('o')
@@ -85,6 +103,52 @@ final class OrderRepository extends EntityRepository
 			->getQuery()
 			->getSingleResult();
 		assert($return instanceof Order);
+
+		return $return;
+	}
+
+
+	/**
+	 * @throws NoResultException|NonUniqueResultException
+	 */
+	public function getAllByHash(string $hash): Order
+	{
+		$return = $this->createQueryBuilder('o')
+			->select('o, customer, deliveryAddress, invoiceAddress, delivery, payment')
+			->leftJoin('o.customer', 'customer')
+			->leftJoin('o.deliveryAddress', 'deliveryAddress')
+			->leftJoin('o.paymentAddress', 'invoiceAddress')
+			->leftJoin('o.delivery', 'delivery')
+			->leftJoin('o.payment', 'payment')
+			->where('o.hash = :hash')
+			->setParameter('hash', $hash)
+			->getQuery()
+			->getSingleResult();
+		assert($return instanceof Order);
+
+		return $return;
+	}
+
+
+	/**
+	 * @return array<int, Order>
+	 */
+	public function getOrderForCheckPayment(?string $currencyCode = null): array
+	{
+		$qb = $this->createQueryBuilder('orderEntity')
+			->join('orderEntity.status', 'status')
+			->where('orderEntity.paid = FALSE')
+			->andWhere('status.code = :code')
+			->setParameter('code', OrderStatus::STATUS_NEW);
+
+		if ($currencyCode !== null) {
+			$qb->join('orderEntity.currency', 'currency')
+				->andWhere('currency.code = :currencyCode')
+				->setParameter('currencyCode', $currencyCode);
+		}
+
+		/** @var array<int, Order> $orders */
+		$return = $qb->getQuery()->getResult();
 
 		return $return;
 	}

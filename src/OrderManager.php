@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order;
 
 
-use Baraja\Doctrine\EntityManager;
 use Baraja\EcommerceStandard\DTO\CartInterface;
 use Baraja\EcommerceStandard\DTO\OrderInfoInterface;
 use Baraja\EcommerceStandard\DTO\OrderInterface;
@@ -16,6 +15,8 @@ use Baraja\Shop\Order\Entity\OrderBankPayment;
 use Baraja\Shop\Order\Entity\OrderFile;
 use Baraja\Shop\Order\Entity\OrderOnlinePayment;
 use Baraja\Shop\Order\Payment\OrderPaymentClient;
+use Baraja\Shop\Order\Repository\OrderRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
 use Nette\Http\FileUpload;
@@ -24,10 +25,13 @@ use Nette\Utils\Strings;
 
 final class OrderManager implements OrderManagerInterface
 {
+	private OrderRepository $orderRepository;
+
+
 	public function __construct(
-		private OrderPaymentClient $paymentClient,
+		OrderPaymentClient $paymentClient,
 		private OrderGenerator $orderGenerator,
-		private EntityManager $entityManager,
+		private EntityManagerInterface $entityManager,
 		private BranchManager $branchManager,
 		private string $wwwDir,
 	) {
@@ -35,6 +39,9 @@ final class OrderManager implements OrderManagerInterface
 			throw new \LogicException('Parameter wwwDir does not exist, because path "' . $wwwDir . '" given.');
 		}
 		$paymentClient->injectOrderManager($this);
+		$orderRepository = $entityManager->getRepository(Order::class);
+		assert($orderRepository instanceof OrderRepository);
+		$this->orderRepository = $orderRepository;
 	}
 
 
@@ -43,18 +50,7 @@ final class OrderManager implements OrderManagerInterface
 	 */
 	public function getOrderByHash(string $hash): Order
 	{
-		return $this->entityManager->getRepository(Order::class)
-			->createQueryBuilder('o')
-			->select('o, customer, deliveryAddress, invoiceAddress, delivery, payment')
-			->leftJoin('o.customer', 'customer')
-			->leftJoin('o.deliveryAddress', 'deliveryAddress')
-			->leftJoin('o.paymentAddress', 'invoiceAddress')
-			->leftJoin('o.delivery', 'delivery')
-			->leftJoin('o.payment', 'payment')
-			->where('o.hash = :hash')
-			->setParameter('hash', $hash)
-			->getQuery()
-			->getSingleResult();
+		return $this->orderRepository->getAllByHash($hash);
 	}
 
 
@@ -63,13 +59,7 @@ final class OrderManager implements OrderManagerInterface
 	 */
 	public function getOrderById(int $id): Order
 	{
-		return $this->entityManager->getRepository(Order::class)
-			->createQueryBuilder('o')
-			->where('o.id = :id')
-			->setParameter('id', $id)
-			->setMaxResults(1)
-			->getQuery()
-			->getSingleResult();
+		return $this->orderRepository->getById($id);
 	}
 
 
@@ -158,14 +148,14 @@ final class OrderManager implements OrderManagerInterface
 			$name = basename($pathString);
 		}
 		if (str_contains($name, '.') === false) {
-			throw new \InvalidArgumentException('File name must contains extension, but "' . $name . '" given.');
+			throw new \InvalidArgumentException(sprintf('File name must contains extension, but "%s" given.', $name));
 		}
 		if ($label === null) {
 			$label = Strings::firstUpper((string) preg_replace('/^(.+)\..*$/', '$1', $name));
 		}
 
 		$file = new OrderFile($order, $number, $label, $name);
-		$diskPath = $this->wwwDir . '/' . OrderFile::getRelativePath($file);
+		$diskPath = sprintf('%s/%s', $this->wwwDir, OrderFile::getRelativePath($file));
 		FileSystem::copy($pathString, $diskPath);
 		$this->entityManager->persist($file);
 		$this->entityManager->flush();
