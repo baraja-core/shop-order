@@ -27,6 +27,8 @@ final class OrderManager implements OrderManagerInterface
 {
 	private OrderRepository $orderRepository;
 
+	private ?Seo $seo = null;
+
 
 	public function __construct(
 		OrderPaymentClient $paymentClient,
@@ -161,5 +163,15 @@ final class OrderManager implements OrderManagerInterface
 		$this->entityManager->flush();
 
 		return $file;
+	}
+
+
+	public function getSeo(): Seo
+	{
+		if ($this->seo === null) {
+			$this->seo = new Seo;
+		}
+
+		return $this->seo;
 	}
 }
