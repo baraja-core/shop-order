@@ -5,18 +5,24 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order;
 
 
-use Baraja\Doctrine\EntityManager;
 use Baraja\Shop\Order\Entity\Order;
+use Baraja\Shop\Order\Repository\OrderRepository;
 use Baraja\StructuredApi\BaseEndpoint;
+use Doctrine\ORM\EntityManagerInterface;
 use Nette\Http\Response;
-use Nette\Utils\DateTime;
 
 final class CmsOrderVatEndpoint extends BaseEndpoint
 {
+	private OrderRepository $orderRepository;
+
+
 	public function __construct(
-		private EntityManager $entityManager,
+		EntityManagerInterface $entityManager,
 		private OrderStatusManager $orderStatusManager,
 	) {
+		$orderRepository = $entityManager->getRepository(Order::class);
+		assert($orderRepository instanceof OrderRepository);
+		$this->orderRepository = $orderRepository;
 	}
 
 
@@ -37,40 +43,17 @@ final class CmsOrderVatEndpoint extends BaseEndpoint
 		string $dateFrom,
 		string $dateTo,
 		array $statuses,
-		string $filterBy = 'insertedDate'
+		string $filterBy = 'insertedDate',
 	): void {
-		$from = DateTime::from($dateFrom);
-		$to = DateTime::from($dateTo);
+		$from = new \DateTimeImmutable($dateFrom);
+		$to = new \DateTimeImmutable($dateTo);
 
-		$selection = $this->entityManager->getRepository(Order::class)
-			->createQueryBuilder('o')
-			->select('o, invoice, payment, address')
-			->leftJoin('o.invoices', 'invoice')
-			->leftJoin('o.payment', 'payment')
-			->leftJoin('o.paymentAddress', 'address')
-			->andWhere('o.status IN (:statuses)')
-			->setParameters(
-				[
-					'dateFrom' => $from->format('Y-m-d 00:00:00'),
-					'dateTo' => $to->format('Y-m-d 00:00:00'),
-					'statuses' => $statuses,
-				]
-			)
-			->orderBy('o.insertedDate', 'DESC');
-
-		if ($filterBy === 'insertedDate') {
-			$selection
-				->andWhere('o.insertedDate >= :dateFrom')
-				->andWhere('o.insertedDate < :dateTo');
-		} elseif ($filterBy === 'invoiceDate') {
-			$selection
-				->andWhere('invoice.insertedDate >= :dateFrom')
-				->andWhere('invoice.insertedDate < :dateTo');
-		} else {
-			$this->sendError('Invalid filter by, because "' . $filterBy . '" given.');
-		}
-
-		$orders = $selection->getQuery()->getArrayResult();
+		$orders = $this->orderRepository->getBasicVatExport(
+			from: $from,
+			to: $to,
+			statuses: $statuses,
+			filterBy: $filterBy
+		);
 
 		$return = [];
 		foreach ($orders as $order) {
@@ -80,20 +63,20 @@ final class CmsOrderVatEndpoint extends BaseEndpoint
 				'objednavka_vytvorena' => $order['insertedDate'],
 				'cislo_faktury' => $order['invoices'][0]['number'] ?? null,
 				'DUZP' => $order['invoices'][0]['insertedDate'] ?? null,
-				'castka_celkem_s_DPH' => number_format($order['price'], 3, '.', ''),
-				'castka_celkem_bez_DPH' => number_format($order['price'] / 1.21, 3, '.', ''),
+				'castka_celkem_s_DPH' => number_format((float) $order['price'], 3, '.', ''),
+				'castka_celkem_bez_DPH' => number_format((float) $order['price'] / 1.21, 3, '.', ''),
 				'DPH' => number_format($order['price'] - ($order['price'] / 1.21), 3, '.', ''),
 				'typ_platby' => $order['payment']['name'],
-				'stav_objednavky' => $order['status'],
-				'jmeno' => $order['invoiceAddress']['firstName'] ?? '?',
-				'prijmeni' => $order['invoiceAddress']['lastName'] ?? '?',
-				'ulice' => $order['invoiceAddress']['street'] ?? '?',
-				'psc' => $order['invoiceAddress']['zip'] ?? '?',
-				'mesto' => $order['invoiceAddress']['city'] ?? '?',
-				'zeme' => $order['invoiceAddress']['country'] ?? '?',
-				'ic' => $order['invoiceAddress']['ic'] ?? null,
-				'dic' => $order['invoiceAddress']['dic'] ?? null,
-				'nazev_firmy' => $order['invoiceAddress']['companyName'] ?? null,
+				'stav_objednavky' => $order['status']['code'],
+				'jmeno' => $order['paymentAddress']['firstName'] ?? '?',
+				'prijmeni' => $order['paymentAddress']['lastName'] ?? '?',
+				'ulice' => $order['paymentAddress']['street'] ?? '?',
+				'psc' => $order['paymentAddress']['zip'] ?? '?',
+				'mesto' => $order['paymentAddress']['city'] ?? '?',
+				'zeme' => $order['paymentAddress']['country']['isoCode'] ?? '?',
+				'ic' => $order['paymentAddress']['ic'] ?? null,
+				'dic' => $order['paymentAddress']['dic'] ?? null,
+				'nazev_firmy' => $order['paymentAddress']['companyName'] ?? null,
 			];
 		}
 		if ($return === []) {
@@ -105,10 +88,10 @@ final class CmsOrderVatEndpoint extends BaseEndpoint
 		$httpResponse->setHeader('Content-type', 'text/csv; charset=utf-8');
 		$httpResponse->setHeader(
 			'Content-Disposition',
-			'attachment; filename=vat-export-'
-			. $from->format('Y-m-d')
-			. '_' . $to->format('Y-m-d')
-			. '.csv'
+			sprintf('attachment; filename=vat-export-%s_%s.csv',
+				$from->format('Y-m-d'),
+				$to->format('Y-m-d'),
+			),
 		);
 		$httpResponse->setHeader('Pragma', 'public');
 		$httpResponse->setHeader('Expires', '0');
@@ -122,40 +105,40 @@ final class CmsOrderVatEndpoint extends BaseEndpoint
 			array_map(static fn(string $item): string => '"' . $item . '"', array_keys($return[0])),
 		);
 		echo "\n";
-
-		$renderer = static function (mixed $item): string
-		{
-			if (is_bool($item)) {
-				return $item ? 'y' : 'n';
-			}
-			if (is_numeric($item)) {
-				return (string) $item;
-			}
-			if ($item === null) {
-				return '';
-			}
-			if ($item instanceof \DateTimeInterface) {
-				return '"' . $item->format('Y-m-d H:i:s') . '"';
-			}
-
-			return '"' . $item . '"';
-		};
-
-		echo implode(
-			"\n",
-			array_map(
-				static function (array $haystack) use ($renderer): string
-				{
-					$line = '';
-					foreach ($haystack as $item) {
-						$line .= ($line ? ',' : '') . $renderer($item);
-					}
-
-					return $line;
-				},
-				$return
-			)
-		);
+		echo implode("\n", array_map([$this, 'renderRow'], $return));
 		die;
+	}
+
+
+	/**
+	 * @param array<int, mixed> $haystack
+	 */
+	private function renderRow(array $haystack): string
+	{
+		$return = '';
+		foreach ($haystack as $item) {
+			$return .= ($return !== '' ? ',' : '') . $this->renderCel($item);
+		}
+
+		return $return;
+	}
+
+
+	private function renderCel(mixed $value): string
+	{
+		if (is_bool($value)) {
+			return $value ? 'y' : 'n';
+		}
+		if (is_numeric($value)) {
+			return (string) $value;
+		}
+		if ($value === null) {
+			return '';
+		}
+		if ($value instanceof \DateTimeInterface) {
+			return sprintf('"%s"', $value->format('Y-m-d H:i:s'));
+		}
+
+		return '"' . $value . '"';
 	}
 }

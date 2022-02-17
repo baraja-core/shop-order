@@ -13,6 +13,15 @@ use Doctrine\ORM\NoResultException;
 
 final class OrderRepository extends EntityRepository
 {
+	public const
+		VAT_EXPORT_FILTER_INSERTED_DATE = 'insertedDate',
+		VAT_EXPORT_FILTER_INVOICE_DATE = 'invoiceDate';
+
+	public const VAT_EXPORT_FILTERS = [
+		self::VAT_EXPORT_FILTER_INSERTED_DATE,
+		self::VAT_EXPORT_FILTER_INVOICE_DATE,
+	];
+
 	/**
 	 * @return array{
 	 *     order: array{id: int, number: string, hash: string, locale: string, group: array{id: int, name: string}},
@@ -149,5 +158,80 @@ final class OrderRepository extends EntityRepository
 
 		/** @phpstan-ignore-next-line */
 		return $qb->getQuery()->getResult();
+	}
+
+
+	/**
+	 * @param array<int, string> $statuses
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getBasicVatExport(
+		\DateTimeInterface $from,
+		\DateTimeInterface $to,
+		array $statuses,
+		?string $filterBy = null,
+	): array {
+		if ($filterBy !== null && in_array($filterBy, self::VAT_EXPORT_FILTERS, true) === false) {
+			throw new \InvalidArgumentException(sprintf('Invalid filter name, because "%s" given.', $filterBy));
+		}
+
+		$orderSelection = $this->createQueryBuilder('o')
+			->select('o, payment, address, PARTIAL country.{id, isoCode}, PARTIAL status.{id, code}')
+			->join('o.payment', 'payment')
+			->join('o.paymentAddress', 'address')
+			->join('address.country', 'country')
+			->join('o.status', 'status')
+			->andWhere('status.code IN (:statuses)')
+			->setParameter('statuses', $statuses)
+			->orderBy('o.insertedDate', 'DESC');
+
+		if ($filterBy === self::VAT_EXPORT_FILTER_INSERTED_DATE) {
+			$orderSelection
+				->andWhere('o.insertedDate >= :dateFrom')
+				->andWhere('o.insertedDate < :dateTo')
+				->setParameter('dateFrom', $from->format('Y-m-d 00:00:00'))
+				->setParameter('dateTo', $to->format('Y-m-d 00:00:00'));
+		}
+
+		/** @var array<int, array{id: int}> $orders */
+		$orders = $orderSelection->getQuery()->getArrayResult();
+
+		$invoiceSelection = (new EntityRepository(
+			$this->_em,
+			$this->_em->getClassMetadata('Baraja\Shop\Invoice\Entity\Invoice'),
+		))
+			->createQueryBuilder('i')
+			->select('i, PARTIAL o.{id}')
+			->join('i.order', 'o')
+			->where('o.id IN (:ids)')
+			->setParameter('ids', array_map(static fn (array $order): int => $order['id'], $orders));
+
+		if ($filterBy === self::VAT_EXPORT_FILTER_INVOICE_DATE) {
+			$invoiceSelection->andWhere('invoice.insertedDate >= :dateFrom')
+				->andWhere('invoice.insertedDate < :dateTo')
+				->setParameter('dateFrom', $from->format('Y-m-d 00:00:00'))
+				->setParameter('dateTo', $to->format('Y-m-d 00:00:00'));
+		}
+
+		/** @var array<int, array{id: int, order: array{id: int}}> $invoiceList */
+		$invoiceList = $invoiceSelection->getQuery()->getArrayResult();
+
+		$orderIdToInvoice = [];
+		foreach ($invoiceList as $invoice) {
+			$orderId = $invoice['order']['id'];
+			unset($invoice['order']);
+			if (isset($orderIdToInvoice[$orderId]) === false) {
+				$orderIdToInvoice[$orderId] = [];
+			}
+			$orderIdToInvoice[$orderId][] = $invoice;
+		}
+
+		$return = [];
+		foreach ($orders as $order) {
+			$order['invoices'] = $orderIdToInvoice[$order['id']] ?? [];
+			$return[] = $order;
+		}
+
+		return $return;
 	}
 }
