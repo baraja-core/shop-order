@@ -156,7 +156,6 @@ final class OrderRepository extends EntityRepository
 				->setParameter('currencyCode', $currencyCode);
 		}
 
-		/** @phpstan-ignore-next-line */
 		return $qb->getQuery()->getResult();
 	}
 

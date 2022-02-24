@@ -184,11 +184,15 @@ final class OrderStatusManager
 			$status->isCreateInvoice()
 			|| $status->getCode() === OrderStatus::STATUS_PAID
 			|| (
-				$status->getCode() === OrderStatus::STATUS_DONE
+				$this->invoiceManager !== null
+				&& $status->getCode() === OrderStatus::STATUS_DONE
 				&& PHP_SAPI !== 'cli'
 				&& $this->invoiceManager->isInvoice($order) === false
 			)
 		) {
+			if ($this->invoiceManager === null) {
+				throw new \LogicException('Invoice manager does not exist, but it is mandatory.');
+			}
 			$attachments[] = $this->invoiceManager->getInvoicePath($this->createInvoice($order));
 		}
 
