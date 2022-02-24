@@ -383,6 +383,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'status' => $order->getStatus(),
 				'price' => $order->getPrice()->getValue(),
 				'sale' => $order->getSale(),
+				'paid' => $order->isPaid(),
 				'currency' => $order->getCurrencyCode(),
 				'statuses' => $this->formatBootstrapSelectArray($this->orderStatusManager->getKeyValueList()),
 				'notice' => $order->getNotice(),
@@ -593,6 +594,16 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$order = $this->getOrderById($id);
 		$this->deliveryManager->sendOrders([$order]);
 		$this->flashMessage('Package has been created.', self::FLASH_MESSAGE_SUCCESS);
+		$this->sendOk();
+	}
+
+
+	public function postChangePaymentStatus(int $id): void
+	{
+		$order = $this->getOrderById($id);
+		$order->setPaid($order->isPaid() === false);
+		$this->entityManager->flush();
+		$this->flashMessage('Payment status has been changed.', self::FLASH_MESSAGE_SUCCESS);
 		$this->sendOk();
 	}
 

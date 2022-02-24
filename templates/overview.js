@@ -7,25 +7,38 @@ Vue.component('cms-order-overview', {
 	<div v-else class="container-fluid">
 		<div class="row">
 			<div class="col">
-				Order number:<br>
-				<div class="card px-3 py-1"><b>{{ order.number }}</b></div>
-			</div>
-			<div class="col">
-				Status:
-				<b-form-select v-model="order.status" :options="order.statuses" size="sm" @change="changeStatus"></b-form-select>
-			</div>
-			<div class="col">
-				Price sum:
-				<div class="row">
-					<div class="col">
-						<div :class="{ 'card': true, 'px-3': true, 'py-1': true, 'alert-success': Math.abs(order.price) <= 0.001 }"><b>{{ order.price }}</b></div>
-					</div>
-					<div class="col-3">
-						<b style="font-size:18pt">{{ order.currency }}</b>
+				<div :class="{ 'card': true, 'p-2': true, 'alert-success': order.paid, 'alert-danger': !order.paid }">
+					<div class="row">
+						<div class="col">
+							Order number:<br>
+							<div class="card px-3 py-1"><b>{{ order.number }}</b></div>
+						</div>
+						<div class="col">
+							Status:
+							<b-form-select v-model="order.status" :options="order.statuses" size="sm" @change="changeStatus"></b-form-select>
+						</div>
+						<div class="col">
+							<div class="row">
+								<div class="col">
+									Price sum:
+									<div role="group" class="input-group">
+										<div :class="{ 'card': true, 'px-3': true, 'py-1': true, 'alert-success': Math.abs(order.price) <= 0.001 }" style="width:160px"><b>{{ order.price }}</b></div>
+										<div class="input-group-append">
+											<div class="input-group-text py-0">{{ order.currency }}</div>
+										</div>
+									</div>
+								</div>
+								<div class="col-4 text-center py-3">
+									<button @click="changePaymentStatus" :class="{ 'btn': true, 'btn-sm': true, 'btn-success': order.paid, 'btn-danger': !order.paid }">
+										{{ order.paid ? 'PAID' : 'NOT PAID' }}
+									</button>
+								</div>
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>
-			<div class="col-1 text-right">
+			<div class="col text-right pl-0" style="max-width:80px">
 				<b-button variant="primary" @click="save">Save</b-button>
 			</div>
 		</div>
@@ -490,6 +503,13 @@ Vue.component('cms-order-overview', {
 				id: this.id,
 				deliveryId: this.order.deliveryId,
 				paymentId: this.order.paymentId
+			}).then(() => {
+				this.sync();
+			});
+		},
+		changePaymentStatus() {
+			axiosApi.post('cms-order/change-payment-status', {
+				id: this.id
 			}).then(() => {
 				this.sync();
 			});
