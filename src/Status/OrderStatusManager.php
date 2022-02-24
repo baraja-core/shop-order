@@ -194,6 +194,16 @@ final class OrderStatusManager
 	public function createStatus(string $name, string $code): OrderStatus
 	{
 		$status = new OrderStatus($name, $code);
+
+		$topPosition = 1;
+		foreach ($this->getAllStatuses() as $statusItem) {
+			$statusPosition = $statusItem->getWorkflowPosition();
+			if ($statusPosition > $topPosition) {
+				$topPosition = $statusPosition;
+			}
+		}
+
+		$status->setWorkflowPosition($topPosition + 1);
 		$this->entityManager->persist($status);
 		$this->entityManager->flush();
 
