@@ -26,7 +26,6 @@ use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderGroup;
 use Baraja\Shop\Order\Entity\OrderItem;
 use Baraja\Shop\Order\Entity\OrderStatus;
-use Baraja\Shop\Order\Status\OrderWorkflow;
 use Baraja\Shop\Payment\Entity\Payment;
 use Baraja\Shop\Price\Price;
 use Baraja\VariableGenerator\Strategy\YearPrefixIncrementStrategy;
@@ -49,7 +48,6 @@ final class OrderGenerator
 		private CustomerManager $customerManager,
 		private User $user,
 		private CurrencyManagerAccessor $currencyManager,
-		private OrderWorkflow $workflow,
 		private CountryManagerAccessor $countryManager,
 		private array $createdOrderEvents = [],
 	) {
@@ -106,9 +104,10 @@ final class OrderGenerator
 
 		$group = $group ?? $this->orderGroupManager->getDefaultGroup();
 		$itemsPrice = $cart->getItemsPrice()->getValue();
+		$initStatus = $this->statusManager->getStatusByCode(OrderStatus::STATUS_NEW);
 		$order = new Order(
 			group: $group,
-			status: $this->statusManager->getStatusByCode(OrderStatus::STATUS_NEW),
+			status: $initStatus,
 			customer: $this->processCustomer($info, $cart),
 			deliveryAddress: $deliveryAddress,
 			invoiceAddress: $invoiceAddress,
@@ -160,7 +159,7 @@ final class OrderGenerator
 		$order->recountPrice();
 		$this->entityManager->flush();
 
-		$this->workflow->run($order);
+		$this->statusManager->setStatus($order, $initStatus);
 
 		foreach ($this->createdOrderEvents as $createdOrderEvent) {
 			$createdOrderEvent->process($order);
