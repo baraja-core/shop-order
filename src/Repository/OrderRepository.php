@@ -207,8 +207,8 @@ final class OrderRepository extends EntityRepository
 			->setParameter('ids', array_map(static fn (array $order): int => $order['id'], $orders));
 
 		if ($filterBy === self::VAT_EXPORT_FILTER_INVOICE_DATE) {
-			$invoiceSelection->andWhere('invoice.insertedDate >= :dateFrom')
-				->andWhere('invoice.insertedDate < :dateTo')
+			$invoiceSelection->andWhere('i.insertedDate >= :dateFrom')
+				->andWhere('i.insertedDate < :dateTo')
 				->setParameter('dateFrom', $from->format('Y-m-d 00:00:00'))
 				->setParameter('dateTo', $to->format('Y-m-d 00:00:00'));
 		}
@@ -228,7 +228,11 @@ final class OrderRepository extends EntityRepository
 
 		$return = [];
 		foreach ($orders as $order) {
-			$order['invoices'] = $orderIdToInvoice[$order['id']] ?? [];
+			$invoices = $orderIdToInvoice[$order['id']] ?? [];
+			if ($filterBy === self::VAT_EXPORT_FILTER_INVOICE_DATE && $invoices === []) {
+				continue;
+			}
+			$order['invoices'] = $invoices;
 			$return[] = $order;
 		}
 
