@@ -22,7 +22,10 @@ final class Emailer implements OrderNotificationEmailProviderInterface
 	}
 
 
-	public function send(OrderInterface $order, string $subject, string $content): void
+	/**
+	 * @param array<int, string> $attachments
+	 */
+	public function send(OrderInterface $order, string $subject, string $content, array $attachments = []): void
 	{
 		$customer = $order->getCustomer();
 		$customerEmail = $customer?->getEmail();
@@ -35,6 +38,10 @@ final class Emailer implements OrderNotificationEmailProviderInterface
 			->setSubject($subject)
 			->addTo($customerEmail)
 			->setHtmlBody($this->renderTemplate($content));
+
+		foreach ($attachments as $attachment) {
+			$message->addAttachment($attachment);
+		}
 
 		$email = $this->emailer->get()->insertMessageToQueue($message);
 		$email->setTag(sprintf('order-%s-%d', $order->getNumber(), $order->getId()));

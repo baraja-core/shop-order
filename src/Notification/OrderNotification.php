@@ -69,20 +69,26 @@ final class OrderNotification
 	}
 
 
-	public function sendNotification(OrderInterface $order, NotificationEntity|int $notification): void
+	/**
+	 * @param array<int, string> $attachments
+	 */
+	public function sendNotification(OrderInterface $order, NotificationEntity|int $notification, array $attachments = []): void
 	{
 		if (is_int($notification)) {
 			$notification = $this->notificationRepository->getById($notification);
 		}
 		if ($notification->getType() === NotificationEntity::TYPE_EMAIL) {
-			$this->sendEmail($order, $notification->getStatus());
+			$this->sendEmail($order, $notification->getStatus(), $attachments);
 		} elseif ($notification->getType() === NotificationEntity::TYPE_SMS) {
 			$this->sendSms($order, $notification->getStatus());
 		}
 	}
 
 
-	public function sendEmail(OrderInterface $order, ?OrderStatusInterface $status = null): void
+	/**
+	 * @param array<int, string> $attachments
+	 */
+	public function sendEmail(OrderInterface $order, ?OrderStatusInterface $status = null, array $attachments = []): void
 	{
 		$status ??= $order->getStatus();
 		$template = $this->findTemplateByStatus($status, $order->getLocale(), NotificationEntity::TYPE_EMAIL, true);
@@ -100,7 +106,7 @@ final class OrderNotification
 		if ($subject === '') {
 			$subject = sprintf('Order %s', $order->getNumber());
 		}
-		$this->emailProvider->send($order, $subject, $content);
+		$this->emailProvider->send($order, $subject, $content, $attachments);
 		$this->logSent($order, notification: $template, subject: $subject, content: $content);
 	}
 
