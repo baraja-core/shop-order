@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order;
 
 
+use Baraja\EcommerceStandard\DTO\InvoiceInterface;
 use Baraja\EcommerceStandard\DTO\OrderInterface;
 use Baraja\EcommerceStandard\Service\InvoiceManagerInterface;
 use Baraja\Shop\Order\Entity\Order;
@@ -178,11 +179,20 @@ final class OrderStatusManager
 		if ($status->isMarkAsPaid()) {
 			$order->setPaid(true);
 		}
-		if ($status->isCreateInvoice()) {
-			$this->createInvoice($order);
+		$attachments = [];
+		if (
+			$status->isCreateInvoice()
+			|| $status->getCode() === OrderStatus::STATUS_PAID
+			|| (
+				$status->getCode() === OrderStatus::STATUS_DONE
+				&& PHP_SAPI !== 'cli'
+				&& $this->invoiceManager->isInvoice($order) === false
+			)
+		) {
+			$attachments[] = $this->invoiceManager->getInvoicePath($this->createInvoice($order));
 		}
 
-		$this->workflow->run($order);
+		$this->workflow->run($order, $attachments);
 		foreach ($this->onChangeEvents as $changedEvent) {
 			$changedEvent->process($order, $oldStatus, $status);
 		}
@@ -254,13 +264,15 @@ final class OrderStatusManager
 	}
 
 
-	private function createInvoice(Order $order): void
+	private function createInvoice(Order $order): InvoiceInterface
 	{
 		if ($this->invoiceManager === null) {
 			throw new \LogicException('Invoice manager does not exist, but it is mandatory.');
 		}
 		if ($this->invoiceManager->isInvoice($order) === false) {
-			$this->invoiceManager->createInvoice($order);
+			return $this->invoiceManager->createInvoice($order);
 		}
+
+		return $this->invoiceManager->getByOrder($order);
 	}
 }

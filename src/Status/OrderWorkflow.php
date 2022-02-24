@@ -6,46 +6,26 @@ namespace Baraja\Shop\Order\Status;
 
 
 use Baraja\Doctrine\EntityManager;
-use Baraja\EcommerceStandard\Service\InvoiceManagerInterface;
 use Baraja\Shop\Order\Entity\Order;
-use Baraja\Shop\Order\Entity\OrderStatus;
 use Baraja\Shop\Order\Entity\OrderWorkflowEvent;
 use Baraja\Shop\Order\Notification\OrderNotification;
-use Tracy\Debugger;
-use Tracy\ILogger;
 
 final class OrderWorkflow
 {
 	public function __construct(
 		private EntityManager $entityManager,
 		private OrderNotification $notification,
-		private ?InvoiceManagerInterface $invoiceManager = null,
 	) {
 	}
 
 
-	public function run(Order $order): void
+	/**
+	 * @param array<int, string> $attachments
+	 */
+	public function run(Order $order, array $attachments = []): void
 	{
-		$status = $order->getStatus()->getCode();
 		$this->processByStatus($order);
-		if ($status === OrderStatus::STATUS_PAID) {
-			if ($this->getInvoiceManager()->isInvoice($order) === false) {
-				try {
-					$this->getInvoiceManager()->createInvoice($order);
-				} catch (\Throwable $e) {
-					Debugger::log($e, ILogger::CRITICAL);
-				}
-			}
-		} elseif ($status === OrderStatus::STATUS_DONE) {
-			if (PHP_SAPI !== 'cli' && $this->getInvoiceManager()->isInvoice($order) === false) {
-				try {
-					$this->getInvoiceManager()->createInvoice($order);
-				} catch (\Throwable $e) {
-					Debugger::log($e, ILogger::CRITICAL);
-				}
-			}
-		}
-		$this->notification->sendEmail($order);
+		$this->notification->sendEmail($order, attachments: $attachments);
 		$this->notification->sendSms($order);
 	}
 
@@ -161,15 +141,5 @@ final class OrderWorkflow
 			->addOrderBy('e.priority', 'DESC')
 			->getQuery()
 			->getResult();
-	}
-
-
-	private function getInvoiceManager(): InvoiceManagerInterface
-	{
-		if ($this->invoiceManager === null) {
-			throw new \LogicException('Invoice manager does not exist, but it is mandatory.');
-		}
-
-		return $this->invoiceManager;
 	}
 }
