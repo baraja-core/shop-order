@@ -90,9 +90,7 @@ final class WebController
 			}
 		} catch (\Throwable $e) {
 			echo '<h1>Internal server error</h1><p>An error occurred during the processing of your order.</p>';
-			if ($this->logger !== null) {
-				$this->logger->critical($e->getMessage(), ['exception' => $e]);
-			}
+			$this->logger?->critical($e->getMessage(), ['exception' => $e]);
 			bdump($e);
 			die;
 		}
