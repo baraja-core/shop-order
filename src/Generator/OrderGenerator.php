@@ -33,6 +33,7 @@ use Baraja\VariableGenerator\VariableGenerator;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
 use Nette\Security\User;
+use Psr\Log\LoggerInterface;
 
 final class OrderGenerator
 {
@@ -49,6 +50,7 @@ final class OrderGenerator
 		private User $user,
 		private CurrencyManagerAccessor $currencyManager,
 		private CountryManagerAccessor $countryManager,
+		private ?LoggerInterface $logger = null,
 		private array $createdOrderEvents = [],
 	) {
 	}
@@ -162,7 +164,11 @@ final class OrderGenerator
 		$this->statusManager->setStatus($order, $initStatus);
 
 		foreach ($this->createdOrderEvents as $createdOrderEvent) {
-			$createdOrderEvent->process($order);
+			try {
+				$createdOrderEvent->process($order);
+			} catch (\Throwable $eventException) {
+				$this->logger?->critical($eventException->getMessage(), ['exception' => $eventException]);
+			}
 		}
 
 		return $order;
@@ -228,7 +234,11 @@ final class OrderGenerator
 		$order->recountPrice();
 		$this->entityManager->flush();
 		foreach ($this->createdOrderEvents as $createdOrderEvent) {
-			$createdOrderEvent->process($order);
+			try {
+				$createdOrderEvent->process($order);
+			} catch (\Throwable $eventException) {
+				$this->logger?->critical($eventException->getMessage(), ['exception' => $eventException]);
+			}
 		}
 
 		return $order;
