@@ -161,7 +161,7 @@ final class OrderGenerator
 		$order->recountPrice();
 		$this->entityManager->flush();
 
-		$this->statusManager->setStatus($order, $initStatus);
+		$this->statusManager->setStatus($order, $initStatus, force: true);
 
 		foreach ($this->createdOrderEvents as $createdOrderEvent) {
 			try {

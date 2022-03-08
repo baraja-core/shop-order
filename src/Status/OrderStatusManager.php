@@ -163,7 +163,7 @@ final class OrderStatusManager
 				}
 			}
 		}
-		if ($oldStatus->getId() === $status->getId()) {
+		if ($force === false && $oldStatus->getId() === $status->getId()) {
 			return;
 		}
 
