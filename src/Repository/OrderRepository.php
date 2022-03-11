@@ -59,7 +59,7 @@ final class OrderRepository extends EntityRepository
 	/**
 	 * @return array{id: int, number: string}|null
 	 */
-	public function getNextOrder(int $id, ?int $groupId = null, string $direction): ?array
+	public function getNextOrder(int $id, ?int $groupId, string $direction): ?array
 	{
 		$qb = $this->createQueryBuilder('o')
 			->select('PARTIAL o.{id, number}')
