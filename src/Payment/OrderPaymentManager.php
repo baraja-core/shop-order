@@ -106,7 +106,7 @@ final class OrderPaymentManager
 				$transaction->getMessage(),
 				$transaction->getComment(),
 				$transaction->getBic(),
-				$transaction->getIdTransaction()
+				$transaction->getIdTransaction(),
 			);
 		} else {
 			throw new \LogicException('Transaction type "' . get_debug_type($transaction) . '" is not supported now.');

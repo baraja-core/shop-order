@@ -76,7 +76,7 @@ final class WebController
 			} else {
 				$action = (string) preg_replace_callback(
 					'/-([a-z])/',
-					static fn (array $match): string => strtoupper($match[1] ?? ''),
+					static fn(array $match): string => strtoupper($match[1] ?? ''),
 					$action,
 				);
 				$method = 'action' . $action;

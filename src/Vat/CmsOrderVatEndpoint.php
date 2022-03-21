@@ -31,7 +31,7 @@ final class CmsOrderVatEndpoint extends BaseEndpoint
 		$this->sendJson(
 			[
 				'list' => $this->formatBootstrapSelectArray($this->orderStatusManager->getKeyValueList()),
-			]
+			],
 		);
 	}
 
@@ -52,7 +52,7 @@ final class CmsOrderVatEndpoint extends BaseEndpoint
 			from: $from,
 			to: $to,
 			statuses: $statuses,
-			filterBy: $filterBy
+			filterBy: $filterBy,
 		);
 
 		$return = [];
@@ -88,7 +88,8 @@ final class CmsOrderVatEndpoint extends BaseEndpoint
 		$httpResponse->setHeader('Content-type', 'text/csv; charset=utf-8');
 		$httpResponse->setHeader(
 			'Content-Disposition',
-			sprintf('attachment; filename=vat-export-%s_%s.csv',
+			sprintf(
+				'attachment; filename=vat-export-%s_%s.csv',
 				$from->format('Y-m-d'),
 				$to->format('Y-m-d'),
 			),

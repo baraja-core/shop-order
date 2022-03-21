@@ -24,7 +24,7 @@ final class BalikoBotAdapterBridge implements CarrierAdapter
 
 	public function __construct(
 		private Configuration $configuration,
-		private EntityManagerInterface $entityManager
+		private EntityManagerInterface $entityManager,
 	) {
 	}
 

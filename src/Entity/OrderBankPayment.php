@@ -102,7 +102,7 @@ class OrderBankPayment implements TransactionEntity
 		?string $message,
 		?string $comment,
 		?string $bic,
-		?int $idTransaction
+		?int $idTransaction,
 	) {
 		$this->bankTransactionId = $bankTransactionId;
 		$this->date = $date;

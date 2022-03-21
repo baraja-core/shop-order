@@ -22,6 +22,7 @@ final class OrderRepository extends EntityRepository
 		self::VAT_EXPORT_FILTER_INVOICE_DATE,
 	];
 
+
 	/**
 	 * @return array{
 	 *     order: array{id: int, number: string, hash: string, locale: string, group: array{id: int, name: string}},
@@ -203,7 +204,7 @@ final class OrderRepository extends EntityRepository
 			->select('i, PARTIAL o.{id}')
 			->join('i.order', 'o')
 			->where('o.id IN (:ids)')
-			->setParameter('ids', array_map(static fn (array $order): int => $order['id'], $orders));
+			->setParameter('ids', array_map(static fn(array $order): int => $order['id'], $orders));
 
 		if ($filterBy === self::VAT_EXPORT_FILTER_INVOICE_DATE) {
 			$invoiceSelection->andWhere('i.insertedDate >= :dateFrom')

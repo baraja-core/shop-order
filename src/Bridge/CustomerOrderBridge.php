@@ -26,7 +26,7 @@ final class CustomerOrderBridge implements OrderLoader
 		/** @var Order[] $orders */
 		$orders = (new EntityRepository(
 			$this->entityManager,
-			$this->entityManager->getClassMetadata(Order::class)
+			$this->entityManager->getClassMetadata(Order::class),
 		))
 			->createQueryBuilder('o')
 			->where('o.customer = :customerId')

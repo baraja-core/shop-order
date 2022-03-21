@@ -65,7 +65,7 @@ final class Emailer implements OrderNotificationEmailProviderInterface
 	 */
 	private function renderTemplate(string $content): string
 	{
-		ob_start(static function (){});
+		ob_start(static function () {});
 
 		$args = [
 			'content' => $content,

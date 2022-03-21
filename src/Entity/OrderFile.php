@@ -55,7 +55,8 @@ class OrderFile implements OrderDocument
 
 	public static function getRelativePath(self $orderFile): string
 	{
-		return sprintf('order-file/%s/%s/%s',
+		return sprintf(
+			'order-file/%s/%s/%s',
 			$orderFile->getInsertedDate()->format('Y-m-d'),
 			$orderFile->getOrder()->getHash(),
 			$orderFile->getFilename(),

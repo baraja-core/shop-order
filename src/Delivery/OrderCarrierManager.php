@@ -14,7 +14,7 @@ final class OrderCarrierManager
 	 * @param CarrierAdapter[] $carrierAdapters
 	 */
 	public function __construct(
-		private array $carrierAdapters = []
+		private array $carrierAdapters = [],
 	) {
 	}
 

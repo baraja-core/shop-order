@@ -54,7 +54,8 @@ final class CmsOrderPlugin extends BasePlugin implements SearchablePlugin
 		} catch (\InvalidArgumentException $e) {
 			$this->error($e->getMessage());
 		}
-		$this->setTitle(sprintf('%s %s (%s)',
+		$this->setTitle(sprintf(
+			'%s %s (%s)',
 			(string) $result['order']['group']['name'],
 			$result['order']['locale'],
 			$result['order']['number'],
@@ -73,7 +74,7 @@ final class CmsOrderPlugin extends BasePlugin implements SearchablePlugin
 				label: 'Print',
 				action: Button::ACTION_LINK_TARGET,
 				target: Url::get()->getBaseUrl() . '/order/print?hash=' . $result['order']['hash'],
-			)
+			),
 		);
 	}
 

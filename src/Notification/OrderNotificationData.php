@@ -7,7 +7,6 @@ namespace Baraja\Shop\Order\Notification;
 
 use Baraja\DynamicConfiguration\Configuration;
 use Baraja\EcommerceStandard\DTO\OrderInterface;
-use Baraja\Shop\Order\Application\LinkGenerator;
 use Baraja\Shop\Order\Application\WebController;
 use Baraja\Shop\Price\Price;
 use Baraja\Shop\ShopInfo;
@@ -92,7 +91,7 @@ final class OrderNotificationData implements TemplateData
 			'<table style="width:100%">'
 			. '<tr><th>Položka</th><th style="text-align:right">Množství</th><th style="text-align:right">Cena</th></tr>'
 			. implode("\n", $lines)
-			. '</table>'
+			. '</table>',
 		);
 	}
 

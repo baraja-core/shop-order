@@ -115,13 +115,13 @@ final class GoPayGatewayBridge implements OrderPaymentGatewayInterface
 		} catch (NoResultException | NonUniqueResultException) {
 			return new GatewayResponse(
 				redirect: $linkGenerator->default($order),
-				errorMessage: 'Order processing error.'
+				errorMessage: 'Order processing error.',
 			);
 		}
 		if ($payment->getOrder()->getStatus()->getCode() === OrderStatus::STATUS_PAID) {
 			return new GatewayResponse(
 				redirect: $linkGenerator->default($order),
-				errorMessage: 'The order has already been paid for.'
+				errorMessage: 'The order has already been paid for.',
 			);
 		}
 
@@ -148,7 +148,7 @@ final class GoPayGatewayBridge implements OrderPaymentGatewayInterface
 		return new GatewayResponse(
 			redirect: $linkGenerator->default($order),
 			errorMessage:
-			'An error occurred during the payment processing. Please try to pay the order again. We have also sent you the details by email.'
+			'An error occurred during the payment processing. Please try to pay the order again. We have also sent you the details by email.',
 		);
 	}
 

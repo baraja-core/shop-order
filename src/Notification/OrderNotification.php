@@ -72,8 +72,11 @@ final class OrderNotification
 	/**
 	 * @param array<int, string> $attachments
 	 */
-	public function sendNotification(OrderInterface $order, NotificationEntity|int $notification, array $attachments = []): void
-	{
+	public function sendNotification(
+		OrderInterface $order,
+		NotificationEntity|int $notification,
+		array $attachments = [],
+	): void {
 		if (is_int($notification)) {
 			$notification = $this->notificationRepository->getById($notification);
 		}
@@ -88,8 +91,11 @@ final class OrderNotification
 	/**
 	 * @param array<int, string> $attachments
 	 */
-	public function sendEmail(OrderInterface $order, ?OrderStatusInterface $status = null, array $attachments = []): void
-	{
+	public function sendEmail(
+		OrderInterface $order,
+		?OrderStatusInterface $status = null,
+		array $attachments = [],
+	): void {
 		$status ??= $order->getStatus();
 		$template = $this->findTemplateByStatus($status, $order->getLocale(), NotificationEntity::TYPE_EMAIL, true);
 		if ($template === null) {

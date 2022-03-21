@@ -139,7 +139,7 @@ final class OrderManager implements OrderManagerInterface
 		string|FileUpload $path,
 		?string $name = null,
 		?string $label = null,
-		?string $number = null
+		?string $number = null,
 	): OrderFile {
 		if (is_string($path)) {
 			$pathString = $path;

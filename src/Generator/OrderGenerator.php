@@ -104,7 +104,7 @@ final class OrderGenerator
 		assert($selectedDelivery instanceof Delivery);
 		assert($selectedPayment instanceof Payment);
 
-		$group = $group ?? $this->orderGroupManager->getDefaultGroup();
+		$group ??= $this->orderGroupManager->getDefaultGroup();
 		$itemsPrice = $cart->getItemsPrice()->getValue();
 		$initStatus = $this->statusManager->getStatusByCode(OrderStatus::STATUS_NEW);
 		$order = new Order(
@@ -151,7 +151,7 @@ final class OrderGenerator
 				$cartItem->getProduct(),
 				$cartItem->getVariant(),
 				$cartItem->getCount(),
-				$cartItem->getBasicPrice()->getValue()
+				$cartItem->getBasicPrice()->getValue(),
 			);
 			$this->entityManager->persist($orderItem);
 			$order->addItem($orderItem);
@@ -177,17 +177,14 @@ final class OrderGenerator
 
 	public function createEmptyOrder(Customer $customer, Country $country, ?OrderGroup $group = null): Order
 	{
-		$address = static function (Customer $customer) use ($country): Address
-		{
-			return new Address(
-				$country,
-				$customer->getFirstName(),
-				$customer->getLastName(),
-				(string) $customer->getStreet(),
-				(string) $customer->getCity(),
-				(int) $customer->getZip(),
-			);
-		};
+		$address = static fn(Customer $customer): Address => new Address(
+			$country,
+			$customer->getFirstName(),
+			$customer->getLastName(),
+			(string) $customer->getStreet(),
+			(string) $customer->getCity(),
+			(int) $customer->getZip(),
+		);
 
 		/** @var Delivery $delivery */
 		$delivery = $this->entityManager->getRepository(Delivery::class)
@@ -209,7 +206,7 @@ final class OrderGenerator
 
 		$deliveryAddress = $address($customer);
 		$invoiceAddress = $address($customer);
-		$group = $group ?? $this->orderGroupManager->getDefaultGroup();
+		$group ??= $this->orderGroupManager->getDefaultGroup();
 		$order = new Order(
 			group: $group,
 			status: $this->statusManager->getStatusByCode(OrderStatus::STATUS_NEW),
@@ -253,7 +250,7 @@ final class OrderGenerator
 	{
 		return (string) (new VariableGenerator(
 			new VariableLoader($this->entityManager, $group),
-			new YearPrefixIncrementStrategy(null, 9)
+			new YearPrefixIncrementStrategy(null, 9),
 		))
 			->generate();
 	}
@@ -335,8 +332,11 @@ final class OrderGenerator
 	}
 
 
-	private function resolveAddress(OrderInfo $orderInfo, OrderInfoAddress $address, ?CartInterface $cart = null): Address
-	{
+	private function resolveAddress(
+		OrderInfo $orderInfo,
+		OrderInfoAddress $address,
+		?CartInterface $cart = null,
+	): Address {
 		$data = $orderInfo->toArray($address);
 		$countryId = $data['country'] ?? null;
 		$country = null;

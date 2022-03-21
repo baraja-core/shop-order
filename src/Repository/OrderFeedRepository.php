@@ -139,7 +139,7 @@ final class OrderFeedRepository
 		$orderCandidateSelection->andWhere('orderGroup.code = :groupCode')
 			->setParameter(
 				'groupCode',
-				$group ?? $this->orderGroupManager->getDefaultGroup()->getCode()
+				$group ?? $this->orderGroupManager->getDefaultGroup()->getCode(),
 			);
 
 		$count = (int) (clone $orderCandidateSelection)

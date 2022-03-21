@@ -33,8 +33,6 @@ use Nette\Application\Application;
 use Nette\DI\CompilerExtension;
 use Nette\DI\Definitions\ServiceDefinition;
 use Nette\PhpGenerator\ClassType;
-use Tracy\Debugger;
-use Tracy\ILogger;
 
 final class ShopOrderExtension extends CompilerExtension
 {

@@ -16,7 +16,6 @@ use Baraja\Shop\Currency\CurrencyManager;
 use Baraja\Shop\Customer\CustomerManager;
 use Baraja\Shop\Customer\Entity\Customer;
 use Baraja\Shop\Delivery\BranchManager;
-use Baraja\Shop\Delivery\Entity\BranchInterface;
 use Baraja\Shop\Delivery\Entity\Delivery;
 use Baraja\Shop\Delivery\Repository\DeliveryRepository;
 use Baraja\Shop\Order\Delivery\OrderDeliveryManager;
@@ -156,8 +155,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 					'price' => $order->getPaymentPrice()->render(true),
 					'color' => $paymentItem?->getColor(),
 				],
-				'items' => (static function ($items): array
-				{
+				'items' => (static function ($items): array {
 					$return = [];
 					/** @var OrderItem $item */
 					foreach ($items as $item) {
@@ -173,11 +171,10 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 					return $return;
 				})(
-					$order->getItems()
+					$order->getItems(),
 				),
 				'documents' => $documents,
-				'payments' => (static function ($items): array
-				{
+				'payments' => (static function ($items): array {
 					$return = [];
 					/** @var OrderOnlinePayment $item */
 					foreach ($items as $item) {
@@ -188,7 +185,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 					return $return;
 				})(
-					$order->getPayments()
+					$order->getPayments(),
 				),
 			];
 
@@ -205,7 +202,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 					->setItemCount($feed['count'])
 					->setItemsPerPage($limit)
 					->setPage($page),
-			]
+			],
 		);
 	}
 
@@ -234,13 +231,13 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'defaultGroup' => $this->orderGroupManager->getDefaultGroup()->getCode(),
 				'filterGroups' => $this->formatBootstrapSelectArray($groups),
 				'filterStatuses' => $this->formatBootstrapSelectArray(
-					[null => '- status -'] + $this->orderStatusManager->getKeyValueList(true)
+					[null => '- status -'] + $this->orderStatusManager->getKeyValueList(true),
 				),
 				'filterPayments' => $this->formatBootstrapSelectArray(
-					[null => '- payment -'] + $payments
+					[null => '- payment -'] + $payments,
 				),
 				'filterDeliveries' => $this->formatBootstrapSelectArray(
-					[null => '- delivery -'] + $deliveries
+					[null => '- delivery -'] + $deliveries,
 				),
 				'orderByOptions' => $this->formatBootstrapSelectArray(
 					[
@@ -248,9 +245,9 @@ final class CmsOrderEndpoint extends BaseEndpoint
 						'old' => 'Oldest',
 						'number' => 'Number ASC',
 						'number-desc' => 'Number DESC',
-					]
+					],
 				),
-			]
+			],
 		);
 	}
 
@@ -352,20 +349,17 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			];
 		}
 
-		$formatAddress = static function (AddressInterface $address): array
-		{
-			return [
-				'firstName' => $address->getFirstName(),
-				'lastName' => $address->getLastName(),
-				'street' => $address->getStreet(),
-				'city' => $address->getCity(),
-				'zip' => $address->getZip(),
-				'country' => $address->getCountry()->getCode(),
-				'companyName' => $address->getCompanyName(),
-				'ic' => $address->getCin(),
-				'dic' => $address->getTin(),
-			];
-		};
+		$formatAddress = static fn(AddressInterface $address): array => [
+			'firstName' => $address->getFirstName(),
+			'lastName' => $address->getLastName(),
+			'street' => $address->getStreet(),
+			'city' => $address->getCity(),
+			'zip' => $address->getZip(),
+			'country' => $address->getCountry()->getCode(),
+			'companyName' => $address->getCompanyName(),
+			'ic' => $address->getCin(),
+			'dic' => $address->getTin(),
+		];
 		$countryList = [];
 		foreach ($this->countryManager->get()->getAll() as $countryItem) {
 			if ($countryItem->isActive() === false) {
@@ -408,7 +402,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'package' => $packages ?: null,
 				'packageHandoverUrl' => $order->getHandoverUrl(),
 				'notifications' => $this->notification->getActiveStatusTypes($order->getLocale()),
-			]
+			],
 		);
 	}
 
@@ -437,13 +431,17 @@ final class CmsOrderEndpoint extends BaseEndpoint
 							$branch->getLatitude(),
 							$branch->getLongitude(),
 						),
-						'mapsStaticUrl' => sprintf('https://mapy.cz/screenshoter?url=%s&width=500&height=400',
-							urlencode(sprintf('https://frame.mapy.cz/zakladni?%s',
-								http_build_query([
-									'x' => $branch->getLongitude(),
-									'y' => $branch->getLatitude(),
-									'z' => 16,
-								])),
+						'mapsStaticUrl' => sprintf(
+							'https://mapy.cz/screenshoter?url=%s&width=500&height=400',
+							urlencode(
+								sprintf(
+									'https://frame.mapy.cz/zakladni?%s',
+									http_build_query([
+										'x' => $branch->getLongitude(),
+										'y' => $branch->getLatitude(),
+										'z' => 16,
+									]),
+								),
 							),
 						),
 					];
@@ -476,14 +474,14 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$order = $this->orderGenerator->createEmptyOrder(
 			customer: $customer,
 			country: $country,
-			group: $this->orderGroupManager->getByCode($groupId)
+			group: $this->orderGroupManager->getByCode($groupId),
 		);
 		$this->flashMessage('Order "' . $order->getNumber() . '" has been created.', 'success');
 		$this->sendJson(
 			[
 				'id' => $order->getId(),
 				'number' => $order->getNumber(),
-			]
+			],
 		);
 	}
 
@@ -524,7 +522,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			[
 				'items' => $return,
 				'countries' => $this->formatBootstrapSelectArray($countries),
-			]
+			],
 		);
 	}
 
@@ -557,8 +555,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	{
 		$order = $this->getOrderById($id);
 
-		$hydrate = function (AddressInterface $address, array $data): void
-		{
+		$hydrate = function (AddressInterface $address, array $data): void {
 			assert($address instanceof Address);
 			$address->setFirstName((string) $data['firstName']);
 			$address->setLastName((string) $data['lastName']);
@@ -658,7 +655,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$this->flashMessage(
 			sprintf('Order "%s" has been saved.', $order->getNumber())
 			. (abs((float) $oldPrice->minus($order->getPrice())->getValue()) > 0.001 ? ' The price has been recalculated.' : ''),
-			'success'
+			'success',
 		);
 		$this->sendOk();
 	}
@@ -710,7 +707,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 		$this->sendJson(
 			$selection->getQuery()
-				->getArrayResult()
+				->getArrayResult(),
 		);
 	}
 
@@ -835,7 +832,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$this->sendJson(
 			[
 				'groups' => $groups,
-			]
+			],
 		);
 	}
 
@@ -904,7 +901,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'statuses' => $statuses,
 				'collections' => $collections,
 				'selectList' => $this->formatBootstrapSelectArray($selectList),
-			]
+			],
 		);
 	}
 
@@ -939,7 +936,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			$status->setRedirectTo(
 				$item['redirectTo'] !== null
 					? $this->orderStatusManager->getStatusById($item['redirectTo'])
-					: null
+					: null,
 			);
 		}
 		$this->entityManager->flush();
@@ -1025,7 +1022,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$this->sendJson(
 			[
 				'items' => $documents,
-			]
+			],
 		);
 	}
 
@@ -1059,7 +1056,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			[
 				'statusList' => $statuses,
 				'notificationList' => $notifications,
-			]
+			],
 		);
 	}
 
