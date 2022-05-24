@@ -98,9 +98,9 @@ final class OrderFeedRepository
 			$orderCandidateSelection->andWhere('status.code != :statusDone')
 				->andWhere('status.code != :statusStorno')
 				->andWhere('status.code != :statusTest')
-				->setParameter('statusDone', OrderStatus::STATUS_DONE)
-				->setParameter('statusStorno', OrderStatus::STATUS_STORNO)
-				->setParameter('statusTest', OrderStatus::STATUS_TEST);
+				->setParameter('statusDone', OrderStatus::StatusDone)
+				->setParameter('statusStorno', OrderStatus::StatusStorno)
+				->setParameter('statusTest', OrderStatus::StatusTest);
 		} elseif ($this->statusManager->isRegularStatus($status)) {
 			$orderCandidateSelection->andWhere('status.code = :status')
 				->setParameter('status', $status);

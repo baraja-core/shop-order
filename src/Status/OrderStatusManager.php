@@ -182,10 +182,10 @@ final class OrderStatusManager
 		$attachments = [];
 		if (
 			$status->isCreateInvoice()
-			|| $status->getCode() === OrderStatus::STATUS_PAID
+			|| $status->getCode() === OrderStatus::StatusPaid
 			|| (
 				$this->invoiceManager !== null
-				&& $status->getCode() === OrderStatus::STATUS_DONE
+				&& $status->getCode() === OrderStatus::StatusDone
 				&& PHP_SAPI !== 'cli'
 				&& $this->invoiceManager->isInvoice($order) === false
 			)
@@ -258,7 +258,7 @@ final class OrderStatusManager
 	public function initDefault(): void
 	{
 		$position = 1;
-		foreach (OrderStatus::COMMON_STATUSES as $code) {
+		foreach (OrderStatus::CommonStatuses as $code) {
 			$status = new OrderStatus($code, str_replace('-', ' ', $code));
 			$status->setWorkflowPosition($position);
 			$this->entityManager->persist($status);

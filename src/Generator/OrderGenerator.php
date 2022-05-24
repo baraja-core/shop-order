@@ -61,9 +61,7 @@ final class OrderGenerator
 		CartInterface $cart,
 		?OrderGroup $group = null,
 	): OrderInterface {
-		if ($cart->isEmpty()) {
-			throw new \LogicException(sprintf('Can not create empty order (cart id: "%d").', $cart->getId()));
-		}
+		$this->validateCart($cart);
 		assert($orderInfo instanceof OrderInfo);
 		$info = $orderInfo->getInfo();
 		$addressInfo = $orderInfo->getAddress();
@@ -106,7 +104,7 @@ final class OrderGenerator
 
 		$group ??= $this->orderGroupManager->getDefaultGroup();
 		$itemsPrice = $cart->getItemsPrice()->getValue();
-		$initStatus = $this->statusManager->getStatusByCode(OrderStatus::STATUS_NEW);
+		$initStatus = $this->statusManager->getStatusByCode(OrderStatus::StatusNew);
 		$order = new Order(
 			group: $group,
 			status: $initStatus,
@@ -209,7 +207,7 @@ final class OrderGenerator
 		$group ??= $this->orderGroupManager->getDefaultGroup();
 		$order = new Order(
 			group: $group,
-			status: $this->statusManager->getStatusByCode(OrderStatus::STATUS_NEW),
+			status: $this->statusManager->getStatusByCode(OrderStatus::StatusNew),
 			customer: $customer,
 			deliveryAddress: $deliveryAddress,
 			invoiceAddress: $invoiceAddress,
@@ -359,5 +357,13 @@ final class OrderGenerator
 		$realAddress['country'] = $country;
 
 		return Address::hydrateData($realAddress);
+	}
+
+
+	private function validateCart(CartInterface $cart): void
+	{
+		if ($cart->isEmpty()) {
+			throw new \LogicException(sprintf('Can not create empty order (cart id: "%d").', $cart->getId()));
+		}
 	}
 }

@@ -8,6 +8,7 @@ namespace Baraja\Shop\Order\Repository;
 use Baraja\EcommerceStandard\DTO\OrderStatusInterface;
 use Baraja\Localization\Localization;
 use Baraja\Shop\Order\Entity\OrderNotification;
+use Baraja\Shop\Order\Entity\OrderNotificationType;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
@@ -17,7 +18,7 @@ final class OrderNotificationRepository extends EntityRepository
 	public function findByStatusAndType(
 		OrderStatusInterface $status,
 		string $locale,
-		string $type,
+		OrderNotificationType $type,
 		bool $activeOnly = false,
 	): ?OrderNotification {
 		try {
@@ -65,7 +66,7 @@ final class OrderNotificationRepository extends EntityRepository
 
 
 	/**
-	 * @param array<int, string> $types
+	 * @param array<int, OrderNotificationType> $types
 	 * @return array<string, OrderNotification>
 	 */
 	public function getAllReadyToSend(string $locale, array $types = []): array
@@ -89,7 +90,7 @@ final class OrderNotificationRepository extends EntityRepository
 				'%s-%s-%s',
 				$notification->getLocale(),
 				$notification->getStatus()->getCode(),
-				$notification->getType(),
+				$notification->getType()->value,
 			);
 			$return[$key] = $notification;
 		}
@@ -99,7 +100,7 @@ final class OrderNotificationRepository extends EntityRepository
 
 
 	/**
-	 * @return array<int, array{id: int, type: string, status: string, label: string}>
+	 * @return array<int, array{id: int, type: OrderNotificationType, status: string, label: string}>
 	 */
 	public function getActiveStatusTypes(string $locale): array
 	{

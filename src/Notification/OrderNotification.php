@@ -12,6 +12,7 @@ use Baraja\EcommerceStandard\Service\OrderNotificationSmsProviderInterface;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderNotification as NotificationEntity;
 use Baraja\Shop\Order\Entity\OrderNotificationHistory;
+use Baraja\Shop\Order\Entity\OrderNotificationType;
 use Baraja\Shop\Order\Entity\OrderStatus;
 use Baraja\Shop\Order\Repository\OrderNotificationHistoryRepository;
 use Baraja\Shop\Order\Repository\OrderNotificationRepository;
@@ -44,16 +45,16 @@ final class OrderNotification
 
 
 	/**
-	 * @return array<int, string>
+	 * @return array<int, OrderNotificationType>
 	 */
 	public function getAvailableTypes(): array
 	{
 		$return = [];
 		if ($this->emailProvider !== null) {
-			$return[] = NotificationEntity::TYPE_EMAIL;
+			$return[] = OrderNotificationType::Email;
 		}
 		if ($this->smsProvider !== null) {
-			$return[] = NotificationEntity::TYPE_SMS;
+			$return[] = OrderNotificationType::Sms;
 		}
 
 		return $return;
@@ -61,7 +62,7 @@ final class OrderNotification
 
 
 	/**
-	 * @return array<int, array{id: int, type: string, status: string, label: string}>
+	 * @return array<int, array{id: int, type: OrderNotificationType, status: string, label: string}>
 	 */
 	public function getActiveStatusTypes(string $locale): array
 	{
@@ -80,9 +81,9 @@ final class OrderNotification
 		if (is_int($notification)) {
 			$notification = $this->notificationRepository->getById($notification);
 		}
-		if ($notification->getType() === NotificationEntity::TYPE_EMAIL) {
+		if ($notification->getType()->value === OrderNotificationType::Email) {
 			$this->sendEmail($order, $notification->getStatus(), $attachments);
-		} elseif ($notification->getType() === NotificationEntity::TYPE_SMS) {
+		} elseif ($notification->getType()->value === OrderNotificationType::Sms) {
 			$this->sendSms($order, $notification->getStatus());
 		}
 	}
@@ -97,7 +98,7 @@ final class OrderNotification
 		array $attachments = [],
 	): void {
 		$status ??= $order->getStatus();
-		$template = $this->findTemplateByStatus($status, $order->getLocale(), NotificationEntity::TYPE_EMAIL, true);
+		$template = $this->findTemplateByStatus($status, $order->getLocale(), OrderNotificationType::Email, true);
 		if ($template === null) {
 			return;
 		}
@@ -120,7 +121,7 @@ final class OrderNotification
 	public function sendSms(OrderInterface $order, ?OrderStatusInterface $status = null): void
 	{
 		$status ??= $order->getStatus();
-		$template = $this->findTemplateByStatus($status, $order->getLocale(), NotificationEntity::TYPE_SMS, true);
+		$template = $this->findTemplateByStatus($status, $order->getLocale(), OrderNotificationType::Sms, true);
 		if ($template === null) {
 			return;
 		}
@@ -139,7 +140,7 @@ final class OrderNotification
 	public function findTemplateByStatus(
 		OrderStatusInterface $status,
 		string $locale,
-		string $type,
+		OrderNotificationType $type,
 		bool $activeOnly = false,
 	): ?NotificationEntity {
 		return $this->notificationRepository->findByStatusAndType($status, $locale, $type, $activeOnly);
@@ -149,7 +150,7 @@ final class OrderNotification
 	public function setNotification(
 		OrderStatusInterface $status,
 		string $locale,
-		string $type,
+		OrderNotificationType $type,
 		string $subject,
 		string $content,
 		bool $active = false,
@@ -182,7 +183,7 @@ final class OrderNotification
 	/**
 	 * @return array{
 	 *     statusId: int,
-	 *     type: string,
+	 *     type: OrderNotificationType,
 	 *     subject: string,
 	 *     content: string,
 	 *     active: bool,
@@ -190,7 +191,7 @@ final class OrderNotification
 	 *     documentation: array<int, array{name: string, documentation: string|null}>
 	 * }
 	 */
-	public function getNotificationData(OrderStatusInterface $status, string $locale, string $type): array
+	public function getNotificationData(OrderStatusInterface $status, string $locale, OrderNotificationType $type): array
 	{
 		$template = $this->findTemplateByStatus($status, $locale, $type);
 		if ($template === null) {

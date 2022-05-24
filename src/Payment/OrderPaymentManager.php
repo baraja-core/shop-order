@@ -163,7 +163,7 @@ final class OrderPaymentManager
 					->where('realOrder.number = :number')
 					->andWhere('o.status = :status')
 					->setParameter('number', $number)
-					->setParameter('status', OrderStatus::STATUS_PAID)
+					->setParameter('status', OrderStatus::StatusPaid)
 					->getQuery()
 					->getSingleResult();
 

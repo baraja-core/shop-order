@@ -22,6 +22,7 @@ use Baraja\Shop\Order\Delivery\OrderDeliveryManager;
 use Baraja\Shop\Order\Document\OrderDocumentManager;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderItem;
+use Baraja\Shop\Order\Entity\OrderNotificationType;
 use Baraja\Shop\Order\Entity\OrderOnlinePayment;
 use Baraja\Shop\Order\Notification\OrderNotification;
 use Baraja\Shop\Order\Repository\OrderFeedRepository;
@@ -850,8 +851,8 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		foreach ($statusList as $status) {
 			$notifications = [];
 			foreach ($notificationTypes as $notificationType) {
-				$key = sprintf('%s-%s-%s', $locale, $status->getCode(), $notificationType);
-				$notifications[$notificationType] = isset($notificationReadyToSend[$key]);
+				$key = sprintf('%s-%s-%s', $locale, $status->getCode(), $notificationType->value);
+				$notifications[$notificationType->value] = isset($notificationReadyToSend[$key]);
 			}
 			$redirectOptions = [];
 			foreach ($statusList as $redirectOption) {
@@ -945,7 +946,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	}
 
 
-	public function actionNotificationDetail(int $statusId, string $type, ?string $locale = null): void
+	public function actionNotificationDetail(int $statusId, OrderNotificationType $type, ?string $locale = null): void
 	{
 		$status = $this->orderStatusManager->getStatusById($statusId);
 		$locale ??= $this->localization->getLocale();
@@ -957,7 +958,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 	public function postSaveNotification(
 		int $statusId,
-		string $type,
+		OrderNotificationType $type,
 		string $subject,
 		string $content,
 		bool $active,

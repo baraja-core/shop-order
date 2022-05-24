@@ -16,9 +16,9 @@ use Tracy\ILogger;
 
 final class HeurekaOverenoCreatedOrderEvent implements CreatedOrderEvent
 {
-	private const CONFIGURATION_NAMESPACE = 'heureka-overeno';
+	private const ConfigurationNamespace = 'heureka-overeno';
 
-	private const META_KEY = 'send-to-heureka-overeno';
+	private const MetaKey = 'send-to-heureka-overeno';
 
 
 	public function __construct(
@@ -31,7 +31,7 @@ final class HeurekaOverenoCreatedOrderEvent implements CreatedOrderEvent
 	public function process(Order $order): void
 	{
 		$apiKey = $this->getApiKey();
-		$metaKey = $order->getMetaKey(self::META_KEY);
+		$metaKey = $order->getMetaKey(self::MetaKey);
 		if ($apiKey === null || $metaKey === 'true') {
 			return;
 		}
@@ -56,7 +56,7 @@ final class HeurekaOverenoCreatedOrderEvent implements CreatedOrderEvent
 				}
 			}
 			$shopCertification->logOrder();
-			$this->entityManager->persist(new OrderMeta($order, self::META_KEY, 'true'));
+			$this->entityManager->persist(new OrderMeta($order, self::MetaKey, 'true'));
 		} catch (\Throwable $e) {
 			$order->addNotice('Heureka Ověřeno zákazníky: ' . $e->getMessage());
 			Debugger::log($e, ILogger::CRITICAL);
@@ -68,12 +68,12 @@ final class HeurekaOverenoCreatedOrderEvent implements CreatedOrderEvent
 
 	public function getApiKey(): ?string
 	{
-		return $this->configuration->get('api-key', self::CONFIGURATION_NAMESPACE);
+		return $this->configuration->get('api-key', self::ConfigurationNamespace);
 	}
 
 
 	public function setApiKey(?string $key): void
 	{
-		$this->configuration->save('api-key', $key, self::CONFIGURATION_NAMESPACE);
+		$this->configuration->save('api-key', $key, self::ConfigurationNamespace);
 	}
 }

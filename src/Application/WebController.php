@@ -19,7 +19,7 @@ use Psr\Log\LoggerInterface;
 
 final class WebController
 {
-	public const FLASH_MESSAGE_KEY = '_brj-order-flash-message';
+	public const FlashMessageKey = '_brj-order-flash-message';
 
 	private OrderRepository $orderRepository;
 
@@ -50,7 +50,7 @@ final class WebController
 
 	public static function setFlashMessage(string $message): void
 	{
-		$_SESSION[self::FLASH_MESSAGE_KEY] = [$message, time()];
+		$_SESSION[self::FlashMessageKey] = [$message, time()];
 	}
 
 
@@ -195,7 +195,7 @@ final class WebController
 	private function getFlashMessage(): ?string
 	{
 		/** @var array{0?: string, 1?: int} $message */
-		$message = $_SESSION[self::FLASH_MESSAGE_KEY] ?? null;
+		$message = $_SESSION[self::FlashMessageKey] ?? null;
 		$minAllowedTime = time() - 6;
 		if (is_array($message)
 			&& isset($message[0], $message[1])

@@ -35,9 +35,6 @@ use Nette\Utils\Random;
 #[ORM\Index(columns: ['inserted_date', 'status_id', 'id'], name: 'order__feed')]
 class Order implements OrderInterface, OrderEntity
 {
-	/** @deprecated since 2022-01-23, use configuration */
-	public const FREE_DELIVERY_LIMIT = 1_000;
-
 	#[ORM\Id]
 	#[ORM\Column(type: 'integer', unique: true, options: ['unsigned' => true])]
 	#[ORM\GeneratedValue]

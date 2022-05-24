@@ -14,12 +14,12 @@ use Doctrine\ORM\NoResultException;
 final class OrderRepository extends EntityRepository
 {
 	public const
-		VAT_EXPORT_FILTER_INSERTED_DATE = 'insertedDate',
-		VAT_EXPORT_FILTER_INVOICE_DATE = 'invoiceDate';
+		VatExportFilterInsertedDate = 'insertedDate',
+		VatExportFilterInvoiceDate = 'invoiceDate';
 
-	public const VAT_EXPORT_FILTERS = [
-		self::VAT_EXPORT_FILTER_INSERTED_DATE,
-		self::VAT_EXPORT_FILTER_INVOICE_DATE,
+	public const VatExportFilters = [
+		self::VatExportFilterInsertedDate,
+		self::VatExportFilterInvoiceDate,
 	];
 
 
@@ -149,7 +149,7 @@ final class OrderRepository extends EntityRepository
 			->join('orderEntity.status', 'status')
 			->where('orderEntity.paid = FALSE')
 			->andWhere('status.code = :code')
-			->setParameter('code', OrderStatus::STATUS_NEW);
+			->setParameter('code', OrderStatus::StatusNew);
 
 		if ($currencyCode !== null) {
 			$qb->join('orderEntity.currency', 'currency')
@@ -171,7 +171,7 @@ final class OrderRepository extends EntityRepository
 		array $statuses,
 		?string $filterBy = null,
 	): array {
-		if ($filterBy !== null && in_array($filterBy, self::VAT_EXPORT_FILTERS, true) === false) {
+		if ($filterBy !== null && in_array($filterBy, self::VatExportFilters, true) === false) {
 			throw new \InvalidArgumentException(sprintf('Invalid filter name, because "%s" given.', $filterBy));
 		}
 
@@ -185,7 +185,7 @@ final class OrderRepository extends EntityRepository
 			->setParameter('statuses', $statuses)
 			->orderBy('o.insertedDate', 'DESC');
 
-		if ($filterBy === self::VAT_EXPORT_FILTER_INSERTED_DATE) {
+		if ($filterBy === self::VatExportFilterInsertedDate) {
 			$orderSelection
 				->andWhere('o.insertedDate >= :dateFrom')
 				->andWhere('o.insertedDate < :dateTo')
@@ -206,7 +206,7 @@ final class OrderRepository extends EntityRepository
 			->where('o.id IN (:ids)')
 			->setParameter('ids', array_map(static fn(array $order): int => $order['id'], $orders));
 
-		if ($filterBy === self::VAT_EXPORT_FILTER_INVOICE_DATE) {
+		if ($filterBy === self::VatExportFilterInvoiceDate) {
 			$invoiceSelection->andWhere('i.insertedDate >= :dateFrom')
 				->andWhere('i.insertedDate < :dateTo')
 				->setParameter('dateFrom', $from->format('Y-m-d 00:00:00'))
@@ -229,7 +229,7 @@ final class OrderRepository extends EntityRepository
 		$return = [];
 		foreach ($orders as $order) {
 			$invoices = $orderIdToInvoice[$order['id']] ?? [];
-			if ($filterBy === self::VAT_EXPORT_FILTER_INVOICE_DATE && $invoices === []) {
+			if ($filterBy === self::VatExportFilterInvoiceDate && $invoices === []) {
 				continue;
 			}
 			$order['invoices'] = $invoices;

@@ -102,7 +102,7 @@ final class CheckOrderCommand extends Command
 		if ($now - $order->getInsertedDate()->getTimestamp() > $this->workflow->getIntervalForCancelOrder()) {
 			$cancel = true;
 			echo ' (cancel mail)';
-			$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_STORNO, force: true);
+			$this->orderStatusManager->setStatus($order, OrderStatus::StatusStorno, force: true);
 		}
 
 		// send ping mail
@@ -112,7 +112,7 @@ final class CheckOrderCommand extends Command
 			&& $now - $order->getInsertedDate()->getTimestamp() > $this->workflow->getIntervalForPingOrder()
 		) {
 			echo ' (ping mail)';
-			$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_PAYMENT_PING, force: true);
+			$this->orderStatusManager->setStatus($order, OrderStatus::StatusPaymentPing, force: true);
 			$order->setPinged(true);
 		}
 	}
@@ -167,7 +167,7 @@ final class CheckOrderCommand extends Command
 				if ($variable !== '' && isset($orderByVariable[$variable])) {
 					$order = $orderByVariable[$variable];
 					$order->setPaid(true);
-					$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_PAID);
+					$this->orderStatusManager->setStatus($order, OrderStatus::StatusPaid);
 					$entity?->setOrder($order);
 				}
 				$this->entityManager->flush();
@@ -195,13 +195,13 @@ final class CheckOrderCommand extends Command
 			->leftJoin('o.status', 'status')
 			->where('status.code = :status')
 			->andWhere('o.updatedDate <= :days')
-			->setParameter('status', OrderStatus::STATUS_SENT)
+			->setParameter('status', OrderStatus::StatusSent)
 			->setParameter('days', new \DateTimeImmutable('now - 10 days'))
 			->getQuery()
 			->getResult();
 
 		foreach ($orders as $order) {
-			$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_DONE, force: true);
+			$this->orderStatusManager->setStatus($order, OrderStatus::StatusDone, force: true);
 		}
 	}
 

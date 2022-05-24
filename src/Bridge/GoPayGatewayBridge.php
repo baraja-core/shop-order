@@ -102,7 +102,7 @@ final class GoPayGatewayBridge implements OrderPaymentGatewayInterface
 
 	public function getPaymentStatus(OrderInterface $order): string
 	{
-		return OrderStatus::STATUS_NEW;
+		return OrderStatus::StatusNew;
 	}
 
 
@@ -118,7 +118,7 @@ final class GoPayGatewayBridge implements OrderPaymentGatewayInterface
 				errorMessage: 'Order processing error.',
 			);
 		}
-		if ($payment->getOrder()->getStatus()->getCode() === OrderStatus::STATUS_PAID) {
+		if ($payment->getOrder()->getStatus()->getCode() === OrderStatus::StatusPaid) {
 			return new GatewayResponse(
 				redirect: $linkGenerator->default($order),
 				errorMessage: 'The order has already been paid for.',
@@ -134,7 +134,7 @@ final class GoPayGatewayBridge implements OrderPaymentGatewayInterface
 
 		if ($status === PaymentState::PAID) {
 			$order->setPaid(true);
-			$this->orderStatusManager->setStatus($payment->getOrder(), OrderStatus::STATUS_PAID, force: true);
+			$this->orderStatusManager->setStatus($payment->getOrder(), OrderStatus::StatusPaid, force: true);
 
 			return new GatewayResponse(
 				redirect: $linkGenerator->default($order),
@@ -142,7 +142,7 @@ final class GoPayGatewayBridge implements OrderPaymentGatewayInterface
 		}
 		if ($statusChanged === true) {
 			assert($order instanceof Order);
-			$this->orderStatusManager->setStatus($order, OrderStatus::STATUS_PAYMENT_FAILED, force: true);
+			$this->orderStatusManager->setStatus($order, OrderStatus::StatusPaymentFailed, force: true);
 		}
 
 		return new GatewayResponse(

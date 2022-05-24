@@ -19,7 +19,7 @@ use Nette\Caching\Storage;
 
 final class OrderPaymentClient
 {
-	private const FALLBACK_PROVIDERS = ['gopay'];
+	private const FallbackProviders = ['gopay'];
 
 
 	private OrderManager $orderManager;
@@ -102,7 +102,7 @@ final class OrderPaymentClient
 			if ($providerCode === $orderPaymentCode) {
 				return $provider;
 			}
-			if ($fallback === null && in_array($providerCode, self::FALLBACK_PROVIDERS, true)) {
+			if ($fallback === null && in_array($providerCode, self::FallbackProviders, true)) {
 				$fallback = $provider;
 			}
 		}

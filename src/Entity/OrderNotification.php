@@ -14,6 +14,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\UniqueConstraint(name: 'shop__order_notification_key', columns: ['status_id', 'locale', 'type'])]
 class OrderNotification
 {
+	/** @deprecated since 2022-05-24, use enum OrderNotificationType */
 	public const
 		TYPE_EMAIL = 'email',
 		TYPE_SMS = 'sms';
@@ -30,7 +31,7 @@ class OrderNotification
 	private string $locale;
 
 	#[ORM\Column(type: 'string', length: 10)]
-	private string $type;
+	private OrderNotificationType $type;
 
 	#[ORM\Column(type: 'text', nullable: true)]
 	private ?string $subject = null;
@@ -45,11 +46,11 @@ class OrderNotification
 	private \DateTimeImmutable $insertedDate;
 
 
-	public function __construct(OrderStatus $status, string $locale, string $type)
+	public function __construct(OrderStatus $status, string $locale, OrderNotificationType $type)
 	{
 		$this->status = $status;
 		$this->locale = Localization::normalize($locale);
-		$this->type = strtolower($type);
+		$this->type = $type;
 		$this->insertedDate = new \DateTimeImmutable;
 	}
 
@@ -72,7 +73,7 @@ class OrderNotification
 	}
 
 
-	public function getType(): string
+	public function getType(): OrderNotificationType
 	{
 		return $this->type;
 	}
