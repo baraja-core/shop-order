@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Baraja\Shop\Order;
+namespace Baraja\Shop\Order\Api;
 
 
 use Baraja\Country\CountryManagerAccessor;
@@ -25,6 +25,10 @@ use Baraja\Shop\Order\Entity\OrderItem;
 use Baraja\Shop\Order\Entity\OrderNotificationType;
 use Baraja\Shop\Order\Entity\OrderOnlinePayment;
 use Baraja\Shop\Order\Notification\OrderNotification;
+use Baraja\Shop\Order\OrderGenerator;
+use Baraja\Shop\Order\OrderGroupManager;
+use Baraja\Shop\Order\OrderManager;
+use Baraja\Shop\Order\OrderStatusManager;
 use Baraja\Shop\Order\Repository\OrderFeedRepository;
 use Baraja\Shop\Order\Status\OrderWorkflow;
 use Baraja\Shop\Payment\Entity\Payment;
