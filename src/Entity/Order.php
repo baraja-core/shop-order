@@ -126,27 +126,27 @@ class Order implements OrderInterface, OrderEntity
 	#[ORM\Column(type: 'datetime', nullable: true)]
 	private ?\DateTimeInterface $lastPaymentAttempt = null;
 
-	/** @var OrderItem[]|Collection */
+	/** @var Collection<OrderItem> */
 	#[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderItem::class)]
 	private Collection $items;
 
-	/** @var OrderPackage[]|Collection */
+	/** @var Collection<OrderPackage> */
 	#[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderPackage::class)]
 	private Collection $packages;
 
-	/** @var OrderBankPayment[]|Collection */
+	/** @var Collection<OrderBankPayment> */
 	#[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderBankPayment::class)]
 	private Collection $transactions;
 
-	/** @var OrderOnlinePayment[]|Collection */
+	/** @var Collection<OrderOnlinePayment> */
 	#[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderOnlinePayment::class)]
 	private Collection $payments;
 
-	/** @var OrderMeta[]|Collection */
+	/** @var Collection<OrderMeta> */
 	#[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderMeta::class)]
 	private Collection $metas;
 
-	/** @var OrderFile[]|Collection */
+	/** @var Collection<OrderFile> */
 	#[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderFile::class)]
 	private Collection $files;
 
