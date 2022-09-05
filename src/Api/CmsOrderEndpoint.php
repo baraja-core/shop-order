@@ -18,6 +18,14 @@ use Baraja\Shop\Customer\Entity\Customer;
 use Baraja\Shop\Delivery\BranchManager;
 use Baraja\Shop\Delivery\Entity\Delivery;
 use Baraja\Shop\Delivery\Repository\DeliveryRepository;
+use Baraja\Shop\Order\Api\DTO\CmsOrderFeedCustomer;
+use Baraja\Shop\Order\Api\DTO\CmsOrderFeedDelivery;
+use Baraja\Shop\Order\Api\DTO\CmsOrderFeedDocument;
+use Baraja\Shop\Order\Api\DTO\CmsOrderFeedItem;
+use Baraja\Shop\Order\Api\DTO\CmsOrderFeedPayment;
+use Baraja\Shop\Order\Api\DTO\CmsOrderFeedList;
+use Baraja\Shop\Order\Api\DTO\CmsOrderFeedResponse;
+use Baraja\Shop\Order\Api\DTO\CmsOrderFeedStatus;
 use Baraja\Shop\Order\Delivery\OrderDeliveryManager;
 use Baraja\Shop\Order\Document\OrderDocumentManager;
 use Baraja\Shop\Order\Entity\Order;
@@ -89,7 +97,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		?string $currency = null,
 		int $limit = 128,
 		int $page = 1,
-	): void {
+	): CmsOrderFeedResponse {
 		$feed = $this->orderFeedRepository->getFeed(
 			query: $query,
 			status: $status,
@@ -106,83 +114,83 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 		$sum = [];
 		$return = [];
-		/** @var Order $order */
 		foreach ($feed['orders'] as $order) {
+			assert($order instanceof Order);
 			$documents = [];
 			if (isset($feed['invoices'][$order->getId()])) {
-				/** @var InvoiceInterface $invoice */
 				$invoice = $feed['invoices'][$order->getId()];
-				$documents[] = [
-					'url' => $invoice->getDownloadLink(),
-					'label' => '🧾',
-				];
+				assert($invoice instanceof InvoiceInterface);
+				$documents[] = new CmsOrderFeedDocument(
+					url: $invoice->getDownloadLink(),
+					label: '🧾',
+				);
 			}
 
 			$deliveryItem = $order->getDelivery();
 			$paymentItem = $order->getPayment();
-			$return[] = [
-				'id' => $order->getId(),
-				'checked' => false,
-				'number' => $order->getNumber(),
-				'status' => [
-					'code' => $order->getStatus()->getCode(),
-					'color' => $order->getStatus()->getColor(),
-					'label' => $order->getStatus()->getName(),
-				],
-				'paid' => $order->isPaid(),
-				'pinged' => $order->isPinged(),
-				'price' => $order->getBasePrice(),
-				'sale' => $order->getSale(),
-				'finalPrice' => $order->getPrice()->render(true),
-				'currency' => $order->getCurrencyCode(),
-				'notice' => $order->getNotice(),
-				'insertedDate' => $order->getInsertedDate()->format('d.m.y H:i'),
-				'updatedDate' => $order->getUpdatedDate()->format('d.m.y H:i'),
-				'package' => count($order->getPackages()),
-				'customer' => [
-					'id' => $order->getCustomer()->getId(),
-					'email' => $order->getCustomer()->getEmail(),
-					'firstName' => $order->getCustomer()->getFirstName(),
-					'lastName' => $order->getCustomer()->getLastName(),
-					'phone' => $order->getCustomer()->getPhone(),
-					'premium' => $order->getCustomer()->isPremium(),
-					'ban' => $order->getCustomer()->isBan(),
-				],
-				'delivery' => [
-					'id' => $deliveryItem?->getId(),
-					'name' => $deliveryItem?->getLabel(),
-					'price' => $order->getDeliveryPrice()->render(true),
-					'color' => $deliveryItem?->getColor(),
-				],
-				'payment' => [
-					'id' => $paymentItem?->getId(),
-					'name' => $paymentItem?->getName(),
-					'price' => $order->getPaymentPrice()->render(true),
-					'color' => $paymentItem?->getColor(),
-				],
-				'items' => (static function ($items): array {
+			$return[] = new CmsOrderFeedList(
+				id: $order->getId(),
+				checked: false,
+				number: $order->getNumber(),
+				status: new CmsOrderFeedStatus(
+					code: $order->getStatus()->getCode(),
+					color: $order->getStatus()->getColor(),
+					label: $order->getStatus()->getName(),
+				),
+				paid: $order->isPaid(),
+				pinged: $order->isPinged(),
+				price: $order->getBasePrice(),
+				sale: $order->getSale(),
+				finalPrice: $order->getPrice()->render(true),
+				currency: $order->getCurrencyCode(),
+				notice: $order->getNotice(),
+				insertedDate: $order->getInsertedDate()->format('d.m.y H:i'),
+				updatedDate: $order->getUpdatedDate()->format('d.m.y H:i'),
+				package: count($order->getPackages()),
+				customer: new CmsOrderFeedCustomer(
+					id: $order->getCustomer()->getId(),
+					email: $order->getCustomer()->getEmail(),
+					firstName: $order->getCustomer()->getFirstName(),
+					lastName: $order->getCustomer()->getLastName(),
+					phone: $order->getCustomer()->getPhone(),
+					premium: $order->getCustomer()->isPremium(),
+					ban: $order->getCustomer()->isBan(),
+				),
+				delivery: new CmsOrderFeedDelivery(
+					id: $deliveryItem?->getId(),
+					name: $deliveryItem?->getLabel(),
+					price: $order->getDeliveryPrice()->render(true),
+					color: $deliveryItem?->getColor(),
+				),
+				payment: new CmsOrderFeedPayment(
+					id: $paymentItem?->getId(),
+					name: $paymentItem?->getName(),
+					price: $order->getPaymentPrice()->render(true),
+					color: $paymentItem?->getColor(),
+				),
+				items: (static function ($items): array {
 					$return = [];
-					/** @var OrderItem $item */
 					foreach ($items as $item) {
-						$return[] = [
-							'id' => $item->getId(),
-							'name' => $item->getLabel(),
-							'count' => $item->getCount(),
-							'price' => $item->getPrice(),
-							'sale' => $item->getSale(),
-							'finalPrice' => $item->getFinalPrice(),
-						];
+						assert($item instanceof OrderItem);
+						$return[] = new CmsOrderFeedItem(
+							id: $item->getId(),
+							name: $item->getLabel(),
+							count: $item->getCount(),
+							price: $item->getPrice(),
+							sale: $item->getSale(),
+							finalPrice: $item->getFinalPrice(),
+						);
 					}
 
 					return $return;
 				})(
 					$order->getItems(),
 				),
-				'documents' => $documents,
-				'payments' => (static function ($items): array {
+				documents: $documents,
+				payments: (static function ($items): array {
 					$return = [];
-					/** @var OrderOnlinePayment $item */
 					foreach ($items as $item) {
+						assert($item instanceof OrderOnlinePayment);
 						$return[] = [
 							'id' => $item->getId(),
 						];
@@ -192,22 +200,20 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				})(
 					$order->getPayments(),
 				),
-			];
+			);
 
 			$price = $order->getPrice();
 			$priceCurrency = $price->getCurrency()->getCode();
 			$sum[$priceCurrency] = bcadd($sum[$priceCurrency] ?? '0', $price->getValue(), 4);
 		}
 
-		$this->sendJson(
-			[
-				'items' => $return,
-				'sum' => $this->formatSumPrices($sum),
-				'paginator' => (new Paginator)
-					->setItemCount($feed['count'])
-					->setItemsPerPage($limit)
-					->setPage($page),
-			],
+		return new CmsOrderFeedResponse(
+			items: $return,
+			sum: $this->formatSumPrices($sum),
+			paginator: (new Paginator)
+				->setItemCount($feed['count'])
+				->setItemsPerPage($limit)
+				->setPage($page),
 		);
 	}
 
