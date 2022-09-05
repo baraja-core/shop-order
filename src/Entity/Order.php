@@ -221,14 +221,6 @@ class Order implements OrderInterface, OrderEntity
 	}
 
 
-	public function getInvoiceNumber(): ?string
-	{
-		trigger_error('Method "' . __METHOD__ . '" is deprecated, use native Invoice query.');
-
-		return null;
-	}
-
-
 	public function getPackageNumber(): ?string
 	{
 		// TODO: Implement getPackageNumber() method.
@@ -476,6 +468,7 @@ class Order implements OrderInterface, OrderEntity
 
 	public function recountPrice(): void
 	{
+		// TODO: Move this method to OrderPriceCalculator with native support for side effects.
 		$sum = '0';
 		foreach ($this->items as $item) {
 			$sum = bcadd($sum, bcmul($item->getFinalPrice()->getValue(), (string) $item->getCount(), 2), 2);

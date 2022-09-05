@@ -45,12 +45,6 @@ final class SampleOrderEntity implements OrderInterface
 	}
 
 
-	public function getInvoiceNumber(): ?string
-	{
-		return date('y') . '0123456';
-	}
-
-
 	public function getHash(): string
 	{
 		return md5($this->getNumber());
