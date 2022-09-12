@@ -119,9 +119,7 @@ final class BalikoBotAdapterBridge implements CarrierAdapter
 
 		$handoverUrl = $orderedShipment->getHandoverUrl();
 		foreach ($orders as $order) {
-			if ($order !== null) {
-				$order->setHandoverUrl($handoverUrl);
-			}
+			$order->setHandoverUrl($handoverUrl);
 		}
 		$this->entityManager->flush();
 	}
@@ -151,7 +149,7 @@ final class BalikoBotAdapterBridge implements CarrierAdapter
 		$package->setPrice((float) $order->getPrice()->getValue());
 		$package->setInsCurrency($order->getCurrency()->getCode());
 		$package->setWeight(0.4); // TODO: hardcoded
-		if ($order->getDeliveryBranchId()) {
+		if (($order->getDeliveryBranchId() ?? 0) > 0) {
 			$package->setBranchId((string) $order->getDeliveryBranchId());
 		}
 

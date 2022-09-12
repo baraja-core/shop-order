@@ -30,9 +30,10 @@ class OrderMeta
 
 	public function __construct(Order $order, string $key, ?string $value)
 	{
+		$value = trim($value ?? '');
 		$this->order = $order;
 		$this->key = $key;
-		$this->value = trim($value ?? '') ?: null;
+		$this->value = $value !== '' ? $value : null;
 	}
 
 

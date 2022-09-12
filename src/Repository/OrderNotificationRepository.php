@@ -28,7 +28,7 @@ final class OrderNotificationRepository extends EntityRepository
 				->andWhere('n.type = :type')
 				->setParameter('status', $status->getId())
 				->setParameter('locale', Localization::normalize($locale))
-				->setParameter('type', $type);
+				->setParameter('type', $type->value);
 
 			if ($activeOnly === true) {
 				$qb->andWhere('n.active = TRUE');

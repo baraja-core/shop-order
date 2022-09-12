@@ -26,6 +26,9 @@ final class CmsOrderPlugin extends BasePlugin implements SearchablePlugin
 	}
 
 
+	/**
+	 * @return class-string<Order>
+	 */
 	public function getBaseEntity(): string
 	{
 		return Order::class;
@@ -56,7 +59,7 @@ final class CmsOrderPlugin extends BasePlugin implements SearchablePlugin
 		}
 		$this->setTitle(sprintf(
 			'%s %s (%s)',
-			(string) $result['order']['group']['name'],
+			$result['order']['group']['name'],
 			$result['order']['locale'],
 			$result['order']['number'],
 		));

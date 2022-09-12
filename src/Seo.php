@@ -11,7 +11,7 @@ final class Seo
 {
 	public function getDataLayer(OrderInterface $order): string
 	{
-		return (string) json_encode(
+		return json_encode(
 			$this->buildDataLayerStructure($order),
 			JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT,
 		);

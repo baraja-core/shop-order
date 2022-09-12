@@ -74,10 +74,8 @@ final class OrderPaymentManager
 					$entities[] = $meta->getName();
 				}
 			}
+			$this->cache->save($key, $entities);
 			$cache = $entities;
-			if ($cache !== null) {
-				$this->cache->save($key, $entities);
-			}
 		}
 
 		return $cache;

@@ -194,7 +194,7 @@ final class WebController
 
 	private function getFlashMessage(): ?string
 	{
-		/** @var array{0?: string, 1?: int} $message */
+		/** @var array{0?: string, 1?: int}|null $message */
 		$message = $_SESSION[self::FlashMessageKey] ?? null;
 		$minAllowedTime = time() - 6;
 		if (is_array($message)

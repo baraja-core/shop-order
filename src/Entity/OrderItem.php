@@ -233,7 +233,8 @@ class OrderItem implements OrderItemInterface
 
 	public function setLabel(?string $label): void
 	{
-		$this->label = trim($label ?? '') ?: null;
+		$label = trim($label ?? '');
+		$this->label = $label !== '' ? $label : null;
 	}
 
 

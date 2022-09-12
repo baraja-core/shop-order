@@ -73,13 +73,11 @@ final class OrderManager implements OrderManagerInterface
 		$sum = '0';
 		assert($order instanceof Order);
 		foreach ($order->getPayments() as $payment) {
-			assert($payment instanceof OrderOnlinePayment);
 			if ($payment->getStatus() === 'PAID') {
 				$sum = bcadd($sum, $payment->getPrice());
 			}
 		}
 		foreach ($order->getTransactions() as $transaction) {
-			assert($transaction instanceof OrderBankPayment);
 			$sum = bcadd($sum, $transaction->getPrice());
 		}
 		$orderPrice = $order->getBasePrice();

@@ -81,9 +81,9 @@ final class OrderNotification
 		if (is_int($notification)) {
 			$notification = $this->notificationRepository->getById($notification);
 		}
-		if ($notification->getType()->value === OrderNotificationType::Email) {
+		if ($notification->getType()->value === OrderNotificationType::Email->value) {
 			$this->sendEmail($order, $notification->getStatus(), $attachments);
-		} elseif ($notification->getType()->value === OrderNotificationType::Sms) {
+		} elseif ($notification->getType()->value === OrderNotificationType::Sms->value) {
 			$this->sendSms($order, $notification->getStatus());
 		}
 	}
@@ -240,7 +240,7 @@ final class OrderNotification
 
 
 	/**
-	 * @param array<int, string> $types
+	 * @param array<int, OrderNotificationType> $types
 	 * @return array<string, NotificationEntity>
 	 */
 	public function getAvailableNotificationReadyToSend(string $locale, array $types = []): array

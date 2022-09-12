@@ -13,8 +13,8 @@ use Baraja\EcommerceStandard\Service\InvoiceManagerInterface;
 use Baraja\Localization\Localization;
 use Baraja\Shop\Address\Entity\Address;
 use Baraja\Shop\Currency\CurrencyManager;
-use Baraja\Shop\Customer\CustomerManager;
 use Baraja\Shop\Customer\Entity\Customer;
+use Baraja\Shop\Customer\Entity\CustomerRepository;
 use Baraja\Shop\Delivery\BranchManager;
 use Baraja\Shop\Delivery\Entity\Delivery;
 use Baraja\Shop\Delivery\Repository\DeliveryRepository;
@@ -57,11 +57,12 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 	private PaymentRepository $paymentRepository;
 
+	private CustomerRepository $customerRepository;
+
 
 	public function __construct(
 		private EntityManager $entityManager,
 		private OrderManager $orderManager,
-		private CustomerManager $customerManager,
 		private OrderGroupManager $orderGroupManager,
 		private OrderGenerator $orderGenerator,
 		private OrderDeliveryManager $deliveryManager,
@@ -78,10 +79,13 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	) {
 		$deliveryRepository = $entityManager->getRepository(Delivery::class);
 		$paymentRepository = $entityManager->getRepository(Payment::class);
+		$customerRepository = $entityManager->getRepository(Customer::class);
 		assert($deliveryRepository instanceof DeliveryRepository);
 		assert($paymentRepository instanceof PaymentRepository);
+		assert($customerRepository instanceof CustomerRepository);
 		$this->deliveryRepository = $deliveryRepository;
 		$this->paymentRepository = $paymentRepository;
+		$this->customerRepository = $customerRepository;
 	}
 
 
@@ -410,7 +414,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				'items' => $items,
 				'transactions' => $transactions,
 				'payments' => $payments,
-				'package' => $packages ?: null,
+				'package' => $packages,
 				'packageHandoverUrl' => $order->getHandoverUrl(),
 				'notifications' => $this->notification->getActiveStatusTypes($order->getLocale()),
 			],
@@ -472,7 +476,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	public function postCreateEmptyOrder(int $customerId, int $countryId, string $groupId): void
 	{
 		try {
-			$customer = $this->customerManager->getById($customerId);
+			$customer = $this->customerRepository->getById($customerId);
 		} catch (NoResultException | NonUniqueResultException) {
 			$this->sendError('Customer "' . $customerId . '" does not exist.');
 		}
@@ -584,7 +588,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$this->flashMessage('The addresses have been successfully saved.', 'success');
 		$this->entityManager->flush();
 
-		if ($this->documentManager->isDocument((int) $order->getId())) {
+		if ($this->documentManager->isDocument($order->getId())) {
 			if ($this->invoiceManager === null) {
 				throw new \LogicException('Invoice manager has not been installed.');
 			}
@@ -925,7 +929,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	 *     label: string,
 	 *     publicLabel: string,
 	 *     systemHandle: string|null,
-	 *     position: int,
+	 *     position: int|string,
 	 *     markAsPaid: bool,
 	 *     createInvoice: bool,
 	 *     color: string,

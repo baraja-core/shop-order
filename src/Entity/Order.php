@@ -413,6 +413,15 @@ class Order implements OrderInterface, OrderEntity
 	}
 
 
+	/**
+	 * @return numeric-string
+	 */
+	public function getPriceWithoutVatRaw(): string
+	{
+		return $this->priceWithoutVat;
+	}
+
+
 	public function getPrice(): PriceInterface
 	{
 		$price = new Price($this->price, $this->currency);
@@ -561,7 +570,7 @@ class Order implements OrderInterface, OrderEntity
 
 
 	/**
-	 * @return OrderPackage[]|Collection
+	 * @return Collection<OrderPackage>
 	 */
 	public function getPackages(): Collection
 	{
@@ -570,7 +579,7 @@ class Order implements OrderInterface, OrderEntity
 
 
 	/**
-	 * @return OrderBankPayment[]|Collection
+	 * @return Collection<OrderBankPayment>
 	 */
 	public function getTransactions(): Collection
 	{
@@ -579,7 +588,7 @@ class Order implements OrderInterface, OrderEntity
 
 
 	/**
-	 * @return OrderOnlinePayment[]|Collection
+	 * @return Collection<OrderOnlinePayment>
 	 */
 	public function getPayments(): Collection
 	{
@@ -594,7 +603,7 @@ class Order implements OrderInterface, OrderEntity
 
 
 	/**
-	 * @return OrderMeta[]|Collection
+	 * @return Collection<OrderMeta>
 	 */
 	public function getMetas(): Collection
 	{
@@ -603,7 +612,7 @@ class Order implements OrderInterface, OrderEntity
 
 
 	/**
-	 * @return OrderFile[]|Collection
+	 * @return Collection<OrderFile>
 	 */
 	public function getFiles(): Collection
 	{
@@ -708,7 +717,7 @@ class Order implements OrderInterface, OrderEntity
 			return true;
 		}
 
-		return $this->lastPaymentAttempt->getTimestamp() < (int) strtotime('now - 5 minutes');
+		return $this->lastPaymentAttempt->getTimestamp() < strtotime('now - 5 minutes');
 	}
 
 

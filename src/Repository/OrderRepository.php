@@ -47,7 +47,7 @@ final class OrderRepository extends EntityRepository
 		if ($order === null) {
 			throw new \InvalidArgumentException(sprintf('Order "%d" does not exist.', $id));
 		}
-		$groupId = $order['group']['id'] ?? null;
+		$groupId = $order['group']['id'];
 
 		return [
 			'order' => $order,

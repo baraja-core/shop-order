@@ -19,8 +19,8 @@ use Baraja\Shop\Cart\OrderInfo;
 use Baraja\Shop\Cart\OrderInfoAddress;
 use Baraja\Shop\Cart\OrderInfoBasic;
 use Baraja\Shop\Currency\CurrencyManagerAccessor;
-use Baraja\Shop\Customer\CustomerManager;
 use Baraja\Shop\Customer\Entity\Customer;
+use Baraja\Shop\Customer\Entity\CustomerRepository;
 use Baraja\Shop\Delivery\Entity\Delivery;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderGroup;
@@ -37,6 +37,9 @@ use Psr\Log\LoggerInterface;
 
 final class OrderGenerator
 {
+	private CustomerRepository $customerRepository;
+
+
 	/**
 	 * @param CreatedOrderEvent[] $createdOrderEvents
 	 */
@@ -46,13 +49,15 @@ final class OrderGenerator
 		private OrderStatusManager $statusManager,
 		private OrderGroupManager $orderGroupManager,
 		private Localization $localization,
-		private CustomerManager $customerManager,
 		private User $user,
 		private CurrencyManagerAccessor $currencyManager,
 		private CountryManagerAccessor $countryManager,
 		private ?LoggerInterface $logger = null,
 		private array $createdOrderEvents = [],
 	) {
+		$customerRepository = $entityManager->getRepository(Customer::class);
+		assert($customerRepository instanceof CustomerRepository);
+		$this->customerRepository = $customerRepository;
 	}
 
 
@@ -256,31 +261,31 @@ final class OrderGenerator
 
 	private function mapCustomer(OrderInfoBasic $info, Address $deliveryAddress, Customer $customer): void
 	{
-		if (!$customer->getFirstName()) {
+		if ($customer->getFirstName() !== '') {
 			$customer->setFirstName($info->getFirstName());
 		}
-		if (!$customer->getLastName()) {
+		if ($customer->getLastName() !== '') {
 			$customer->setLastName($info->getLastName());
 		}
-		if (!$customer->getPhone()) {
+		if ($customer->getPhone() !== null) {
 			$customer->setPhone($info->getPhone());
 		}
-		if (!$customer->getStreet()) {
+		if ($customer->getStreet() !== null) {
 			$customer->setStreet($deliveryAddress->getStreet());
 		}
-		if (!$customer->getCity()) {
+		if ($customer->getCity() !== null) {
 			$customer->setCity($deliveryAddress->getCity());
 		}
-		if (!$customer->getZip()) {
+		if ($customer->getZip() !== null) {
 			$customer->setZip((int) $deliveryAddress->getZip());
 		}
-		if (!$customer->getCompanyName()) {
+		if ($customer->getCompanyName() !== null) {
 			$customer->setCompanyName($deliveryAddress->getCompanyName());
 		}
-		if (!$customer->getIc()) {
+		if ($customer->getIc() !== null) {
 			$customer->setIc($deliveryAddress->getCin());
 		}
-		if (!$customer->getDic()) {
+		if ($customer->getDic() !== null) {
 			$customer->setDic($deliveryAddress->getTin());
 		}
 	}
@@ -291,7 +296,7 @@ final class OrderGenerator
 		$customer = $cart->getCustomer();
 		if ($customer === null) {
 			try {
-				$customer = $this->customerManager->getByEmail($info->getEmail());
+				$customer = $this->customerRepository->getByEmail($info->getEmail());
 			} catch (NoResultException | NonUniqueResultException) {
 				$customer = new Customer(
 					$info->getEmail(),

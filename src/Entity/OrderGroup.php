@@ -26,7 +26,7 @@ class OrderGroup
 	protected int $id;
 
 	#[ORM\Column(type: 'translate')]
-	private Translation $name;
+	protected Translation $name;
 
 	#[ORM\Column(type: 'string', length: 16, unique: true)]
 	private string $code;
@@ -52,6 +52,12 @@ class OrderGroup
 	public function getId(): int
 	{
 		return $this->id;
+	}
+
+
+	public function getLabel(): string
+	{
+		return (string) $this->getName();
 	}
 
 

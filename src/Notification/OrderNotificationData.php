@@ -18,7 +18,7 @@ final class OrderNotificationData implements TemplateData
 	public function __construct(
 		private OrderInterface $order,
 		private ShopInfo $shopInfo,
-		private Configuration $configuration,
+		public Configuration $configuration,
 	) {
 	}
 
