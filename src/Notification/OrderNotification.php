@@ -83,7 +83,7 @@ final class OrderNotification
 		}
 		if ($notification->getType()->value === OrderNotificationType::Email->value) {
 			$this->sendEmail($order, $notification->getStatus(), $attachments);
-		} elseif ($notification->getType()->value === OrderNotificationType::Sms->value) {
+		} else {
 			$this->sendSms($order, $notification->getStatus());
 		}
 	}

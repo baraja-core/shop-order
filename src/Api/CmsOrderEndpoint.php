@@ -119,11 +119,9 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$sum = [];
 		$return = [];
 		foreach ($feed['orders'] as $order) {
-			assert($order instanceof Order);
 			$documents = [];
 			if (isset($feed['invoices'][$order->getId()])) {
 				$invoice = $feed['invoices'][$order->getId()];
-				assert($invoice instanceof InvoiceInterface);
 				$documents[] = new CmsOrderFeedDocument(
 					url: $invoice->getDownloadLink(),
 					label: '🧾',
@@ -160,18 +158,20 @@ final class CmsOrderEndpoint extends BaseEndpoint
 					premium: $order->getCustomer()->isPremium(),
 					ban: $order->getCustomer()->isBan(),
 				),
-				delivery: new CmsOrderFeedDelivery(
-					id: $deliveryItem?->getId(),
-					name: $deliveryItem?->getLabel(),
-					price: $order->getDeliveryPrice()->render(true),
-					color: $deliveryItem?->getColor(),
-				),
-				payment: new CmsOrderFeedPayment(
-					id: $paymentItem?->getId(),
-					name: $paymentItem?->getName(),
-					price: $order->getPaymentPrice()->render(true),
-					color: $paymentItem?->getColor(),
-				),
+				delivery: $deliveryItem !== null
+					? new CmsOrderFeedDelivery(
+						id: $deliveryItem->getId(),
+						name: $deliveryItem->getLabel(),
+						price: $order->getDeliveryPrice()->render(true),
+						color: $deliveryItem->getColor(),
+					) : null,
+				payment: $paymentItem !== null
+					? new CmsOrderFeedPayment(
+						id: $paymentItem->getId(),
+						name: $paymentItem->getName(),
+						price: $order->getPaymentPrice()->render(true),
+						color: $paymentItem->getColor(),
+					) : null,
 				items: (static function ($items): array {
 					$return = [];
 					foreach ($items as $item) {
@@ -194,7 +194,6 @@ final class CmsOrderEndpoint extends BaseEndpoint
 				payments: (static function ($items): array {
 					$return = [];
 					foreach ($items as $item) {
-						assert($item instanceof OrderOnlinePayment);
 						$return[] = [
 							'id' => $item->getId(),
 						];
