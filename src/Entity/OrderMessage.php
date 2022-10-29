@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Baraja\Shop\Order\Entity;
 
 
-use Baraja\Cms\User\Entity\User;
+use Baraja\CAS\Entity\User;
 use Baraja\Shop\Customer\Entity\Customer;
 use Doctrine\ORM\Mapping as ORM;
 
