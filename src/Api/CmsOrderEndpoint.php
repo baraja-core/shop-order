@@ -461,7 +461,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 					];
 				}
 			} catch (\InvalidArgumentException $e) {
-				$this->flashMessage($e->getMessage(), self::FLASH_MESSAGE_INFO);
+				$this->flashMessage($e->getMessage(), self::FlashMessageInfo);
 			}
 		}
 
