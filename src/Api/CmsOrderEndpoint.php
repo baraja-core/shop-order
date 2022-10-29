@@ -556,7 +556,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 		$this->deliveryManager->sendOrders($orders);
 
-		$this->flashMessage('Shipments have been sent.', self::FLASH_MESSAGE_SUCCESS);
+		$this->flashMessage('Shipments have been sent.', self::FlashMessageSuccess);
 		$this->sendOk();
 	}
 
@@ -604,7 +604,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	{
 		$order = $this->getOrderById($id);
 		$this->deliveryManager->sendOrders([$order]);
-		$this->flashMessage('Package has been created.', self::FLASH_MESSAGE_SUCCESS);
+		$this->flashMessage('Package has been created.', self::FlashMessageSuccess);
 		$this->sendOk();
 	}
 
@@ -614,7 +614,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$order = $this->getOrderById($id);
 		$order->setPaid($order->isPaid() === false);
 		$this->entityManager->flush();
-		$this->flashMessage('Payment status has been changed.', self::FLASH_MESSAGE_SUCCESS);
+		$this->flashMessage('Payment status has been changed.', self::FlashMessageSuccess);
 		$this->sendOk();
 	}
 
@@ -693,7 +693,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 
 		$this->orderManager->recountPrice($order);
 		$this->entityManager->flush();
-		$this->flashMessage('Items has been changed.', self::FLASH_MESSAGE_SUCCESS);
+		$this->flashMessage('Items has been changed.', self::FlashMessageSuccess);
 		$this->sendOk();
 	}
 
@@ -954,7 +954,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			);
 		}
 		$this->entityManager->flush();
-		$this->flashMessage('Status list has been updated.', self::FLASH_MESSAGE_SUCCESS);
+		$this->flashMessage('Status list has been updated.', self::FlashMessageSuccess);
 		$this->sendOk();
 	}
 
@@ -995,7 +995,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	{
 		$this->orderGroupManager->create($name, $code);
 		$this->entityManager->flush();
-		$this->flashMessage('Group has been created.', self::FLASH_MESSAGE_SUCCESS);
+		$this->flashMessage('Group has been created.', self::FlashMessageSuccess);
 		$this->sendOk();
 	}
 
@@ -1003,7 +1003,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	public function postCreateStatus(string $name, string $code): void
 	{
 		$this->orderStatusManager->createStatus($name, $code);
-		$this->flashMessage('Status has been created.', self::FLASH_MESSAGE_SUCCESS);
+		$this->flashMessage('Status has been created.', self::FlashMessageSuccess);
 		$this->sendOk();
 	}
 
@@ -1014,7 +1014,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	public function postCreateStatusCollection(string $code, string $label, array $statuses): void
 	{
 		$this->orderStatusManager->createCollection($code, $label, $statuses);
-		$this->flashMessage('Status collection has been created.', self::FLASH_MESSAGE_SUCCESS);
+		$this->flashMessage('Status collection has been created.', self::FlashMessageSuccess);
 		$this->sendOk();
 	}
 
