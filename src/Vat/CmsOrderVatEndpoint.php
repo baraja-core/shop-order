@@ -19,6 +19,7 @@ final class CmsOrderVatEndpoint extends BaseEndpoint
 	public function __construct(
 		EntityManagerInterface $entityManager,
 		private OrderStatusManager $orderStatusManager,
+		private Response $response,
 	) {
 		$orderRepository = $entityManager->getRepository(Order::class);
 		assert($orderRepository instanceof OrderRepository);
@@ -83,10 +84,8 @@ final class CmsOrderVatEndpoint extends BaseEndpoint
 			$this->sendError('Report is empty.');
 		}
 
-		/** @var Response $httpResponse */
-		$httpResponse = $this->container->getByType(Response::class);
-		$httpResponse->setHeader('Content-type', 'text/csv; charset=utf-8');
-		$httpResponse->setHeader(
+		$this->response->setHeader('Content-type', 'text/csv; charset=utf-8');
+		$this->response->setHeader(
 			'Content-Disposition',
 			sprintf(
 				'attachment; filename=vat-export-%s_%s.csv',
@@ -94,11 +93,11 @@ final class CmsOrderVatEndpoint extends BaseEndpoint
 				$to->format('Y-m-d'),
 			),
 		);
-		$httpResponse->setHeader('Pragma', 'public');
-		$httpResponse->setHeader('Expires', '0');
-		$httpResponse->setHeader('Cache-Control', 'must-revalidate, post-check=0, pre-check=0');
-		$httpResponse->setHeader('Content-Transfer-Encoding', 'binary');
-		$httpResponse->setHeader('Content-Description', 'File Transfer');
+		$this->response->setHeader('Pragma', 'public');
+		$this->response->setHeader('Expires', '0');
+		$this->response->setHeader('Cache-Control', 'must-revalidate, post-check=0, pre-check=0');
+		$this->response->setHeader('Content-Transfer-Encoding', 'binary');
+		$this->response->setHeader('Content-Description', 'File Transfer');
 
 		// header
 		echo implode(
