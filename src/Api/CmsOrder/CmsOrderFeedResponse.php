@@ -16,7 +16,7 @@ final class CmsOrderFeedResponse
 	public function __construct(
 		public array $items,
 		public array $sum,
-		public Paginator $paginator
+		public Paginator $paginator,
 	) {
 	}
 }

@@ -191,8 +191,11 @@ final class OrderNotification
 	 *     documentation: array<int, array{name: string, documentation: string|null}>
 	 * }
 	 */
-	public function getNotificationData(OrderStatusInterface $status, string $locale, OrderNotificationType $type): array
-	{
+	public function getNotificationData(
+		OrderStatusInterface $status,
+		string $locale,
+		OrderNotificationType $type,
+	): array {
 		$template = $this->findTemplateByStatus($status, $locale, $type);
 		if ($template === null) {
 			return [
