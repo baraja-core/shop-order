@@ -38,7 +38,7 @@ final class OrderManager implements OrderManagerInterface
 		private string $wwwDir,
 	) {
 		if (!is_dir($wwwDir)) {
-			throw new \LogicException('Parameter wwwDir does not exist, because path "' . $wwwDir . '" given.');
+			throw new \LogicException(sprintf('Parameter wwwDir does not exist, because path "%s" given.', $this->wwwDir));
 		}
 		$paymentClient->injectOrderManager($this);
 		$orderRepository = $entityManager->getRepository(Order::class);

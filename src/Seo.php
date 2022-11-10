@@ -31,7 +31,7 @@ final class Seo
 				'name' => $product->getLabel(),
 				'id' => (string) $product->getId(),
 				'price' => $item->getFinalPrice()->getValue(),
-				'brand' => 'CLEVER MINDS',
+				'brand' => $product->getBrand()?->getName() ?? 'Other',
 				'category' => $product->getMainCategory()?->getLabel(),
 				'variant' => $variant?->getName(),
 				'quantity' => $item->getCount(),
