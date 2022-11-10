@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Baraja\Shop\Order\Api\DTO;
+namespace Baraja\Shop\Order\Api\CmsOrder;
 
 
 final class CmsOrderFeedCustomer

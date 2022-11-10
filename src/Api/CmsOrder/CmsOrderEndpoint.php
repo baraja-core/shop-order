@@ -2,13 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Baraja\Shop\Order\Api;
+namespace Baraja\Shop\Order\Api\CmsOrder;
 
 
 use Baraja\Country\CountryManagerAccessor;
 use Baraja\Doctrine\EntityManager;
 use Baraja\EcommerceStandard\DTO\AddressInterface;
-use Baraja\EcommerceStandard\DTO\InvoiceInterface;
 use Baraja\EcommerceStandard\Service\InvoiceManagerInterface;
 use Baraja\Localization\Localization;
 use Baraja\Shop\Address\Entity\Address;
@@ -18,20 +17,11 @@ use Baraja\Shop\Customer\Entity\CustomerRepository;
 use Baraja\Shop\Delivery\BranchManager;
 use Baraja\Shop\Delivery\Entity\Delivery;
 use Baraja\Shop\Delivery\Repository\DeliveryRepository;
-use Baraja\Shop\Order\Api\DTO\CmsOrderFeedCustomer;
-use Baraja\Shop\Order\Api\DTO\CmsOrderFeedDelivery;
-use Baraja\Shop\Order\Api\DTO\CmsOrderFeedDocument;
-use Baraja\Shop\Order\Api\DTO\CmsOrderFeedItem;
-use Baraja\Shop\Order\Api\DTO\CmsOrderFeedPayment;
-use Baraja\Shop\Order\Api\DTO\CmsOrderFeedList;
-use Baraja\Shop\Order\Api\DTO\CmsOrderFeedResponse;
-use Baraja\Shop\Order\Api\DTO\CmsOrderFeedStatus;
 use Baraja\Shop\Order\Delivery\OrderDeliveryManager;
 use Baraja\Shop\Order\Document\OrderDocumentManager;
 use Baraja\Shop\Order\Entity\Order;
 use Baraja\Shop\Order\Entity\OrderItem;
 use Baraja\Shop\Order\Entity\OrderNotificationType;
-use Baraja\Shop\Order\Entity\OrderOnlinePayment;
 use Baraja\Shop\Order\Notification\OrderNotification;
 use Baraja\Shop\Order\OrderGenerator;
 use Baraja\Shop\Order\OrderGroupManager;
