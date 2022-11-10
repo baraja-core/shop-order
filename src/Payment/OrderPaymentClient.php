@@ -53,19 +53,19 @@ final class OrderPaymentClient
 	}
 
 
-	/**
-	 * @return never-return
-	 */
-	public function processPayment(OrderInterface $order): void
+	public function processPayment(OrderInterface $order, bool $processResponse = true): ?OrderGatewayResponseInterface
 	{
 		if ($this->orderManager->isPaid($order)) {
-			echo 'Order has been paid.';
-			die;
+			return null;
 		}
 
 		$provider = $this->getBestCompatibleProvider($order);
 		$response = $provider->pay($order);
-		$this->processResponse($response);
+		if ($processResponse) {
+			$this->processResponse($response);
+		}
+
+		return $response;
 	}
 
 

@@ -124,14 +124,16 @@ final class OrderRepository extends EntityRepository
 	public function getAllByHash(string $hash): Order
 	{
 		$return = $this->createQueryBuilder('o')
-			->select('o, customer, deliveryAddress, invoiceAddress, delivery, payment')
+			->select('o, customer, deliveryAddress, invoiceAddress, delivery, payment, message')
 			->leftJoin('o.customer', 'customer')
 			->leftJoin('o.deliveryAddress', 'deliveryAddress')
 			->leftJoin('o.paymentAddress', 'invoiceAddress')
 			->leftJoin('o.delivery', 'delivery')
 			->leftJoin('o.payment', 'payment')
+			->leftJoin('o.messages', 'message')
 			->where('o.hash = :hash')
 			->setParameter('hash', $hash)
+			->orderBy('message.insertedDate', 'DESC')
 			->getQuery()
 			->getSingleResult();
 		assert($return instanceof Order);

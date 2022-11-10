@@ -150,6 +150,10 @@ class Order implements OrderInterface, OrderEntity
 	#[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderFile::class)]
 	private Collection $files;
 
+	/** @var Collection<OrderMessage> */
+	#[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderMessage::class)]
+	private Collection $messages;
+
 
 	/**
 	 * @param numeric-string $price
@@ -198,6 +202,7 @@ class Order implements OrderInterface, OrderEntity
 		$this->payments = new ArrayCollection;
 		$this->metas = new ArrayCollection;
 		$this->files = new ArrayCollection;
+		$this->messages = new ArrayCollection;
 	}
 
 
@@ -617,6 +622,15 @@ class Order implements OrderInterface, OrderEntity
 	public function getFiles(): Collection
 	{
 		return $this->files;
+	}
+
+
+	/**
+	 * @return Collection<OrderMessage>
+	 */
+	public function getMessages(): Collection
+	{
+		return $this->messages;
 	}
 
 

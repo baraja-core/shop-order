@@ -133,6 +133,7 @@ final class WebController
 		}
 		try {
 			$this->orderPaymentClient->processPayment($order);
+			echo 'Order has been paid.';
 		} catch (\InvalidArgumentException $e) {
 			echo htmlspecialchars($e->getMessage());
 		}

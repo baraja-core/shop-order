@@ -42,7 +42,7 @@ class OrderMessage
 		$this->order = $order;
 		$this->message = trim($message);
 		$this->shareWithCustomer = $shareWithCustomer;
-		$this->insertedDate = new \DateTime;
+		$this->insertedDate = new \DateTimeImmutable;
 
 		if ($user instanceof Customer) {
 			$this->customerId = $user->getId();

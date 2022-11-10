@@ -259,6 +259,7 @@ class OrderStatus implements OrderStatusInterface
 
 	public function setColor(?string $color): void
 	{
-		$this->color = $color;
+		$color = trim($color ?? '');
+		$this->color = $color !== '' ? $color : null;
 	}
 }
