@@ -12,7 +12,7 @@ final class Seo
 	public function getDataLayer(OrderInterface $order): string
 	{
 		return json_encode(
-			$this->buildDataLayerStructure($order),
+			$this->getDataLayerStructure($order),
 			JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT,
 		);
 	}
@@ -21,7 +21,7 @@ final class Seo
 	/**
 	 * @return array<string, mixed>
 	 */
-	private function buildDataLayerStructure(OrderInterface $order): array
+	public function getDataLayerStructure(OrderInterface $order): array
 	{
 		$products = [];
 		foreach ($order->getItems() as $item) {
