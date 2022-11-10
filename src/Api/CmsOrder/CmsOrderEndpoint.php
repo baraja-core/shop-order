@@ -35,6 +35,7 @@ use Baraja\Shop\Price\Price;
 use Baraja\Shop\Product\Entity\Product;
 use Baraja\Shop\Product\Entity\ProductVariant;
 use Baraja\StructuredApi\BaseEndpoint;
+use Baraja\StructuredApi\Response\Status\OkResponse;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
 use Nette\Utils\Paginator;
@@ -534,7 +535,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	/**
 	 * @param array<int, array{id: int}> $items
 	 */
-	public function postProcessPacketMultiple(array $items): void
+	public function postProcessPacketMultiple(array $items): OkResponse
 	{
 		/** @var Order[] $orders */
 		$orders = $this->entityManager->getRepository(Order::class)
@@ -545,9 +546,9 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			->getResult();
 
 		$this->deliveryManager->sendOrders($orders);
-
 		$this->flashMessage('Shipments have been sent.', self::FlashMessageSuccess);
-		$this->sendOk();
+
+		return new OkResponse;
 	}
 
 
@@ -555,7 +556,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	 * @param array<string, mixed> $deliveryAddress
 	 * @param array<string, mixed> $invoiceAddress
 	 */
-	public function postSaveAddress(int $id, array $deliveryAddress, array $invoiceAddress): void
+	public function postSaveAddress(int $id, array $deliveryAddress, array $invoiceAddress): OkResponse
 	{
 		$order = $this->getOrderById($id);
 
@@ -586,38 +587,41 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		}
 
 		$this->entityManager->flush();
-		$this->sendOk();
+
+		return new OkResponse;
 	}
 
 
-	public function postCreatePackage(int $id): void
+	public function postCreatePackage(int $id): OkResponse
 	{
 		$order = $this->getOrderById($id);
 		$this->deliveryManager->sendOrders([$order]);
 		$this->flashMessage('Package has been created.', self::FlashMessageSuccess);
-		$this->sendOk();
+
+		return new OkResponse;
 	}
 
 
-	public function postChangePaymentStatus(int $id): void
+	public function postChangePaymentStatus(int $id): OkResponse
 	{
 		$order = $this->getOrderById($id);
 		$order->setPaid($order->isPaid() === false);
 		$this->entityManager->flush();
 		$this->flashMessage('Payment status has been changed.', self::FlashMessageSuccess);
-		$this->sendOk();
+
+		return new OkResponse;
 	}
 
 
-	public function postChangeDeliveryAndPayment(int $id, int $deliveryId, int $paymentId): void
+	public function postChangeDeliveryAndPayment(int $id, int $deliveryId, int $paymentId): OkResponse
 	{
 		$order = $this->getOrderById($id);
 
-		/** @var Delivery $delivery */
 		$delivery = $this->entityManager->getRepository(Delivery::class)->find($deliveryId);
+		assert($delivery instanceof Delivery);
 
-		/** @var Payment $payment */
 		$payment = $this->entityManager->getRepository(Payment::class)->find($paymentId);
+		assert($payment instanceof Payment);
 
 		$order->setDelivery($delivery);
 		$order->setPayment($payment);
@@ -625,29 +629,32 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$this->orderManager->recountPrice($order);
 		$this->entityManager->flush();
 		$this->flashMessage('Delivery and payment has been changed.', 'success');
-		$this->sendOk();
+
+		return new OkResponse;
 	}
 
 
-	public function postChangeStatus(int $id, string $status): void
+	public function postChangeStatus(int $id, string $status): OkResponse
 	{
 		$order = $this->getOrderById($id);
 		$this->orderStatusManager->setStatus($order, $status);
 		$this->flashMessage('Status of order ' . $order->getNumber() . ' has been changed.', 'success');
-		$this->sendOk();
+
+		return new OkResponse;
 	}
 
 
-	public function postRemoveItem(int $orderId, int $itemId): void
+	public function postRemoveItem(int $orderId, int $itemId): OkResponse
 	{
 		$order = $this->getOrderById($orderId);
 		$this->orderManager->removeItem($order, $itemId);
 		$this->flashMessage('The item has been removed.', 'success');
-		$this->sendOk();
+
+		return new OkResponse;
 	}
 
 
-	public function postSave(int $id, float $price, int $deliverPrice, ?string $notice = null): void
+	public function postSave(int $id, float $price, int $deliverPrice, ?string $notice = null): OkResponse
 	{
 		$order = $this->getOrderById($id);
 		$oldPrice = $order->getPrice();
@@ -661,20 +668,21 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			. (abs((float) $oldPrice->minus($order->getPrice())->getValue()) > 0.001 ? ' The price has been recalculated.' : ''),
 			'success',
 		);
-		$this->sendOk();
+
+		return new OkResponse;
 	}
 
 
 	/**
 	 * @param array<int, array{id: numeric-string, type: string, count: numeric-string, vat: numeric-string, price: numeric-string}> $items
 	 */
-	public function postChangeItems(int $id, array $items): void
+	public function postChangeItems(int $id, array $items): OkResponse
 	{
 		$order = $this->getOrderById($id);
 		foreach ($items as $item) {
 			if ($item['type'] === 'product') {
-				/** @var OrderItem $orderItem */
 				$orderItem = $this->entityManager->getRepository(OrderItem::class)->find((int) $item['id']);
+				assert($orderItem instanceof OrderItem);
 				$orderItem->setCount((int) $item['count']);
 				$orderItem->setVat(new Price($item['vat'], $order->getCurrency()));
 				$orderItem->dangerouslySetPrice(new Price($item['price'], $order->getCurrency()));
@@ -684,7 +692,8 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$this->orderManager->recountPrice($order);
 		$this->entityManager->flush();
 		$this->flashMessage('Items has been changed.', self::FlashMessageSuccess);
-		$this->sendOk();
+
+		return new OkResponse;
 	}
 
 
@@ -716,24 +725,25 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	}
 
 
-	public function postSetBranchId(int $orderId, ?int $branchId = null): void
+	public function postSetBranchId(int $orderId, ?int $branchId = null): OkResponse
 	{
 		$order = $this->getOrderById($orderId);
 		$this->orderManager->setBranchId($order, $branchId);
-		$this->sendOk();
+
+		return new OkResponse;
 	}
 
 
 	public function postAddItem(int $orderId, int $itemId, ?int $variantId = null): void
 	{
 		$order = $this->getOrderById($orderId);
-		/** @var Product $product */
 		$product = $this->entityManager->getRepository(Product::class)->find($itemId);
+		assert($product instanceof Product);
 		$price = $product->getSalePrice();
 		$variant = null;
 		if ($variantId !== null) {
-			/** @var ProductVariant $variant */
 			$variant = $this->entityManager->getRepository(ProductVariant::class)->find($variantId);
+			assert($variant instanceof ProductVariant);
 			$price = $variant->getPrice();
 		}
 
@@ -750,7 +760,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 	/**
 	 * @param numeric-string $price
 	 */
-	public function postAddVirtualItem(int $orderId, string $name, string $price): void
+	public function postAddVirtualItem(int $orderId, string $name, string $price): OkResponse
 	{
 		$order = $this->getOrderById($orderId);
 		$item = new OrderItem($order, null, null, 1, $price);
@@ -760,11 +770,11 @@ final class CmsOrderEndpoint extends BaseEndpoint
 		$this->entityManager->persist($item);
 		$this->entityManager->flush();
 
-		$this->sendOk();
+		return new OkResponse;
 	}
 
 
-	public function postCreateInvoice(int $id): void
+	public function postCreateInvoice(int $id): OkResponse
 	{
 		if ($this->invoiceManager === null) {
 			throw new \LogicException('Invoice manager has not been installed.');
@@ -778,7 +788,8 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			$this->flashMessage(sprintf('Invoice failed to be issued: %s', $e->getMessage()), 'error');
 		}
 		$this->entityManager->flush();
-		$this->sendOk();
+
+		return new OkResponse;
 	}
 
 
@@ -833,11 +844,9 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			];
 		}
 
-		$this->sendJson(
-			[
-				'groups' => $groups,
-			],
-		);
+		$this->sendJson([
+			'groups' => $groups,
+		]);
 	}
 
 
@@ -1073,7 +1082,7 @@ final class CmsOrderEndpoint extends BaseEndpoint
 			$events[] = [
 				'id' => $event->getId(),
 				'status' => $event->getStatus()->getName(),
-				'newStatus' => $newStatus === null ? null : $newStatus->getName(),
+				'newStatus' => $newStatus?->getName(),
 				'label' => $event->getLabel(),
 				'priority' => $event->getPriority(),
 				'active' => $event->isActive(),

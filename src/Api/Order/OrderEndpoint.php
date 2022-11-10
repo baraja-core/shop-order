@@ -46,7 +46,7 @@ final class OrderEndpoint extends BaseEndpoint
 					: null,
 				label: $orderItem->getLabel(),
 				count: $orderItem->getCount(),
-				price: $orderItem->getBasicPrice()->render(true),
+				price: $orderItem->getPrice()->render(true),
 				ean: $orderItem->getEan(),
 				sale: false,
 			);
