@@ -194,4 +194,10 @@ final class SampleOrderEntity implements OrderInterface
 	{
 		return new Price('0', $this->getCurrency());
 	}
+
+
+	public function getPickupCode(): ?string
+	{
+		return 'BRXXXXXX';
+	}
 }
