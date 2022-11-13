@@ -111,6 +111,9 @@ class Order implements OrderInterface, OrderEntity
 	#[ORM\Column(type: 'text', nullable: true)]
 	private ?string $notice = null;
 
+	#[ORM\Column(type: 'string', length: 8, nullable: true)]
+	private ?string $pickupCode;
+
 	#[ORM\Column(type: 'bigint', nullable: true)]
 	private ?int $zasilkovnaId = null;
 
@@ -194,6 +197,7 @@ class Order implements OrderInterface, OrderEntity
 		$this->deliveryPrice = $delivery !== null ? $delivery->getPrice() : '0';
 		$this->setCurrency($currency);
 		$this->hash = Random::generate(32);
+		$this->pickupCode = Random::generate(8);
 		$this->insertedDate = new \DateTimeImmutable;
 		$this->updatedDate = new \DateTime;
 		$this->items = new ArrayCollection;
@@ -236,6 +240,12 @@ class Order implements OrderInterface, OrderEntity
 	public function getCurrency(): CurrencyInterface
 	{
 		return $this->currency;
+	}
+
+
+	public function setCurrency(CurrencyInterface $currency): void
+	{
+		$this->currency = $currency;
 	}
 
 
@@ -455,12 +465,6 @@ class Order implements OrderInterface, OrderEntity
 	}
 
 
-	public function setCurrency(CurrencyInterface $currency): void
-	{
-		$this->currency = $currency;
-	}
-
-
 	public function getSale(): PriceInterface
 	{
 		return new Price($this->sale, $this->currency);
@@ -652,6 +656,18 @@ class Order implements OrderInterface, OrderEntity
 		$haystack = trim((string) $this->notice);
 		$haystack = ($haystack !== '' ? $haystack . "\n" : '') . $notice;
 		$this->setNotice($haystack);
+	}
+
+
+	public function getPickupCode(): ?string
+	{
+		return $this->pickupCode;
+	}
+
+
+	public function setPickupCode(?string $pickupCode): void
+	{
+		$this->pickupCode = $pickupCode;
 	}
 
 

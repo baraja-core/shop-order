@@ -10,12 +10,13 @@ use Baraja\Shop\Order\Application\WebController;
 use Baraja\Shop\Order\OrderManager;
 use Baraja\Shop\Order\Payment\Gateway\GatewayResponse;
 use Baraja\Shop\Order\Payment\OrderPaymentClient;
-use Baraja\Shop\Product\Entity\Product;
+use Baraja\StructuredApi\Attributes\PublicEndpoint;
 use Baraja\StructuredApi\BaseEndpoint;
 use Baraja\StructuredApi\Response\Status\ErrorResponse;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
 
+#[PublicEndpoint]
 final class OrderEndpoint extends BaseEndpoint
 {
 	public function __construct(
@@ -35,12 +36,11 @@ final class OrderEndpoint extends BaseEndpoint
 
 		$items = [];
 		foreach ($order->getItems() as $orderItem) {
-			$product = $orderItem->getProduct();
-			assert($product instanceof Product);
-			$image = $product->getMainImage();
+			$product = $orderItem->isRealProduct() ? $orderItem->getProduct() : null;
+			$image = $product?->getMainImage();
 			$items[] = new OrderItemResponse(
 				id: $orderItem->getId(),
-				slug: $product->getSlug(),
+				slug: $product?->getSlug(),
 				mainImageUrl: $image !== null
 					? ImageGenerator::from($image->getUrl(), ['w' => 200, 'h' => 200])
 					: null,
@@ -66,11 +66,14 @@ final class OrderEndpoint extends BaseEndpoint
 		return new OrderResponse(
 			hash: $hash,
 			number: $order->getNumber(),
+			variableSymbol: $order->getNumber(),
 			locale: $order->getLocale(),
 			status: $order->getStatus()->getPublicLabel(),
 			statusColor: $order->getStatus()->getColor(),
 			statusCode: $order->getStatus()->getCode(),
-			price: $order->getPrice()->render(),
+			pickupCode: $order->getPickupCode(),
+			price: $order->getPrice()->render(true),
+			currency: $order->getPrice()->getCurrency()->getCode(),
 			isPaid: $order->isPaid() || $this->orderManager->isPaid($order),
 			paymentAttemptOk: $order->isPaymentAttemptOk(),
 			delivery: $order->getDelivery()?->getLabel(),
@@ -79,6 +82,8 @@ final class OrderEndpoint extends BaseEndpoint
 			gatewayLink: WebController::getLinkGenerator()->paymentGateway($order),
 			deliveryAddress: (string) $order->getDeliveryAddress(),
 			paymentAddress: (string) $order->getPaymentAddress(),
+			insertedDate: $order->getInsertedDate(),
+			updatedDate: $order->getUpdatedDate(),
 			items: $items,
 			messages: $messages,
 			dataLayerStructure: $this->orderManager->getSeo()->getDataLayerStructure($order),

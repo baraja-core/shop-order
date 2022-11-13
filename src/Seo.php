@@ -25,14 +25,14 @@ final class Seo
 	{
 		$products = [];
 		foreach ($order->getItems() as $item) {
-			$product = $item->getProduct();
+			$product = $item->isRealProduct() ? $item->getProduct() : null;
 			$variant = $item->getVariant();
 			$products[] = [
-				'name' => $product->getLabel(),
-				'id' => (string) $product->getId(),
+				'name' => $item->getLabel(),
+				'id' => (string) $product?->getId(),
 				'price' => $item->getFinalPrice()->getValue(),
-				'brand' => $product->getBrand()?->getName() ?? 'Other',
-				'category' => $product->getMainCategory()?->getLabel(),
+				'brand' => $product?->getBrand()?->getName() ?? 'Other',
+				'category' => $product?->getMainCategory()?->getLabel(),
 				'variant' => $variant?->getName(),
 				'quantity' => $item->getCount(),
 			];
